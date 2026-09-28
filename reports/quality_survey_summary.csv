@@ -1,0 +1,3 @@
+day,day_num,count_4624,count_4625,total_events,failure_rate_pct,distinct_users,distinct_hosts,machine_account_pct,off_hours_pct,null_critical_count,exact_dups,exact_dup_pct,session_dups,session_dup_pct,bursty_dups,bursty_dup_pct,min_time,max_time,is_weekend_detected
+day-01,1,14110061,335425,14445486,2.322,17673,9432,43.54,46.44,0,188944,1.34,188944,1.34,10087826,71.49,1,86399,false
+day-02,2,16474639,328437,16803076,1.955,19374,10080,43.88,44.26,0,252154,1.53,252154,1.53,11987053,72.76,86400,172799,false

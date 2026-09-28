@@ -1,0 +1,17 @@
+Feature,VIF,Muc_do
+remote_logon_ratio,7.6345,CANH_BAO
+distinct_hosts,4.1544,BINH_THUONG
+custom_proc_share,4.1079,BINH_THUONG
+missing_source_ratio,4.0143,BINH_THUONG
+rare_logon_type_count,3.5213,BINH_THUONG
+same_second_share,1.9046,BINH_THUONG
+ntlm_ratio,1.6488,BINH_THUONG
+distinct_sources_count,1.5418,BINH_THUONG
+failure_ratio,1.4271,BINH_THUONG
+delta_t_cv,1.3956,BINH_THUONG
+is_single_event,1.3341,BINH_THUONG
+interactive_ratio,1.2692,BINH_THUONG
+interarrival_dt_mean,1.1488,BINH_THUONG
+off_hours_ratio,1.1295,BINH_THUONG
+total_logons,1.0654,BINH_THUONG
+failure_locked_out_share,1.0161,BINH_THUONG

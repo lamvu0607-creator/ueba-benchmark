@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ueba-benchmark"
+version = "0.1.0"
+description = "UEBA Benchmark Pipeline for Windows Security Event Logs (4624/4625)"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "pandas>=2.0.0",
+    "polars>=1.0.0",
+    "numpy>=1.24.0",
+    "pyarrow>=14.0.0",
+    "scipy>=1.10.0",
+    "scikit-learn>=1.3.0",
+    "pyyaml>=6.0",
+    "matplotlib>=3.7.0",
+    "seaborn>=0.12.0",
+    "tqdm>=4.65.0",
+    "joblib>=1.3.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "jupyter>=1.0.0",
+]

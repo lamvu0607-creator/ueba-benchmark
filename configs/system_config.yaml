@@ -1,0 +1,69 @@
+system:
+  random_seed: 42
+  log_level: "INFO"
+
+paths:
+  raw_data_dir: "data/raw"
+  interim_data_dir: "data/interim"
+  features_data_dir: "data/features"
+  processed_data_dir: "data/processed"
+  experiment_log: "experiments/logs/experiment_log.csv"
+  models_dir: "experiments/models"
+  figures_dir: "experiments/figures"
+
+preprocessing:
+  datetime_col: "TimeCreated"
+  user_col: "TargetUserName"
+  event_id_col: "EventID"
+  logon_type_col: "LogonType"
+  ip_col: "IpAddress"
+  workstation_col: "WorkstationName"
+  
+  # Account filtering rules
+  # (Đã sửa theo dữ liệu thật của LANL — mục #3 của feature_correlation_review.md §11.
+  #  Dữ liệu ghi "system"/"network service"/"local service"/"Anonymous", KHÔNG ghi
+  #  "SYSTEM"/"LOCAL SERVICE"/"ANONYMOUS LOGON" nên list cũ bỏ sót 379.421 dòng "Anonymous".)
+  ignore_system_accounts:
+    - "system"
+    - "local service"
+    - "network service"
+    - "anonymous"
+    - "-"
+  # Khoá cũ, không còn được đọc trực tiếp -> dùng features.filter.drop_machine_accounts.
+  # Đặt false: tài khoản máy chiếm 45,36% sự kiện và cũng có thể bị chiếm; nếu lọc,
+  # quần thể phân tích thay đổi. Extractor sẽ báo cáo số dòng sẽ bị lọc nếu bật.
+  filter_machine_accounts: false
+
+features:
+  time_window: "1D" # 1-Day aggregation for User x Day matrix
+  # Cửa sổ giờ (mục #5): off 18h-7h + work 8h-17h = phủ đủ 24 giờ, không còn vùng trống.
+  off_hours_start: 18 # 18:00
+  off_hours_end: 7    # 07:00
+  work_hours_start: 8  # 08:00
+  work_hours_end: 17   # 17:00
+  weekend_days: [5, 6] # Saturday, Sunday
+
+  # Phân loại tài khoản (mục #2): luật TƯỜNG MINH, không còn nhánh "còn lại -> Service".
+  # Thứ tự ưu tiên: admin -> system -> machine (*$) -> user (User*) -> service -> Other.
+  entity_type:
+    machine_suffix: "$"
+    user_prefix: "User"
+    admin_accounts: ["administrator"]  # tài khoản admin người (1.275.672 sự kiện/ngày 16)
+    system_accounts:
+      - "system"
+      - "local service"
+      - "network service"
+      - "anonymous"
+      - "anonymous logon"
+      - "-"
+    service_accounts: ["appservice", "scanner", "winservice"]
+
+  # Bộ lọc quần thể (mục #3) — mặc định TẮT để giữ nguyên quần thể phân tích.
+  filter:
+    drop_machine_accounts: false
+    drop_system_accounts: false
+
+evaluation:
+  test_split_ratio: 0.2
+  default_contamination: 0.05
+  k_metric: 20 # Top-K for Precision@K

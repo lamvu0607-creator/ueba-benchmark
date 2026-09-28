@@ -1,0 +1,5 @@
+Feature,Description,Raw_Mean,Raw_Median,Raw_P99,Raw_Max,Zero_%,Raw_Skewness,Raw_Kurtosis,Log_Skewness,Log_Kurtosis,Skewness_Reduction_Pct
+rare_logon_type_count_log,Số lần đăng nhập loại hiếm (Rare Logon Types),19.37,0.00,69.00,397138.00,71.09,151.66,25315.42,1.59,1.97,99.00
+distinct_sources_count,Số lượng máy nguồn phân biệt (Distinct Sources),1.45,1.00,5.00,3744.00,1.46,147.39,23101.06,2.47,26.01,98.30
+log_total_logons,Tổng số sự kiện đăng nhập (Total Logons),893.53,355.00,3741.18,4034226.00,0.00,94.52,11452.34,-1.51,4.59,98.40
+log_distinct_hosts,Số lượng máy đích phân biệt (Distinct Hosts),5.09,3.00,10.00,10289.00,0.00,91.12,9498.58,1.26,15.62,98.60

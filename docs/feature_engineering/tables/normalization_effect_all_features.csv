@@ -1,0 +1,17 @@
+Feature,Null_%,Zero_%,Raw_Mean,Raw_Max,Raw_Skew,Log_Skew,Log_Skew_NonZero,Log_Kurtosis,Reduction_%,La_Log_Target,Verdict
+total_logons,0.0000,0.0000,893.5290,4034226.0000,94.5200,-1.5100,-1.5100,4.5900,98.4000,True,NÊN LOG - đã xử lý tốt | cảnh báo: nén quá tay (lệch trái)
+failure_ratio,0.0000,87.3600,0.0220,1.0000,6.7700,6.5800,1.7600,42.6500,2.8000,False,"LOG KHÔNG HIỆU QUẢ - zero-inflated, giữ thô"
+failure_locked_out_share,87.3600,98.8600,0.0070,1.0000,11.6900,11.2200,-0.4700,129.3500,4.0000,False,"LOG KHÔNG HIỆU QUẢ - zero-inflated, giữ thô"
+off_hours_ratio,0.0000,8.1900,0.4730,1.0000,-0.5500,-0.9900,-0.8000,0.5700,-80.3000,False,ĐÃ CÂN (không cần chuẩn hóa)
+interarrival_dt_mean,1.5300,0.3400,488.7370,86297.0000,16.0100,-0.3000,0.0800,7.8600,98.2000,False,NÊN LOG - đã xử lý tốt
+delta_t_cv,2.4800,0.0900,2.3360,139.9000,9.3700,0.9500,0.9900,2.7600,89.8000,False,NÊN LOG - đã xử lý tốt
+same_second_share,0.0000,5.1700,0.4640,1.0000,-0.5600,-0.9800,-0.5100,0.9900,-73.3000,False,ĐÃ CÂN (không cần chuẩn hóa)
+is_single_event,0.0000,98.4700,0.0150,1.0000,7.9100,7.9100,,60.5300,0.0000,False,"LOG KHÔNG HIỆU QUẢ - zero-inflated, giữ thô"
+interactive_ratio,0.0000,87.0000,0.0080,1.0000,11.3900,10.7900,3.5900,121.2400,5.3000,False,"LOG KHÔNG HIỆU QUẢ - zero-inflated, giữ thô"
+rare_logon_type_count,0.0000,71.0900,19.3710,397138.0000,151.6600,1.5900,0.8800,1.9700,99.0000,True,NÊN LOG - đã xử lý tốt
+ntlm_ratio,0.0000,32.2800,0.1190,1.0000,3.3900,2.8300,2.6000,8.7700,16.7000,False,"LOG KHÔNG HIỆU QUẢ - bị chặn [0,1], giữ thô"
+distinct_hosts,0.0000,0.0000,5.0930,10289.0000,91.1200,1.2600,1.2600,15.6200,98.6000,True,NÊN LOG - đã xử lý tốt
+distinct_sources_count,0.0000,1.4600,1.4520,3744.0000,147.3900,2.4700,3.2800,26.0100,98.3000,True,NÊN LOG - đã xử lý tốt
+missing_source_ratio,0.0000,19.9700,0.0880,1.0000,4.2400,3.7300,3.5100,14.8500,12.0000,False,"LOG KHÔNG HIỆU QUẢ - bị chặn [0,1], giữ thô"
+remote_logon_ratio,0.0000,4.8800,0.8550,1.0000,-2.7900,-2.9900,-4.4400,7.6900,-7.0000,False,"LOG KHÔNG HIỆU QUẢ - bị chặn [0,1], giữ thô | cảnh báo: nén quá tay (lệch trái)"
+custom_proc_share,0.0000,90.3300,0.0350,1.0000,5.1200,5.0200,0.5700,23.7700,1.9000,False,"LOG KHÔNG HIỆU QUẢ - zero-inflated, giữ thô"

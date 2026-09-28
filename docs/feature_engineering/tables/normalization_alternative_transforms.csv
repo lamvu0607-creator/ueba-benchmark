@@ -1,0 +1,5 @@
+Feature,Raw_Skew,log1p,sqrt,cbrt,yeojohnson,YJ_lambda
+rare_logon_type_count,151.6600,1.5900,69.6900,7.1100,0.9900,-1.1230
+distinct_sources_count,147.3900,2.4700,52.3100,7.0700,-0.3600,-0.9090
+total_logons,94.5200,-1.5100,32.6400,10.5800,0.5200,0.1450
+distinct_hosts,91.1200,1.2600,45.6900,16.4100,-0.0400,-0.2950

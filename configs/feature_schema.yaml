@@ -1,0 +1,194 @@
+# Hợp đồng schema đặc trưng (Feature Contract) — UEBA Anomaly Detection Benchmark
+#
+# Sinh bởi : scripts/feature_engineering/extract_account_day_matrix.py  (BẢN 2.0)
+# Căn cứ   : docs/feature_engineering/feature_correlation_review.md (§7 rút gọn, §11 kế hoạch sửa)
+# Khoá bản ghi: (DomainName, UserName, day)
+#
+# Quy ước:
+#   core: true        -> đưa vào model & bảng tương quan
+#   core: false       -> chỉ giữ để đọc/pivot/báo cáo
+#   model_transform   -> gợi ý tiền xử lý cho mô hình dựa trên khoảng cách (IForest/LOF/OCSVM)
+#   nullable          -> có NULL hợp lệ (KHÔNG được fill bằng 0 một cách mù quáng)
+
+identity:
+  keys: ["DomainName", "UserName", "day"]
+  label: "entity_type"
+  label_values: ["Machine", "User", "Service", "System", "Admin", "Other"]
+  display_only: ["total_logons"]
+
+features:
+  # ---------------- Nhóm 1: Khối lượng ----------------
+  - name: log_total_logons
+    group: volume
+    definition: "log1p(số sự kiện 4624 + 4625 của khoá trong ngày)"
+    core: true
+    model_transform: none
+    note: "Bản log được giữ; bản thô total_logons trùng hạng rho = 1.0000 nên chỉ để hiển thị."
+
+  # ---------------- Nhóm 2: Thất bại ----------------
+  - name: failure_ratio
+    group: failure
+    definition: "failure_count / total_logons"
+    core: true
+    model_transform: none
+    note: "Đặc trưng cường độ thất bại DUY NHẤT. Bản 1.0 còn failure_count (rho = 0.9969)."
+
+  - name: failure_locked_out_share
+    group: failure
+    definition: "count(FailureReason ~ 'account locked out') / failure_count"
+    core: true
+    model_transform: none
+    nullable: "NULL khi failure_count = 0"
+    note: "Tín hiệu lockout (brute force). Thay thế unknown_user_count (Status null 100%)."
+
+  # ---------------- Nhóm 3: Thời gian / nhịp ----------------
+  - name: off_hours_ratio
+    group: time
+    definition: "số sự kiện có (hour >= off_hours_start) hoặc (hour <= off_hours_end) / total_logons"
+    core: true
+    model_transform: none
+    note: "Cửa sổ lấy từ config (18h-7h). work_hours_ratio đã bỏ vì off + work = 1 tuyệt đối."
+
+  - name: interarrival_dt_mean
+    group: rhythm
+    definition: "trung bình delta_t (giây) giữa hai sự kiện liên tiếp của cùng khoá"
+    core: true
+    model_transform: log1p
+    nullable: "NULL khi chỉ có 1 sự kiện"
+    note: "ĐÃ BỎ fill_null(86400.0): trước đây 86400 chiếm 0.841% dòng, đúng bằng số dòng 1 sự kiện."
+
+  - name: delta_t_cv
+    group: rhythm
+    definition: "std(delta_t) / mean(delta_t)"
+    core: true
+    model_transform: none
+    nullable: "NULL khi chỉ có 1 sự kiện hoặc mean(delta_t) = 0"
+    note: "Thay interarrival_dt_std (rho = 0.6020 với interarrival_dt_mean)."
+
+  - name: same_second_share
+    group: rhythm
+    definition: "số sự kiện có delta_t = 0 / total_logons"
+    core: true
+    model_transform: none
+    note: "Thay burst_logon_count: 70.57% sự kiện có delta_t = 0 nên bản count chỉ là proxy của volume."
+
+  - name: is_single_event
+    group: rhythm
+    definition: "1 nếu khoá chỉ có đúng 1 sự kiện trong ngày"
+    core: true
+    model_transform: none
+    note: "Cờ giải thích cho NULL của interarrival_dt_mean / delta_t_cv."
+
+  # ---------------- Nhóm 4: Phương thức truy cập (đóng ràng buộc tổng = 1) ----------------
+  - name: interactive_ratio
+    group: logon_type
+    definition: "count(LogonType = 2) / total_logons"
+    core: true
+    model_transform: none
+
+  - name: rare_logon_type_count_log
+    group: logon_type
+    definition: "log1p(số sự kiện có LogonType không thuộc {2, 3})"
+    core: true
+    model_transform: none
+    note: "Phản ánh type hiếm (0/4/5/7/8/9/10/11) — trong đó có RDP (type 10) và runas (type 9)."
+
+  # ---------------- Nhóm 5: Xác thực ----------------
+  - name: ntlm_ratio
+    group: authentication
+    definition: "count(AuthenticationPackage chứa 'ntlm') / total_logons"
+    core: true
+    model_transform: none
+    note: "Lưu ý diễn giải: NTLM chiếm 48.18% sự kiện 4625 so với 17.35% ở 4624 -> là proxy của chế độ thất bại."
+
+  # ---------------- Nhóm 6: Đa dạng thực thể ----------------
+  - name: log_distinct_hosts
+    group: fanout
+    definition: "log1p(số LogHost duy nhất)"
+    core: true
+    model_transform: none
+    note: "Giữ bản log; bản thô distinct_hosts_count trùng hạng rho = 1.0000."
+
+  - name: distinct_sources_count
+    group: fanout
+    definition: "số Source duy nhất (bỏ null)"
+    core: true
+    model_transform: rank_gaussian
+    note: "Skewness 139.08 -> nên dùng rank-Gaussian/winsorize thay vì chỉ log1p."
+
+  # ---------------- Nhóm 7: Ngữ cảnh nguồn ----------------
+  - name: missing_source_ratio
+    group: context
+    definition: "số sự kiện thiếu Source / total_logons"
+    core: true
+    model_transform: none
+    note: "BẢN CHẤT LÀ CHỈ BÁO CHẤT LƯỢNG DỮ LIỆU: dùng làm covariate/chú thích, KHÔNG diễn giải thành tấn công."
+
+  - name: remote_logon_ratio
+    group: context
+    definition: "số sự kiện có Source != LogHost (Source không null) / total_logons"
+    core: true
+    model_transform: none
+
+  # ---------------- Nhóm 8: Ngữ cảnh tiến trình ----------------
+  - name: custom_proc_share
+    group: context
+    definition: "số sự kiện có ProcessName bắt đầu bằng 'proc' / total_logons"
+    core: true
+    model_transform: none
+    note: "Thay 3 cờ has_process_info / has_system_process / has_custom_proc; là hệ quả của sơ đồ ẩn danh 'Proc<6 số>.exe'."
+
+# ---------------------------------------------------------------------------
+# Đã LOẠI BỎ so với bản 1.0 (xem §5 và §7.1 của review) — kèm lý do
+# ---------------------------------------------------------------------------
+removed:
+  - name: total_logons
+    reason: "Trùng hạng rho = 1.0000 với log_total_logons (nay chỉ giữ làm cột hiển thị)."
+  - name: off_hours_count
+    reason: "Trùng total_logons (rho = 0.7818) và off_hours_ratio (rho = 0.7261)."
+  - name: work_hours_ratio
+    reason: "Sau khi phủ đủ 24h, off_hours_ratio + work_hours_ratio = 1 tuyệt đối."
+  - name: burst_logon_count
+    reason: "70.57% sự kiện có delta_t = 0 -> chỉ là proxy của volume; VIF 3977.17."
+  - name: interarrival_dt_std
+    reason: "rho = 0.6020 với interarrival_dt_mean -> đã thay bằng delta_t_cv."
+  - name: failure_count
+    reason: "rho = 0.9969 với failure_ratio."
+  - name: wrong_password_count
+    reason: "ĐẶC TRƯNG CHẾT: Status null 100% nên luôn bằng 0."
+  - name: unknown_user_count
+    reason: "ĐẶC TRƯNG CHẾT: Status null 100% nên luôn bằng 0."
+  - name: distinct_hosts_count
+    reason: "Trùng hạng rho = 1.0000 với log_distinct_hosts."
+  - name: rdp_ratio
+    reason: "Type 10 chỉ chiếm 0.013% sự kiện (96.33% dòng = 0); RDP vẫn được phản ánh qua other_logon_type_ratio."
+  - name: service_ratio
+    reason: "99.73% dòng = 0."
+  - name: batch_ratio
+    reason: "99.57% dòng = 0."
+  - name: has_local_logon
+    reason: "rho = 0.9738 với has_process_info; bị nhiễu bởi Source null (24.28% / 32.09%)."
+  - name: has_process_info
+    reason: "ProcessName null 92.37% ở 4624 -> proxy của 'có sự kiện không phải Network'."
+  - name: has_system_process
+    reason: "Tập con của has_process_info (rho = 0.9455); danh sách 4 tên hard-code."
+  - name: has_custom_proc
+    reason: "Đã thay bằng custom_proc_share (dạng tỷ trọng thay vì cờ nhị phân)."
+  - name: has_system_logon_id
+    reason: "Proxy của failure (rho = 0.9104) qua LogonID = 0x3e7 của 4625."
+  - name: has_remote_logon
+    reason: "Prevalence 96.60% -> gần hằng số."
+  - name: has_missing_source
+    reason: "Bản nhị phân hoá của missing_source_ratio (rho = 0.7689)."
+  - name: has_multi_domains
+    reason: "99.18% dòng = 0; và sau khi sửa khoá thì mỗi dòng chỉ còn 1 DomainName."
+  - name: has_local_domain
+    reason: "Heuristic startsWith('comp') bắt 0.05% sự kiện 4624 nhưng 9.06% ở 4625 -> thực chất là đếm thất bại."
+  - name: network_ratio
+    reason: "Gần hằng số (median = 1.000; chỉ 2.46% dòng = 0) và rho = 0.9031 với rare_logon_type_count_log. Thông tin 'tài khoản mạng' đã nằm ở nhãn entity_type."
+  - name: other_logon_type_ratio
+    reason: "ĐÃ THỬ và BÁC BỎ: 3 ratio (network + interactive + other) cộng lại bằng 1 tạo phụ thuộc tuyến tính tuyệt đối, VIF ~ 5.2e7."
+  - name: distinct_logon_types
+    reason: "rho = 0.8799 với network_ratio (ngày toàn type 3 -> giá trị = 1)."
+  - name: failure_bad_password_share
+    reason: "ĐÃ THỬ và BÁC BỎ: rho = 0.9220 với failure_ratio (mọi lý do thất bại đều là bằng chứng 'có thất bại')."

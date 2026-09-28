@@ -1,0 +1,17 @@
+feature,role,n_weekend_like_days,n_weekday_like_days,weekday_like_mean,weekend_like_mean,weekend_minus_weekday_pct,cliffs_delta,mannwhitney_p,reflects_weekly_cycle,delta_rank
+off_hours_ratio,feature,16,44,0.495993,0.597631,20.492,0.9943,0.0,YES,1
+total_logons,volume,16,44,17055437.545455,12030448.75,-29.4627,-0.9261,0.0,YES,2
+is_single_event,feature,16,44,1.8e-05,1.2e-05,-33.7809,-0.7642,7e-06,YES,3
+distinct_sources_count,feature,16,44,51.759071,36.806713,-28.8884,-0.6591,0.000109,YES,4
+interarrival_dt_mean,feature,16,44,75.177647,85.369528,13.5571,0.5909,0.000523,YES,5
+ntlm_ratio,feature,16,44,0.207454,0.237151,14.3151,0.5085,0.002846,YES,6
+failure_locked_out_share,feature,16,44,0.011409,0.007239,-36.5501,-0.4972,0.003534,YES,7
+interactive_ratio,feature,16,44,0.008662,0.012946,49.4712,0.3608,0.034463,YES,8
+distinct_hosts,feature,16,44,404.825706,364.360873,-9.9956,-0.3381,0.047605,YES,9
+custom_proc_share,feature,16,44,0.039024,0.046635,19.5044,0.3295,0.053517,YES,10
+delta_t_cv,feature,16,44,5.451768,6.483865,18.9314,-0.2812,0.09965,YES,11
+missing_source_ratio,feature,16,44,0.148866,0.155453,4.4243,0.2727,0.110399,YES,12
+rare_logon_type_count,feature,16,44,3086.337318,2981.956787,-3.382,-0.2557,0.134626,YES,13
+remote_logon_ratio,feature,16,44,0.665443,0.675138,1.457,0.1761,0.303926,YES,14
+failure_ratio,feature,16,44,0.014693,0.01559,6.1086,0.0455,0.795556,no,15
+same_second_share,feature,16,44,0.690825,0.697098,0.9081,0.0256,0.88701,no,16

@@ -1,0 +1,29 @@
+# ==============================================================================
+# REQUIREMENTS FILE
+# Project: UEBA Anomaly Detection Benchmark (Windows Event Logs 4624/4625)
+# Target Models: Isolation Forest, Local Outlier Factor, One-Class SVM
+# Compatible with Python 3.10+ (including conda environments)
+# ==============================================================================
+
+# Data Processing & Storage (Ma trận Tài khoản × Ngày & I/O Parquet)
+numpy>=1.24.0
+pandas>=2.0.0
+pyarrow>=14.0.0
+polars>=1.0.0
+
+# Machine Learning & Scientific Computing (Baseline & Mô hình cốt lõi)
+scipy>=1.10.0
+scikit-learn>=1.3.0
+
+# Visualization & EDA (Biểu đồ phân bố 24h, PR-Curve, Phân tích độ nhạy)
+matplotlib>=3.7.0
+seaborn>=0.12.0
+ipykernel>=6.0.0
+
+# Testing & Quality Assurance
+pytest>=7.4.0
+
+# Utilities & Configuration (Tách cấu hình YAML và lưu trữ Model)
+tqdm>=4.65.0
+joblib>=1.3.0
+pyyaml>=6.0

@@ -1,0 +1,20 @@
+check_group,metric,value,unit,interpretation,status
+Q1 - Nhịp tuần,acf_lag7,0.5833,hệ số tương quan,Ngưỡng chu kỳ rõ ≥ 0.3,OK
+Q1 - Nhịp tuần,acf_lag14,0.4572,hệ số tương quan,Xác nhận vòng tuần thứ hai (kỳ vọng ≈ lag 7),OK
+Q1 - Nhịp tuần,acf_peak_lag,7,lag,Lag có ACF cao nhất trong 1..14 (kỳ vọng = 7),OK
+Q1 - Nhịp tuần,phase_variance_explained_pct,66.6965,%,Phần phương sai log(lưu lượng/ngày) giải thích chỉ bằng pha tuần,OK
+Q1 - Nhịp tuần,residual_cv_after_phase_pct,0.6986,%,Biến thiên còn lại sau khi bỏ chu kỳ tuần (nền để dò bất thường THẬT),INFO
+Q2 - Cuối tuần,weekend_like_phases,"5, 6",pha (day_index % 7),"2 pha lưu lượng thấp nhất — SUY LUẬN, chưa xác nhận calendar origin (plan §4.3)",INFO
+Q2 - Cuối tuần,weekend_drop_pct,29.3201,%,Ngưỡng đáng kể ≥ 10.0%,OK
+Q2 - Cuối tuần,weekend_active_accounts_drop_pct,31.433,%,Số tài khoản hoạt động cũng giảm theo cùng nhịp (không chỉ volume),INFO
+Q2 - Cuối tuần,week_block_consistency_pct,87.5,%,7/8 tuần trọn vẹn có đúng 2 pha thấp nhất = tập weekend-like (ngưỡng ≥ 75.0%),OK
+Q2 - Cuối tuần,weekend_minus_weekday_failure_ratio_pp,0.0897,điểm %,Chênh lệch tỷ lệ thất bại (trọng số theo lưu lượng) giữa cuối tuần và ngày thường,INFO
+Q2 - Cuối tuần,weekend_minus_weekday_off_hours_ratio_pp,10.1639,điểm %,Cuối tuần off_hours_ratio cao hơn vì hoạt động dồn ra ngoài giờ hành chính,INFO
+Q4 - Trôi nền,volume (log1p): rho (nền trượt 7 ngày),0.1222,hệ số,Theil-Sen 2.1295%/tuần; trung vị nửa sau/nửa đầu = 1.0026; p(MWU) = 0.122353,WARN
+Q4 - Trôi nền,failure_ratio (trọng số): rho (nền trượt 7 ngày),-0.3763,hệ số,Theil-Sen -0.1073%/tuần; trung vị nửa sau/nửa đầu = 0.5505; p(MWU) = 1.5e-05,WARN
+Q4 - Trôi nền,off_hours_ratio (trọng số): rho (nền trượt 7 ngày),0.2765,hệ số,Theil-Sen 0.1327%/tuần; trung vị nửa sau/nửa đầu = 0.9839; p(MWU) = 0.876635,OK
+Q3 - Nghỉ sinh học,hourly_check,N/A,-,Thiếu data/interim -> bỏ qua nhịp giờ (chạy lại khi có dữ liệu thô),SKIP
+Q5 - Đặc trưng,n_features_tested,15,đặc trưng,Số đặc trưng được kiểm định (không tính total_logons),INFO
+Q5 - Đặc trưng,n_features_reflecting_weekly_cycle,13,đặc trưng,|Cliff's delta| ≥ 0.147 giữa ngày thường và cuối tuần-like,INFO
+Q5 - Đặc trưng,strongest_feature,off_hours_ratio,tên đặc trưng,"Cliff's delta = 0.9943, chênh lệch 20.492% (cuối tuần vs ngày thường), p = 0.0",INFO
+Q5 - Đặc trưng,weakest_feature,same_second_share,tên đặc trưng,"Cliff's delta = 0.0256, chênh lệch 0.9081%, p = 0.88701",INFO

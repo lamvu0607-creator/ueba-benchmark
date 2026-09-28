@@ -1,0 +1,77 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints
+*/.ipynb_checkpoints/*
+
+# Pytest / Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+
+# IDEs & OS specific files
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Data directories (Keep directory structure via .gitkeep, ignore data files)
+data/raw/*
+!data/raw/.gitkeep
+data/interim/*
+!data/interim/.gitkeep
+data/features/*
+!data/features/.gitkeep
+!data/features/**/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+
+# Archives & Large Binaries
+*.zip
+*.tar.gz
+*.7z
+*.rar
+
+# Experiment artifacts (Models, figures & logs)
+experiments/models/*
+!experiments/models/.gitkeep
+experiments/figures/*
+!experiments/figures/.gitkeep
+experiments/logs/*
+!experiments/logs/.gitkeep
+
