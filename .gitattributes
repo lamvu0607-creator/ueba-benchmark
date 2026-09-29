@@ -1,0 +1,22 @@
+"""Chuẩn hoá line ending & khai báo file nhị phân để git không normalize (tránh cảnh báo LF/CRLF trên Windows)."""
+
+* text=auto
+*.py text
+*.yaml text
+*.yml text
+*.md text
+*.csv text
+*.json text
+*.txt text
+*.cfg text
+*.ini text
+
+# Artifact nhị phân: không bao giờ normalize nội dung
+*.parquet binary
+*.joblib binary
+*.pkl binary
+*.png binary
+*.jpg binary
+*.zip binary
+*.7z binary
+*.gz binary

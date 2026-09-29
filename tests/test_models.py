@@ -19,6 +19,14 @@ from src.models.detectors import (
     OneClassSVMDetector,
 )
 from src.models.pipeline import AnomalyPipeline
+from src.models.registry import (
+    DEFAULT_MODEL_NAMES,
+    available_models,
+    create_model,
+    create_pipeline,
+    load_params,
+    resolve_model,
+)
 
 DETECTOR_CLASSES = (IsolationForestDetector, LocalOutlierFactorDetector, OneClassSVMDetector)
 PARAMS_PATH = Path(__file__).resolve().parents[1] / "configs" / "model_params.yaml"
@@ -391,5 +399,52 @@ def test_one_class_svm_pipeline():
     expected = np.quantile(model.fit_scores_, 1.0 - model.contamination)
     assert model.threshold_ == pytest.approx(expected)
     assert int(np.argmax(scores)) == OUTLIER_POS_IN_TEST
+
+
+# --------------------------------------------------------------------------- #
+# Registry & factory (B5)
+# --------------------------------------------------------------------------- #
+def test_model_factory():
+    """Factory: 5 tên canonical + alias CamelCase của log cũ tạo đúng lớp; tên lạ bị chặn."""
+    params = load_params(PARAMS_PATH)
+
+    assert DEFAULT_MODEL_NAMES == [
+        "isolation_forest",
+        "local_outlier_factor",
+        "one_class_svm",
+        "zscore_baseline",
+        "rule_threshold_baseline",
+    ]
+    assert available_models() == DEFAULT_MODEL_NAMES
+
+    for name in available_models():
+        model = create_model(name, params=params)
+        assert isinstance(model, resolve_model(name))
+        assert model.contamination == params["defaults"]["contamination"]
+        assert model.random_state == params["defaults"]["random_state"]
+
+        pipeline = create_pipeline(name, params=params)
+        assert pipeline.model.name == name
+        assert pipeline.get_metadata()["imputer"] == "SimpleImputer"
+        expected_scaler = "RobustScaler" if model.requires_scaling else None
+        assert pipeline.get_metadata()["scaler"] == expected_scaler
+
+    # Alias tương thích ngược: experiment_log.csv cũ ghi tên theo CamelCase.
+    assert isinstance(create_model("IsolationForest", params=params), IsolationForestDetector)
+    assert isinstance(create_model("LocalOutlierFactor", params=params), LocalOutlierFactorDetector)
+    assert isinstance(create_model("OneClassSVM", params=params), OneClassSVMDetector)
+    assert isinstance(create_model("zscore", params=params), ZScoreBaseline)
+
+    # Tham số truyền trực tiếp phải thắng cấu hình (để CLI ghi đè được khi tái lập).
+    overridden = create_model("isolation_forest", params=params, contamination=0.10, random_state=7)
+    assert overridden.contamination == 0.10
+    assert overridden.random_state == 7
+
+    with pytest.raises(KeyError, match="không tồn tại"):
+        create_model("khong_co_model", params=params)
+    with pytest.raises(ValueError, match="Tham số không hợp lệ"):
+        create_model("isolation_forest", params={"isolation_forest": {"sai_key": 1}})
+    with pytest.raises(ValueError, match="contamination"):
+        create_model("isolation_forest", params=params, contamination=2.0)
 
 

@@ -1,5 +1,22 @@
 # Model hyperparameter configurations for UEBA Anomaly Detection
 
+# ---------------------------------------------------------------------------
+# Tham số dùng chung — registry tách rõ 3 loại cấu hình: defaults / training / preprocessing
+# ---------------------------------------------------------------------------
+defaults:
+  contamination: 0.05 # ngân sách cảnh báo: threshold_ = quantile(score_train, 1 - contamination)
+  random_state: 42
+
+training:
+  # Ghi đè ngân sách lấy mẫu con khi fit cho MỌI mô hình. null = dùng mặc định từng lớp:
+  # LOF/One-Class SVM 20.000 dòng; Isolation Forest và 2 baseline dùng toàn bộ tập train.
+  max_train_samples: null
+
+preprocessing:
+  imputer: "median" # median fit trên tập train (KHÔNG fill 0 các NULL hợp lệ như interarrival_dt_mean)
+  scaler: "robust" # chỉ áp dụng cho mô hình requires_scaling (IF/LOF/OCSVM); baseline dùng đơn vị gốc
+  feature_set: "core" # 16 đặc trưng core trong configs/feature_schema.yaml
+
 isolation_forest:
   n_estimators: 150
   max_samples: "auto"

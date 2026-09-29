@@ -66,6 +66,15 @@ features:
     drop_system_accounts: false
 
 evaluation:
-  test_split_ratio: 0.2
+  split_strategy: "time" # train = {day <= split_day}, test = {day > split_day}
+  # split_day TƯỜNG MINH để tái lập đúng thí nghiệm đã chạy: train ngày 1-42 (721.612 dòng),
+  # test ngày 43-60 (333.671 dòng, 31,62%). Kiểm chứng lại bằng:
+  #   python scripts/diagnostics/day_split_table.py
+  split_day: 42
+  # Chỉ dùng khi split_day = null (khi đó cắt ở ranh giới ngày gần tỷ lệ này nhất;
+  # 0.30 -> split_day 43 với 29,70%).
+  test_split_ratio: 0.30
   default_contamination: 0.05
-  k_metric: 20 # Top-K for Precision@K
+  k_metric: 20 # Top-K cho Precision@K và top-K overlap
+  budget_ratio: 0.05 # ngân sách cảnh báo cho Precision@budget / Recall@budget
+  seeds: [42, 7, 2024] # đa seed cho kiểm tra ổn định của mô hình có lấy mẫu con
