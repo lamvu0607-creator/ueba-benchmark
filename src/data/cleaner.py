@@ -60,6 +60,7 @@ def clean_single_day(
     adjust_dst: bool = True,
     dst_start_day: int = 42,
     dst_offset_seconds: int = -3600,
+    overwrite: bool = False,
 ) -> Dict[str, Any]:
     """
     Làm sạch dữ liệu sự kiện của 1 ngày cụ thể (kết hợp cả 4624 và 4625).
@@ -78,6 +79,20 @@ def clean_single_day(
     interim_path = Path(interim_dir)
     out_path = Path(output_dir)
     out_path.mkdir(parents=True, exist_ok=True)
+
+    out_file = out_path / f"cleaned_day-{day:02d}.parquet"
+    if out_file.exists() and not overwrite:
+        file_size_mb = out_file.stat().st_size / (1024 * 1024)
+        logger.info(f"[Day {day:02d}] Đã tồn tại file sạch tại '{out_file}' ({file_size_mb:.2f} MB), bỏ qua.")
+        return {
+            "day": day,
+            "status": "cached",
+            "file_size_mb": file_size_mb,
+            "output_path": str(out_file),
+            "raw_rows": 0,
+            "cleaned_rows": 0,
+            "duplicates_dropped": 0,
+        }
 
     path_4624 = interim_path / "event_4624" / f"event_4624_day-{day:02d}.parquet"
     path_4625 = interim_path / "event_4625" / f"event_4625_day-{day:02d}.parquet"
@@ -163,7 +178,7 @@ def clean_single_day(
     duplicates_dropped = raw_rows - cleaned_rows
 
     # 7. Sắp xếp chuỗi thời gian cho tối ưu truy vấn
-    df_clean = df_clean.sort(["Time", "DomainName", "UserName"])
+    df_clean = df_clean.sort("Time")
 
     # 8. Lưu kết quả ra file Parquet sạch
     out_file = out_path / f"cleaned_day-{day:02d}.parquet"
@@ -196,6 +211,7 @@ def clean_dataset(
     interim_dir: Path | str,
     output_dir: Path | str,
     adjust_dst: bool = True,
+    overwrite: bool = False,
 ) -> List[Dict[str, Any]]:
     """
     Làm sạch toàn bộ chuỗi ngày từ start_day đến end_day.
@@ -213,6 +229,7 @@ def clean_dataset(
             interim_dir=interim_dir,
             output_dir=output_dir,
             adjust_dst=adjust_dst,
+            overwrite=overwrite,
         )
         results.append(res)
         if res.get("status") == "success":
