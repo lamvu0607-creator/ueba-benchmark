@@ -69,34 +69,63 @@ def train_and_evaluate_model(
     X_train: np.ndarray,
     df_eval: pl.DataFrame,
     feature_names: List[str],
+    batch_size: int = 100_000,
+    random_state: int = 42,
 ) -> Dict[str, Any]:
     """
     Huấn luyện và tính điểm dị biệt cho 1 mô hình cụ thể.
+    Đối với các mô hình tính toán nặng (LOF, One-Class SVM), tự động lấy mẫu đại diện
+    khi số lượng mẫu vượt ngưỡng để đảm bảo tốc độ và tránh quá tải CPU/RAM.
     """
     logger.info(f"--> Bắt đầu huấn luyện mô hình: '{model_name.upper()}' với {len(feature_names)} đặc trưng...")
     t0 = time.time()
 
+    model_params = dict(params)
+    subsample_limit = model_params.pop("max_train_samples", None)
+    if subsample_limit is None:
+        if model_name in ["local_outlier_factor", "one_class_svm"] and len(X_train) > 20_000:
+            subsample_limit = 20_000
+
+    if subsample_limit and len(X_train) > subsample_limit:
+        rng = np.random.default_rng(random_state)
+        sample_indices = rng.choice(len(X_train), size=subsample_limit, replace=False)
+        X_fit = X_train[sample_indices]
+        logger.info(
+            f"[{model_name.upper()}] Dữ liệu lớn ({len(X_train):,} dòng) -> Lấy mẫu ngẫu nhiên "
+            f"{subsample_limit:,} dòng đại diện để huấn luyện..."
+        )
+    else:
+        X_fit = X_train
+
     if model_name == "isolation_forest":
-        model = IsolationForest(**params)
+        model = IsolationForest(**model_params)
     elif model_name == "local_outlier_factor":
-        model = LocalOutlierFactor(**params)
+        model = LocalOutlierFactor(**model_params)
     elif model_name == "one_class_svm":
-        model = OneClassSVM(**params)
+        model = OneClassSVM(**model_params)
     else:
         raise ValueError(f"Mô hình không được hỗ trợ: '{model_name}'.")
 
-    # Huấn luyện
-    model.fit(X_train)
+    # Huấn luyện mô hình
+    model.fit(X_fit)
     fit_duration = time.time() - t0
+    logger.info(f"[{model_name.upper()}] Huấn luyện xong trong {fit_duration:.2f}s. Đang chấm điểm dị biệt cho {len(X_train):,} thực thể...")
 
-    # Dự đoán (-1: Dị biệt, 1: Bình thường)
-    preds = model.predict(X_train)
-    is_anomaly = (preds == -1).astype(int)
+    # Chấm điểm dị biệt theo batch an toàn (LOF dùng batch 5,000 để tránh tràn RAM O(N^2))
+    effective_batch_size = 5_000 if model_name == "local_outlier_factor" else 25_000
+    raw_scores_list = []
+    for i in range(0, len(X_train), effective_batch_size):
+        batch = X_train[i : i + effective_batch_size]
+        raw_scores_list.append(model.decision_function(batch))
+    raw_scores = np.concatenate(raw_scores_list)
 
     # Điểm dị biệt (Anomaly Score: càng cao càng bất thường)
     # scikit-learn decision_function càng thấp càng bất thường -> đổi dấu -
-    raw_scores = model.decision_function(X_train)
     anomaly_scores = -raw_scores
+
+    # Dự đoán (-1: Dị biệt, 1: Bình thường)
+    preds = np.where(raw_scores < 0, -1, 1)
+    is_anomaly = (preds == -1).astype(int)
 
     n_samples = len(X_train)
     n_anomalies = int(is_anomaly.sum())

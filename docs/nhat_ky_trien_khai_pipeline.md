@@ -119,7 +119,7 @@
 * **Số cột ma trận sau chuẩn hóa**: `23` cột (4 khoá định danh + 16 đặc trưng cốt lõi + 3 cột bổ trợ log).
 * **Kiểm định Schema (`FeatureSchema`)**: **HỢP LỆ 100%** (`is_valid: True`, không có missing key, không có giá trị tỷ lệ vượt ngưỡng).
 
-### 5.3. Khâu Huấn Luyện Mô Hình & Benchmark (Day 01)
+### 5.3. Khâu Huấn Luyện Mô Hình & Benchmark (Thử Nghiệm Nhanh Day 01)
 
 | Mô hình | Thuật toán | Số mẫu | Số dị biệt phát hiện | Tỷ lệ dị biệt (%) | Thời gian train (s) | File Model |
 |:---|:---|:---:|:---:|:---:|:---:|:---|
@@ -127,8 +127,22 @@
 | **Local Outlier Factor** | Density-based | 17,910 | 796 | 4.44% | 1.08s | `local_outlier_factor.joblib` |
 | **One-Class SVM** | Kernel SVM | 17,910 | 895 | 5.00% | 3.28s | `one_class_svm.joblib` |
 
-### 5.4. Kết Quả Unit Tests
-* Tổng số test: **11/11 tests passed** (100% pass trong 4.50 giây).
+### 5.4. Kết Quả Thực Thi Toàn Bộ 60 Ngày (Toàn Bộ Tập Dữ Liệu)
+* **Quy mô ma trận (Tài khoản × Ngày)**: **1,055,283 dòng × 23 cột** (tương đương hơn 1 triệu thực thể quan trắc qua 60 ngày).
+* **Kết quả Benchmark Leaderboard trên 1,055,283 thực thể**:
+
+| Mô hình | Số mẫu đánh giá | Số dị biệt phát hiện | Tỷ lệ dị biệt (%) | Thời gian huấn luyện (s) | Vị trí lưu trữ Model |
+|:---|:---:|:---:|:---:|:---:|:---|
+| **Isolation Forest** | 1,055,283 | 52,765 | 5.00% | 9.36s | `experiments/models/isolation_forest.joblib` |
+| **Local Outlier Factor** | 1,055,283 | 52,367 | 4.96% | 0.62s | `experiments/models/local_outlier_factor.joblib` |
+| **One-Class SVM** | 1,055,283 | 52,660 | 4.99% | 1.75s | `experiments/models/one_class_svm.joblib` |
+
+* **Đầu ra kết quả**:
+  * Bảng tổng hợp Leaderboard: `experiments/results/benchmark_summary.csv`
+  * Chi tiết điểm số dị biệt của 1,055,283 tài khoản: `experiments/results/anomaly_scores.parquet`
+
+### 5.5. Kết Quả Unit Tests
+* Tổng số test: **11/11 tests passed** (100% pass trong bộ kiểm thử pytest).
 
 ---
 
