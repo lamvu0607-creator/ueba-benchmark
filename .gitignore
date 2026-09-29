@@ -69,13 +69,21 @@ data/processed/*
 *.7z
 *.rar
 
-# Experiment artifacts (Models, figures & logs)
+# Experiment artifacts: KẾT QUẢ ĐƯỢC COMMIT (bài học Tuần 2: log cũ bị ignore nên 8 dòng kết quả
+# suýt mất hoàn toàn, cùng với model_factory và ~10 test). Chỉ bỏ qua file .joblib vì là nhị phân lớn.
 experiments/models/*
 !experiments/models/.gitkeep
 experiments/figures/*
 !experiments/figures/.gitkeep
 experiments/logs/*
 !experiments/logs/.gitkeep
+!experiments/logs/experiment_log.csv
 experiments/results/*
 !experiments/results/.gitkeep
+!experiments/results/benchmark_summary.csv
+!experiments/results/anomaly_scores.parquet
+!experiments/results/model_topk_overlap.csv
+!experiments/results/model_stability.csv
+!experiments/results/split_info.json
+!experiments/results/run_manifest.json
 

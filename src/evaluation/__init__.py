@@ -11,6 +11,19 @@ file nào được commit). Nó được tạo lại ở Tuần 3 theo đúng th
   * ``manifest.py``       — run_manifest.json (seed, commit, hash dữ liệu, phiên bản thư viện).
 """
 
+from src.evaluation.experiment_log import (
+    LEGACY_COLUMNS,
+    append_experiment_log,
+    build_log_row,
+    legacy_model_name,
+)
+from src.evaluation.manifest import (
+    build_manifest,
+    file_sha256,
+    git_state,
+    library_versions,
+    write_manifest,
+)
 from src.evaluation.metrics import (
     DEFAULT_QUANTILES,
     alert_rate,
@@ -33,6 +46,15 @@ __all__ = [
     "SplitInfo",
     "resolve_split_day",
     "time_split",
+    "LEGACY_COLUMNS",
+    "append_experiment_log",
+    "build_log_row",
+    "legacy_model_name",
+    "build_manifest",
+    "file_sha256",
+    "git_state",
+    "library_versions",
+    "write_manifest",
     "DEFAULT_QUANTILES",
     "alert_rate",
     "average_precision",

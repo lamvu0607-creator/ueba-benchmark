@@ -2,13 +2,18 @@
 Unit tests for the evaluation package: time-based split, label-free metrics, experiment log, manifest.
 """
 
+import hashlib
+import json
 from pathlib import Path
 
 import numpy as np
+import pandas as pd
 import polars as pl
 import pytest
 from scipy.stats import spearmanr
 
+from src.evaluation.experiment_log import LEGACY_COLUMNS, append_experiment_log, build_log_row
+from src.evaluation.manifest import build_manifest, file_sha256, library_versions, write_manifest
 from src.evaluation.metrics import (
     alert_rate,
     average_precision,
@@ -164,3 +169,77 @@ def test_score_rank_pct_matches_score_order():
     # Mặc định (không truyền reference) dùng điểm tập fit -> giá trị cũng phải nằm trong [0, 1].
     pct_fit = model.score_rank_pct(X)
     assert pct_fit.min() >= 0.0 and pct_fit.max() <= 1.0
+
+
+# --------------------------------------------------------------------------- #
+# Log thí nghiệm & manifest (B9)
+# --------------------------------------------------------------------------- #
+def test_experiment_log_and_manifest(temp_artifact_dir):
+    """Log phải tương thích 18 cột cũ + chống ghi trùng; manifest đủ dữ liệu/mã/cấu hình/thư viện."""
+    scores = np.linspace(0.0, 1.0, 100)
+    summary = {
+        "model": "isolation_forest",
+        "n_fit": 5000,
+        "n_train_partition": 721_612,
+        "n_eval": 333_671,
+        "fit_seconds": 0.8,
+        "score_seconds": 2.02,
+        "contamination": 0.05,
+        "n_features": 16,
+        "imputer": "SimpleImputer",
+        "scaler": "RobustScaler",
+        "threshold": 0.5,
+        "alert_rate_pct": 5.2,
+        "sklearn_version": "1.9.1",
+    }
+    split = {"strategy": "time", "split_day": 42}
+
+    row = build_log_row("isolation_forest", scores, summary, split, seed=42, git_commit="abc123")
+    assert list(row)[: len(LEGACY_COLUMNS)] == LEGACY_COLUMNS  # tên + thứ tự cột cũ giữ nguyên
+    assert row["model_name"] == "IsolationForest"  # nhãn CamelCase như log cũ
+    assert row["model_key"] == "isolation_forest"
+    assert row["train_samples"] == 5000 and row["test_samples"] == 333_671
+    assert row["score_count"] == 100.0
+    assert row["score_min"] == pytest.approx(0.0)
+    assert row["score_max"] == pytest.approx(1.0)
+    assert row["score_median"] == pytest.approx(0.5, abs=0.01)
+    assert row["git_commit"] == "abc123" and row["split_day"] == 42
+
+    log_path = append_experiment_log(temp_artifact_dir / "experiment_log.csv", [row])
+    assert log_path.is_file()
+    assert append_experiment_log(log_path, [row]) == log_path  # cùng cấu hình -> dedupe
+    assert len(pd.read_csv(log_path)) == 1
+
+    append_experiment_log(log_path, [build_log_row("isolation_forest", scores, summary, split, seed=7)])
+    frame = pd.read_csv(log_path)
+    assert len(frame) == 2
+    assert list(frame.columns)[: len(LEGACY_COLUMNS)] == LEGACY_COLUMNS
+
+    data_file = temp_artifact_dir / "dummy.parquet"
+    data_file.write_bytes(b"ueba-data")
+    assert file_sha256(data_file) == hashlib.sha256(b"ueba-data").hexdigest()
+
+    manifest = build_manifest(
+        data_path=data_file,
+        params_path="configs/model_params.yaml",
+        artifacts={"benchmark_summary": "experiments/results/benchmark_summary.csv"},
+        split=split,
+        models=[{"model_name": "isolation_forest", "n_fit": 5000}],
+        seed=42,
+        k=20,
+        budget_ratio=0.05,
+        feature_names=["failure_ratio", "off_hours_ratio"],
+    )
+    manifest_path = write_manifest(manifest, temp_artifact_dir / "run_manifest.json")
+    loaded = json.loads(manifest_path.read_text(encoding="utf-8"))
+
+    assert loaded["format"] == "ueba-run-manifest/1"
+    assert loaded["data"]["sha256"] == hashlib.sha256(b"ueba-data").hexdigest()
+    assert loaded["config"]["seed"] == 42 and loaded["config"]["k"] == 20
+    assert loaded["config"]["feature_names"] == ["failure_ratio", "off_hours_ratio"]
+    assert loaded["split"]["split_day"] == 42
+    assert loaded["models"][0]["n_fit"] == 5000
+    assert loaded["artifacts"]["benchmark_summary"].endswith("benchmark_summary.csv")
+    assert "scikit-learn" in loaded["libraries"] and loaded["libraries"]["python"]
+    assert loaded["git"]["commit"] is None or len(loaded["git"]["commit"]) == 40
+    assert library_versions()["numpy"] != ""

@@ -53,6 +53,11 @@ class ZScoreBaseline(BaseAnomalyModel):
       * ``agg``: ``"max"`` (mặc định, "có bất kỳ đặc trưng nào lệch mạnh") | ``"mean"`` | ``"p95"``,
       * ``z_threshold`` + ``threshold_mode: "fixed"`` nếu muốn ngưỡng tuyệt đối cổ điển (|z| >= 3).
 
+    Độ tán xạ khi ``method="robust"`` dùng chuỗi fallback ``MAD -> IQR/1.349 -> std -> 1.0``: trên dữ liệu
+    thật 7/16 đặc trưng có MAD = 0 (hơn nửa số dòng bằng đúng median, ví dụ các ratio vốn bằng 0),
+    nên nếu cứ đặt scale = 1 thì đơn vị thô của một vài đặc trưng sẽ lấn át toàn bộ điểm.
+    Số đặc trưng phải fallback luôn được ghi log để người đọc biết kết quả dựa trên gì.
+
     Không cần scale vì điểm tự chuẩn hoá theo từng đặc trưng (``requires_scaling = False``).
     """
 
@@ -66,23 +71,45 @@ class ZScoreBaseline(BaseAnomalyModel):
         method = str(self.native_params.get("method", "robust"))
         if method == "robust":
             self.location_ = np.median(X, axis=0)
-            self.scale_ = 1.4826 * np.median(np.abs(X - self.location_), axis=0)
+            # Chuỗi fallback cho độ tán xạ (đo trên dữ liệu thật: 7/16 đặc trưng có MAD = 0 vì
+            # hơn nửa số dòng bằng đúng median — nếu đặt scale = 1 thì đơn vị thô (ví dụ
+            # interarrival_dt_mean tới 86.297 giây) sẽ lấn át toàn bộ điểm z-score).
+            mad = 1.4826 * np.median(np.abs(X - self.location_), axis=0)
+            iqr = (np.percentile(X, 75, axis=0) - np.percentile(X, 25, axis=0)) / 1.349
+            std = X.std(axis=0)
+            scale = np.where(mad > 0, mad, np.where(iqr > 0, iqr, std))
+            n_mad_zero, n_degenerate = int((mad <= 0).sum()), int((scale <= 0).sum())
+            if n_mad_zero:
+                logger.info(
+                    "[%s] có %d/%d đặc trưng MAD = 0 -> dùng IQR (rồi tới std) làm độ tán xạ thay thế.",
+                    self.name,
+                    n_mad_zero,
+                    X.shape[1],
+                )
+            if n_degenerate:
+                logger.warning(
+                    "[%s] có %d đặc trưng hằng số hoàn toàn trên tập fit -> đặt scale = 1 (không đóng góp điểm).",
+                    self.name,
+                    n_degenerate,
+                )
+            scale = np.where(scale > 0, scale, 1.0)
         elif method == "classic":
             self.location_ = X.mean(axis=0)
-            self.scale_ = X.std(axis=0)
+            std = X.std(axis=0)
+            n_degenerate = int((std <= 0).sum())
+            if n_degenerate:
+                logger.warning(
+                    "[%s] có %d đặc trưng hằng số trên tập fit -> đặt scale = 1 để tránh chia 0.",
+                    self.name,
+                    n_degenerate,
+                )
+            scale = np.where(std > 0, std, 1.0)
         else:
             raise ValueError(
                 f"method không hợp lệ cho ZScoreBaseline: {method!r}. Chỉ hỗ trợ 'robust' hoặc 'classic'."
             )
-        # Đặc trưng hằng số (scale = 0) không mang tín hiệu -> gán scale 1 để tránh chia 0.
-        n_degenerate = int((self.scale_ <= 0).sum())
-        if n_degenerate:
-            logger.warning(
-                "[%s] có %d đặc trưng hằng số trên tập fit -> đặt scale = 1 để tránh chia 0.",
-                self.name,
-                n_degenerate,
-            )
-        self.scale_ = np.where(self.scale_ <= 0, 1.0, self.scale_)
+
+        self.scale_ = scale
         return None
 
     def _anomaly_score(self, X: np.ndarray) -> np.ndarray:

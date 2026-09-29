@@ -1,0 +1,491 @@
+{
+  "format": "ueba-run-manifest/1",
+  "created_at": "2026-09-29T16:46:23+00:00",
+  "git": {
+    "commit": "124de89a7b89935ffde4a946649cb0410e8d01c7",
+    "branch": "feature/model-benchmark-framework",
+    "is_dirty": true
+  },
+  "libraries": {
+    "python": "3.14.6",
+    "scikit-learn": "1.9.1",
+    "scipy": "1.18.1",
+    "polars": "1.44.2",
+    "numpy": "2.5.3",
+    "pandas": "3.0.5",
+    "joblib": "1.6.0",
+    "pyarrow": "24.0.0"
+  },
+  "platform": "Windows-10-10.0.19045-SP0",
+  "data": {
+    "path": "data\\processed\\feature_matrix_processed.parquet",
+    "sha256": "e087509edf002444f065e1cec3f9380d2fe01d7594dea11601ea212a85969a43",
+    "bytes": 65084127
+  },
+  "config": {
+    "params_path": "configs/model_params.yaml",
+    "system_config_path": "configs/system_config.yaml",
+    "seed": 42,
+    "k": 20,
+    "budget_ratio": 0.05,
+    "feature_set": "core",
+    "feature_names": [
+      "log_total_logons",
+      "failure_ratio",
+      "failure_locked_out_share",
+      "off_hours_ratio",
+      "interarrival_dt_mean",
+      "delta_t_cv",
+      "same_second_share",
+      "is_single_event",
+      "interactive_ratio",
+      "rare_logon_type_count_log",
+      "ntlm_ratio",
+      "log_distinct_hosts",
+      "distinct_sources_count",
+      "missing_source_ratio",
+      "remote_logon_ratio",
+      "custom_proc_share"
+    ]
+  },
+  "split": {
+    "day_col": "day",
+    "split_day": 42,
+    "min_day": 1,
+    "max_day": 60,
+    "n_train": 721612,
+    "n_eval": 333671,
+    "n_train_days": 42,
+    "n_eval_days": 18,
+    "strategy": "time",
+    "n_total": 1055283,
+    "eval_ratio": 0.31619101226874685
+  },
+  "models": [
+    {
+      "model": {
+        "model_name": "isolation_forest",
+        "model_class": "IsolationForestDetector",
+        "is_baseline": false,
+        "requires_scaling": true,
+        "contamination": 0.05,
+        "random_state": 42,
+        "max_train_samples": null,
+        "native_params": {
+          "n_estimators": 150,
+          "max_samples": "auto",
+          "max_features": 1.0,
+          "bootstrap": false,
+          "n_jobs": -1
+        },
+        "n_fit": 721612,
+        "n_features_in": 16,
+        "feature_names_in": [
+          "log_total_logons",
+          "failure_ratio",
+          "failure_locked_out_share",
+          "off_hours_ratio",
+          "interarrival_dt_mean",
+          "delta_t_cv",
+          "same_second_share",
+          "is_single_event",
+          "interactive_ratio",
+          "rare_logon_type_count_log",
+          "ntlm_ratio",
+          "log_distinct_hosts",
+          "distinct_sources_count",
+          "missing_source_ratio",
+          "remote_logon_ratio",
+          "custom_proc_share"
+        ],
+        "threshold": -8.343708634840326e-17,
+        "is_fitted": true,
+        "sklearn_version": "1.9.1"
+      },
+      "feature_names": [
+        "log_total_logons",
+        "failure_ratio",
+        "failure_locked_out_share",
+        "off_hours_ratio",
+        "interarrival_dt_mean",
+        "delta_t_cv",
+        "same_second_share",
+        "is_single_event",
+        "interactive_ratio",
+        "rare_logon_type_count_log",
+        "ntlm_ratio",
+        "log_distinct_hosts",
+        "distinct_sources_count",
+        "missing_source_ratio",
+        "remote_logon_ratio",
+        "custom_proc_share"
+      ],
+      "n_features": 16,
+      "imputer": "SimpleImputer",
+      "scaler": "RobustScaler",
+      "n_train_rows": 721612,
+      "n_nulls_imputed": 0,
+      "is_fitted": true
+    },
+    {
+      "model": {
+        "model_name": "local_outlier_factor",
+        "model_class": "LocalOutlierFactorDetector",
+        "is_baseline": false,
+        "requires_scaling": true,
+        "contamination": 0.05,
+        "random_state": 42,
+        "max_train_samples": 20000,
+        "native_params": {
+          "n_neighbors": 20,
+          "algorithm": "auto",
+          "leaf_size": 30,
+          "metric": "minkowski",
+          "p": 2,
+          "novelty": true,
+          "n_jobs": -1
+        },
+        "n_fit": 20000,
+        "n_features_in": 16,
+        "feature_names_in": [
+          "log_total_logons",
+          "failure_ratio",
+          "failure_locked_out_share",
+          "off_hours_ratio",
+          "interarrival_dt_mean",
+          "delta_t_cv",
+          "same_second_share",
+          "is_single_event",
+          "interactive_ratio",
+          "rare_logon_type_count_log",
+          "ntlm_ratio",
+          "log_distinct_hosts",
+          "distinct_sources_count",
+          "missing_source_ratio",
+          "remote_logon_ratio",
+          "custom_proc_share"
+        ],
+        "threshold": -0.054214953541523385,
+        "is_fitted": true,
+        "sklearn_version": "1.9.1"
+      },
+      "feature_names": [
+        "log_total_logons",
+        "failure_ratio",
+        "failure_locked_out_share",
+        "off_hours_ratio",
+        "interarrival_dt_mean",
+        "delta_t_cv",
+        "same_second_share",
+        "is_single_event",
+        "interactive_ratio",
+        "rare_logon_type_count_log",
+        "ntlm_ratio",
+        "log_distinct_hosts",
+        "distinct_sources_count",
+        "missing_source_ratio",
+        "remote_logon_ratio",
+        "custom_proc_share"
+      ],
+      "n_features": 16,
+      "imputer": "SimpleImputer",
+      "scaler": "RobustScaler",
+      "n_train_rows": 721612,
+      "n_nulls_imputed": 0,
+      "is_fitted": true
+    },
+    {
+      "model": {
+        "model_name": "one_class_svm",
+        "model_class": "OneClassSVMDetector",
+        "is_baseline": false,
+        "requires_scaling": true,
+        "contamination": 0.05,
+        "random_state": 42,
+        "max_train_samples": 20000,
+        "native_params": {
+          "kernel": "rbf",
+          "degree": 3,
+          "gamma": "scale",
+          "coef0": 0.0,
+          "tol": 0.001,
+          "nu": 0.05,
+          "shrinking": true
+        },
+        "n_fit": 20000,
+        "n_features_in": 16,
+        "feature_names_in": [
+          "log_total_logons",
+          "failure_ratio",
+          "failure_locked_out_share",
+          "off_hours_ratio",
+          "interarrival_dt_mean",
+          "delta_t_cv",
+          "same_second_share",
+          "is_single_event",
+          "interactive_ratio",
+          "rare_logon_type_count_log",
+          "ntlm_ratio",
+          "log_distinct_hosts",
+          "distinct_sources_count",
+          "missing_source_ratio",
+          "remote_logon_ratio",
+          "custom_proc_share"
+        ],
+        "threshold": 0.00014639143836348012,
+        "is_fitted": true,
+        "sklearn_version": "1.9.1"
+      },
+      "feature_names": [
+        "log_total_logons",
+        "failure_ratio",
+        "failure_locked_out_share",
+        "off_hours_ratio",
+        "interarrival_dt_mean",
+        "delta_t_cv",
+        "same_second_share",
+        "is_single_event",
+        "interactive_ratio",
+        "rare_logon_type_count_log",
+        "ntlm_ratio",
+        "log_distinct_hosts",
+        "distinct_sources_count",
+        "missing_source_ratio",
+        "remote_logon_ratio",
+        "custom_proc_share"
+      ],
+      "n_features": 16,
+      "imputer": "SimpleImputer",
+      "scaler": "RobustScaler",
+      "n_train_rows": 721612,
+      "n_nulls_imputed": 0,
+      "is_fitted": true
+    },
+    {
+      "model": {
+        "model_name": "zscore_baseline",
+        "model_class": "ZScoreBaseline",
+        "is_baseline": true,
+        "requires_scaling": false,
+        "contamination": 0.05,
+        "random_state": 42,
+        "max_train_samples": null,
+        "native_params": {
+          "method": "robust",
+          "agg": "max",
+          "z_threshold": 3.0,
+          "threshold_mode": "quantile"
+        },
+        "n_fit": 721612,
+        "n_features_in": 16,
+        "feature_names_in": [
+          "log_total_logons",
+          "failure_ratio",
+          "failure_locked_out_share",
+          "off_hours_ratio",
+          "interarrival_dt_mean",
+          "delta_t_cv",
+          "same_second_share",
+          "is_single_event",
+          "interactive_ratio",
+          "rare_logon_type_count_log",
+          "ntlm_ratio",
+          "log_distinct_hosts",
+          "distinct_sources_count",
+          "missing_source_ratio",
+          "remote_logon_ratio",
+          "custom_proc_share"
+        ],
+        "threshold": 23.79164673444592,
+        "is_fitted": true,
+        "sklearn_version": "1.9.1"
+      },
+      "feature_names": [
+        "log_total_logons",
+        "failure_ratio",
+        "failure_locked_out_share",
+        "off_hours_ratio",
+        "interarrival_dt_mean",
+        "delta_t_cv",
+        "same_second_share",
+        "is_single_event",
+        "interactive_ratio",
+        "rare_logon_type_count_log",
+        "ntlm_ratio",
+        "log_distinct_hosts",
+        "distinct_sources_count",
+        "missing_source_ratio",
+        "remote_logon_ratio",
+        "custom_proc_share"
+      ],
+      "n_features": 16,
+      "imputer": "SimpleImputer",
+      "scaler": null,
+      "n_train_rows": 721612,
+      "n_nulls_imputed": 0,
+      "is_fitted": true
+    },
+    {
+      "model": {
+        "model_name": "rule_threshold_baseline",
+        "model_class": "RuleThresholdBaseline",
+        "is_baseline": true,
+        "requires_scaling": false,
+        "contamination": 0.05,
+        "random_state": 42,
+        "max_train_samples": null,
+        "native_params": {
+          "threshold_mode": "quantile",
+          "min_rules": 2,
+          "rules": [
+            {
+              "feature": "failure_ratio",
+              "op": ">=",
+              "value": 0.5,
+              "rationale": "Tỷ lệ đăng nhập thất bại cao — dấu hiệu brute force/dò mật khẩu (schema ghi rõ đây là đặc trưng cường độ thất bại DUY NHẤT)."
+            },
+            {
+              "feature": "failure_locked_out_share",
+              "op": ">=",
+              "value": 0.5,
+              "rationale": "Phần lớn thất bại là do tài khoản bị khoá — mức leo thang của tấn công (tín hiệu lockout)."
+            },
+            {
+              "feature": "ntlm_ratio",
+              "op": ">=",
+              "value": 0.5,
+              "rationale": "NTLM chiếm ưu thế trong ngày — schema ghi NTLM là 48.18% ở event 4625 so với 17.35% ở 4624."
+            },
+            {
+              "feature": "off_hours_ratio",
+              "op": ">=",
+              "value": 0.5,
+              "rationale": "Hoạt động chủ yếu ngoài giờ làm việc (18h-7h) — trái nhịp hành vi bình thường."
+            },
+            {
+              "feature": "same_second_share",
+              "op": ">=",
+              "value": 0.5,
+              "rationale": "Nhiều sự kiện cùng một giây (delta_t = 0) — burst bất thường của công cụ tự động."
+            },
+            {
+              "feature": "remote_logon_ratio",
+              "op": ">=",
+              "value": 0.9,
+              "rationale": "Gần như toàn bộ đăng nhập đến từ nguồn khác host (Source != LogHost) — truy cập từ xa."
+            }
+          ]
+        },
+        "n_fit": 721612,
+        "n_features_in": 16,
+        "feature_names_in": [
+          "log_total_logons",
+          "failure_ratio",
+          "failure_locked_out_share",
+          "off_hours_ratio",
+          "interarrival_dt_mean",
+          "delta_t_cv",
+          "same_second_share",
+          "is_single_event",
+          "interactive_ratio",
+          "rare_logon_type_count_log",
+          "ntlm_ratio",
+          "log_distinct_hosts",
+          "distinct_sources_count",
+          "missing_source_ratio",
+          "remote_logon_ratio",
+          "custom_proc_share"
+        ],
+        "threshold": 0.5,
+        "is_fitted": true,
+        "sklearn_version": "1.9.1",
+        "n_rules": 6,
+        "rules": [
+          {
+            "feature": "failure_ratio",
+            "op": ">=",
+            "value": 0.5,
+            "rationale": "Tỷ lệ đăng nhập thất bại cao — dấu hiệu brute force/dò mật khẩu (schema ghi rõ đây là đặc trưng cường độ thất bại DUY NHẤT)."
+          },
+          {
+            "feature": "failure_locked_out_share",
+            "op": ">=",
+            "value": 0.5,
+            "rationale": "Phần lớn thất bại là do tài khoản bị khoá — mức leo thang của tấn công (tín hiệu lockout)."
+          },
+          {
+            "feature": "ntlm_ratio",
+            "op": ">=",
+            "value": 0.5,
+            "rationale": "NTLM chiếm ưu thế trong ngày — schema ghi NTLM là 48.18% ở event 4625 so với 17.35% ở 4624."
+          },
+          {
+            "feature": "off_hours_ratio",
+            "op": ">=",
+            "value": 0.5,
+            "rationale": "Hoạt động chủ yếu ngoài giờ làm việc (18h-7h) — trái nhịp hành vi bình thường."
+          },
+          {
+            "feature": "same_second_share",
+            "op": ">=",
+            "value": 0.5,
+            "rationale": "Nhiều sự kiện cùng một giây (delta_t = 0) — burst bất thường của công cụ tự động."
+          },
+          {
+            "feature": "remote_logon_ratio",
+            "op": ">=",
+            "value": 0.9,
+            "rationale": "Gần như toàn bộ đăng nhập đến từ nguồn khác host (Source != LogHost) — truy cập từ xa."
+          }
+        ]
+      },
+      "feature_names": [
+        "log_total_logons",
+        "failure_ratio",
+        "failure_locked_out_share",
+        "off_hours_ratio",
+        "interarrival_dt_mean",
+        "delta_t_cv",
+        "same_second_share",
+        "is_single_event",
+        "interactive_ratio",
+        "rare_logon_type_count_log",
+        "ntlm_ratio",
+        "log_distinct_hosts",
+        "distinct_sources_count",
+        "missing_source_ratio",
+        "remote_logon_ratio",
+        "custom_proc_share"
+      ],
+      "n_features": 16,
+      "imputer": "SimpleImputer",
+      "scaler": null,
+      "n_train_rows": 721612,
+      "n_nulls_imputed": 0,
+      "is_fitted": true
+    }
+  ],
+  "artifacts": {
+    "benchmark_summary": "experiments\\results\\benchmark_summary.csv",
+    "anomaly_scores": "experiments\\results\\anomaly_scores.parquet",
+    "model_topk_overlap": "experiments\\results\\model_topk_overlap.csv",
+    "model_stability": "experiments\\results\\model_stability.csv",
+    "split_info": "experiments\\results\\split_info.json",
+    "experiment_log": "experiments\\logs\\experiment_log.csv"
+  },
+  "extra": {
+    "alert_rate_drift_pp": {
+      "isolation_forest": 0.9349,
+      "local_outlier_factor": 4.236,
+      "one_class_svm": 1.388,
+      "zscore_baseline": 0.8537,
+      "rule_threshold_baseline": 15.3512
+    },
+    "stability_seeds": [
+      42,
+      7,
+      2024
+    ],
+    "stability_sample_size": 50000
+  }
+}

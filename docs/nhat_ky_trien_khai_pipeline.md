@@ -127,22 +127,45 @@
 | **Local Outlier Factor** | Density-based | 17,910 | 796 | 4.44% | 1.08s | `local_outlier_factor.joblib` |
 | **One-Class SVM** | Kernel SVM | 17,910 | 895 | 5.00% | 3.28s | `one_class_svm.joblib` |
 
-### 5.4. Kết Quả Thực Thi Toàn Bộ 60 Ngày (Toàn Bộ Tập Dữ Liệu)
-* **Quy mô ma trận (Tài khoản × Ngày)**: **1,055,283 dòng × 23 cột** (tương đương hơn 1 triệu thực thể quan trắc qua 60 ngày).
-* **Kết quả Benchmark Leaderboard trên 1,055,283 thực thể**:
+### 5.4. Kết Quả Benchmark 60 Ngày — ĐÃ SỬA LẠI THEO TIME-BASED SPLIT (Tuần 3)
 
-| Mô hình | Số mẫu đánh giá | Số dị biệt phát hiện | Tỷ lệ dị biệt (%) | Thời gian huấn luyện (s) | Vị trí lưu trữ Model |
-|:---|:---:|:---:|:---:|:---:|:---|
-| **Isolation Forest** | 1,055,283 | 52,765 | 5.00% | 9.55s | `experiments/models/isolation_forest.joblib` |
-| **Local Outlier Factor** | 1,055,283 | 54,192 | 5.14% | 2.97s | `experiments/models/local_outlier_factor.joblib` |
-| **One-Class SVM** | 1,055,283 | 49,984 | 4.74% | 9.88s | `experiments/models/one_class_svm.joblib` |
+> ⚠️ **Đính chính quan trọng.** Số liệu cũ bên dưới được chấm trên **toàn bộ 1.055.283 dòng đã dùng để fit**
+> → là artifact của **rò rỉ dữ liệu**: tỷ lệ "5,00% dị biệt" chỉ phản ánh tham số `contamination`
+> (và ngưỡng nội bộ của sklearn), không phải năng lực phát hiện. Bảng đúng của Tuần 3:
+
+* **Train**: ngày 1–42 = **721.612 dòng** | **Test**: ngày 43–60 = **333.671 dòng** (31,62%)
+* **16 đặc trưng core** → imputer median (fit train) → RobustScaler (fit train) → mô hình
+* Ngưỡng cảnh báo = phân vị `1 - contamination` trên **tập train**; lệnh tái lập: `python main.py --stage benchmark`
+
+| Mô hình | n_fit | n_eval | Tỷ lệ cảnh báo (%) | Lệch ngân sách (pp) | Fit (s) | Chấm điểm (s) |
+|:---|:---:|:---:|:---:|:---:|:---:|:---:|
+| **Isolation Forest** | 721.612 | 333.671 | 5,93 | +0,93 | 11,43 | 1,97 |
+| **One-Class SVM** | 20.000 | 333.671 | 6,39 | +1,39 | 3,36 | 16,57 |
+| **Z-score Baseline** | 721.612 | 333.671 | 5,85 | +0,85 | 2,63 | 0,12 |
+| **Local Outlier Factor** | 20.000 | 333.671 | 9,24 | +4,24 | 2,23 | 4,91 |
+| **Rule-Threshold Baseline** | 721.612 | 333.671 | 20,35 | +15,35 | 1,15 | 0,09 |
 
 * **Đầu ra kết quả**:
-  * Bảng tổng hợp Leaderboard: `experiments/results/benchmark_summary.csv`
-  * Chi tiết điểm số dị biệt của 1,055,283 tài khoản: `experiments/results/anomaly_scores.parquet`
+  * `experiments/results/benchmark_summary.csv` — bảng xếp hạng đầy đủ (phân vị điểm, thời gian, ngưỡng)
+  * `experiments/results/anomaly_scores.parquet` — 333.671 dòng × (danh tính + 3 cột điểm × 5 mô hình)
+  * `experiments/results/model_topk_overlap.csv`, `model_stability.csv`, `split_info.json`, `run_manifest.json`
+  * `experiments/logs/experiment_log.csv` — nhật ký thí nghiệm (tương thích 18 cột cũ)
+* Phân tích & bằng chứng chi tiết: `reports/week3/label_free_benchmark.md`
+
+<details>
+<summary>Số liệu CŨ (đã bị thay thế — chỉ giữ để đối chiếu lịch sử)</summary>
+
+| Mô hình | Số mẫu đánh giá | Số dị biệt phát hiện | Tỷ lệ dị biệt (%) | Thời gian huấn luyện (s) |
+|:---|:---:|:---:|:---:|:---:|
+| Isolation Forest | 1,055,283 | 52,765 | 5.00% | 9.55s |
+| Local Outlier Factor | 1,055,283 | 54,192 | 5.14% | 2.97s |
+| One-Class SVM | 1,055,283 | 49,984 | 4.74% | 9.88s |
+
+</details>
 
 ### 5.5. Kết Quả Unit Tests
-* Tổng số test: **11/11 tests passed** (100% pass trong bộ kiểm thử pytest).
+* Tổng số test: **31/31 tests passed** (trước Tuần 3: 11/11 — 20 test mới cho giao diện mô hình,
+  registry, time-based split, chỉ số đánh giá, log thí nghiệm, manifest và hợp đồng feature ↔ model).
 
 ---
 

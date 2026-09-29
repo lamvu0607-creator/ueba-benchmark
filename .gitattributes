@@ -1,4 +1,4 @@
-"""Chuẩn hoá line ending & khai báo file nhị phân để git không normalize (tránh cảnh báo LF/CRLF trên Windows)."""
+# Chuẩn hoá line ending & khai báo file nhị phân để git không normalize (tránh cảnh báo LF/CRLF trên Windows).
 
 * text=auto
 *.py text

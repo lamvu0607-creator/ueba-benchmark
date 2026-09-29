@@ -163,7 +163,8 @@ def main():
     # Kiểm tra sự tồn tại của file dữ liệu đầu vào
     if not args.data_path.exists():
         print(f"[ERROR] Không tìm thấy dữ liệu ma trận tại: {args.data_path.resolve()}")
-        print("Vui lòng chạy script extract_account_day_matrix_v1.py trước khi vẽ đồ thị.")
+        print("Vui lòng chạy 'python main.py --stage features' "
+              "(hoặc scripts/feature_engineering/extract_account_day_matrix.py — bản 2.0) trước khi vẽ đồ thị.")
         sys.exit(1)
 
     print("=" * 85)
