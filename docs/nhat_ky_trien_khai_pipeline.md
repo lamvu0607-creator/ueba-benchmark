@@ -166,3 +166,28 @@ python main.py --stage features --start-day 1 --end-day 3
 # Chặng 3: Chỉ huấn luyện mô hình và xếp hạng leaderboard
 python main.py --stage benchmark
 ```
+
+---
+
+## 7. Quản Lý Dữ Liệu Lớn & Liên Kết Lưu Trữ Google Drive
+
+Do dữ liệu nhật ký bảo mật của 60 ngày có kích thước lớn (>22 GB cho toàn bộ raw, interim và cleaned), các file dữ liệu nặng được loại trừ qua `.gitignore` và được lưu trữ tập trung trên Google Drive:
+
+### 7.1. Danh sách liên kết Google Drive
+* **Gói Dữ Liệu 1 (Google Drive Archive Part 1):**  
+  👉 [Tải xuống gói 1 (Google Drive)](https://drive.google.com/file/d/1aMz0oPItXDYn7u326Pl_jTnmdqFvsCmE/view?usp=sharing)
+* **Gói Dữ Liệu 2 (Google Drive Archive Part 2):**  
+  👉 [Tải xuống gói 2 (Google Drive)](https://drive.google.com/file/d/1FjXHtZAjKQxYtN2sv7OO6YMkNbqs00ek/view?usp=sharing)
+
+### 7.2. Hướng dẫn thiết lập lại dữ liệu khi clone dự án
+1. Clone repository về máy tính:
+   ```bash
+   git clone https://github.com/lamvu0607-creator/ueba-benchmark.git
+   cd ueba-benchmark
+   ```
+2. Tải 2 gói dữ liệu từ các liên kết Google Drive ở trên.
+3. Giải nén vào thư mục `data/` tương ứng (`data/cleaned/` cho log sạch hoặc `data/interim/` cho log chia ngày).
+4. Khởi chạy ngay chặng trích xuất đặc trưng hoặc benchmark mà không cần tốn thời gian làm sạch lại từ đầu:
+   ```bash
+   python main.py --stage benchmark
+   ```

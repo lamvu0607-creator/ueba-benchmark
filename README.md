@@ -150,7 +150,32 @@ Bộ kiểm thử đảm bảo tính toàn vẹn của cấu hình hệ thống,
 ```bash
 pytest
 ```
-hoặc chạy qua môi trường conda:
+hoặc chạy qua môi trường ảo:
 ```bash
-conda run -n ueba-benchmark pytest
+.venv\Scripts\python -m pytest tests/
 ```
+
+---
+
+## 6. Dữ liệu đã xử lý & Tải về từ Google Drive
+
+Do tập dữ liệu 60 ngày (Windows Event 4624/4625) có dung lượng rất lớn (>22 GB) nên được lưu trữ ngoài Git trên Google Drive:
+
+### Liên kết tải dữ liệu:
+* **Gói dữ liệu 1 (Google Drive Part 1):** [Tải xuống tại đây](https://drive.google.com/file/d/1aMz0oPItXDYn7u326Pl_jTnmdqFvsCmE/view?usp=sharing)
+* **Gói dữ liệu 2 (Google Drive Part 2):** [Tải xuống tại đây](https://drive.google.com/file/d/1FjXHtZAjKQxYtN2sv7OO6YMkNbqs00ek/view?usp=sharing)
+
+### Hướng dẫn sử dụng:
+1. Tải 2 gói dữ liệu từ link trên.
+2. Giải nén vào thư mục `data/` trong dự án (`data/cleaned/` hoặc `data/interim/`).
+3. Chạy trực tiếp benchmark:
+   ```bash
+   python main.py --stage benchmark
+   ```
+
+### Kết quả Benchmark Leaderboard 60 ngày (1,055,283 Tài khoản):
+| Mô hình | Số mẫu đánh giá | Số dị biệt phát hiện | Tỷ lệ dị biệt (%) | Thời gian train (s) | File Model |
+|:---|:---:|:---:|:---:|:---:|:---|
+| **Isolation Forest** | 1,055,283 | 52,765 | 5.00% | 9.55s | `experiments/models/isolation_forest.joblib` |
+| **Local Outlier Factor** | 1,055,283 | 54,192 | 5.14% | 2.97s | `experiments/models/local_outlier_factor.joblib` |
+| **One-Class SVM** | 1,055,283 | 49,984 | 4.74% | 9.88s | `experiments/models/one_class_svm.joblib` |
