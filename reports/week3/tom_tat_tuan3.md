@@ -1,6 +1,6 @@
 # Báo cáo tóm tắt Tuần 3 — Giao diện mô hình thống nhất & Benchmark label-free
 
-**Trạng thái:** ✅ hoàn thành · nhánh `feature/model-benchmark-framework` @ `07c85a7` · tag `features-v1` · **31/31 test pass** · working tree sạch
+**Trạng thái:** ✅ hoàn thành · nhánh `feature/model-benchmark-framework` @ `fffb9e1` (mốc mã + artifact: `07c85a7`, tag `features-v1`) · **31/31 test pass** · working tree sạch
 **Tài liệu chi tiết kèm toàn bộ bằng chứng:** [`label_free_benchmark.md`](label_free_benchmark.md)
 
 ---
@@ -40,7 +40,7 @@
 
 **Artifact đã commit (không còn nằm ngoài git)**
 
-`experiments/results/`: `benchmark_summary.csv`, `anomaly_scores.parquet` (333.671 dòng × 18 cột điểm), `model_topk_overlap.csv`, `model_stability.csv`, `split_info.json`, `run_manifest.json`
+`experiments/results/`: `benchmark_summary.csv`, `anomaly_scores.parquet` (333.671 dòng × **19 cột** = 4 cột danh tính + 5 mô hình × 3 cột `_score`/`_pct`/`_anomaly`), `model_topk_overlap.csv`, `model_stability.csv`, `split_info.json`, `run_manifest.json`
 `experiments/logs/experiment_log.csv`: 13 dòng (8 dòng lịch sử + 5 dòng Tuần 3), 30 cột
 
 ## 4. Kết quả chạy thật (seed 42, ngân sách cảnh báo 5%, K = 20)
