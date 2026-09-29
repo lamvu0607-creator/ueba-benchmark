@@ -49,35 +49,27 @@ def run_pipeline(args):
     logger.info(f"Cấu hình hệ thống: {args.config}")
     logger.info(f"Giai đoạn thực thi: {args.stage}")
 
-    # Stage 1: Clean & Ingest (raw -> interim)
+    # Stage 1: Clean & Ingest (raw/interim -> cleaned)
     if args.stage in ["all", "clean"]:
-        logger.info("--> [Stage 1: Clean] Bắt đầu chuyển đổi log thô sang Parquet chuẩn...")
-        raw_files = (
-            list(raw_dir.glob("*.csv"))
-            + list(raw_dir.glob("*.parquet"))
-            + list(raw_dir.glob("*.json"))
-            + list(raw_dir.glob("*.evtx"))
-            + list(raw_dir.glob("*.bz2"))
+        cleaned_dir = Path(paths.get("cleaned_data_dir", "data/cleaned"))
+        end_day_clean = args.end_day if args.end_day is not None else 3
+        logger.info(f"--> [Stage 1: Clean] Bắt đầu làm sạch Windows Event Logs (Day {args.start_day:02d} -> Day {end_day_clean:02d})...")
+        from src.data.cleaner import clean_dataset
+        clean_dataset(
+            start_day=args.start_day,
+            end_day=end_day_clean,
+            interim_dir=interim_dir,
+            output_dir=cleaned_dir,
+            adjust_dst=True,
         )
-        if not raw_files:
-            logger.warning(
-                f"Thư mục '{raw_dir}' hiện chưa có dữ liệu log thô (CSV/Parquet/EVTX/JSON). "
-                "Nếu đã có dữ liệu tại 'data/interim/', bạn có thể chạy: python main.py --stage features"
-            )
-            if args.stage == "clean":
-                return
-        else:
-            logger.info(f"Đã phát hiện {len(raw_files)} file log thô trong '{raw_dir}'.")
-            from src.data.raw_to_interim import convert_all_raw_to_interim
-            convert_all_raw_to_interim(raw_dir=raw_dir, interim_dir=interim_dir)
-            logger.info("--> [Stage 1: Clean] Hoàn tất làm sạch và chuẩn hóa log.")
+        logger.info("--> [Stage 1: Clean] Hoàn tất làm sạch và chuẩn hóa log.")
 
     if args.stage == "clean":
         return
 
-    # Stage 2: Feature Engineering (interim -> features -> processed)
+    # Stage 2: Feature Engineering (cleaned/interim -> features -> processed)
     if args.stage in ["all", "features"]:
-        logger.info("--> [Stage 2: Features] Trích xuất ma trận đặc trưng hành vi (User x Day)...")
+        logger.info("--> [Stage 2: Features] Trích xuất ma trận đặc trưng hành vi (Tài khoản × Ngày)...")
         from src.features import (
             build_account_day_matrix,
             prepare_processed_dataset,
@@ -115,7 +107,7 @@ def run_pipeline(args):
 
             logger.info("--> [Stage 2: Features] Hoàn tất trích xuất và chuẩn hóa ma trận đặc trưng.")
         else:
-            logger.warning("Không có dữ liệu đặc trưng nào được tạo. Vui lòng kiểm tra lại data/interim/.")
+            logger.warning("Không có dữ liệu đặc trưng nào được tạo. Vui lòng kiểm tra lại dữ liệu.")
             if args.stage == "features":
                 return
 
@@ -124,7 +116,7 @@ def run_pipeline(args):
 
     # Stage 3: Model Benchmark & Leaderboard
     if args.stage in ["all", "benchmark"]:
-        logger.info("--> [Stage 3: Benchmark] Bắt đầu đánh giá các mô hình...")
+        logger.info("--> [Stage 3: Benchmark] Bắt đầu đánh giá các mô hình UEBA...")
         selected_models = args.models or ["isolation_forest", "local_outlier_factor", "one_class_svm"]
         logger.info(f"Mô hình được chọn: {selected_models}")
 
@@ -136,11 +128,15 @@ def run_pipeline(args):
             )
             return
 
-        logger.info(
-            f"Ma trận đặc trưng đã sẵn sàng tại '{processed_matrix}'.\n"
-            "--> Tầng huấn luyện mô hình và đánh giá leaderboard (Phase 3: Isolation Forest, LOF, OCSVM) "
-            "đang được hoàn thiện tiếp theo."
+        from src.models.benchmark import run_model_benchmark
+        run_model_benchmark(
+            data_path=processed_matrix,
+            output_models_dir=paths.get("models_dir", "experiments/models"),
+            output_results_dir=paths.get("results_dir", "experiments/results"),
+            model_names=selected_models,
+            params_path=args.model_params,
         )
+        logger.info("--> [Stage 3: Benchmark] Hoàn tất huấn luyện và xuất bảng xếp hạng mô hình.")
 
 
 def main():

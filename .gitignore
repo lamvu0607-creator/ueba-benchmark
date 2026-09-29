@@ -55,6 +55,8 @@ data/raw/*
 !data/raw/.gitkeep
 data/interim/*
 !data/interim/.gitkeep
+data/cleaned/*
+!data/cleaned/.gitkeep
 data/features/*
 !data/features/.gitkeep
 !data/features/**/.gitkeep
@@ -74,4 +76,6 @@ experiments/figures/*
 !experiments/figures/.gitkeep
 experiments/logs/*
 !experiments/logs/.gitkeep
+experiments/results/*
+!experiments/results/.gitkeep
 

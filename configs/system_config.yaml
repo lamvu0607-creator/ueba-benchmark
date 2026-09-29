@@ -5,10 +5,12 @@ system:
 paths:
   raw_data_dir: "data/raw"
   interim_data_dir: "data/interim"
+  cleaned_data_dir: "data/cleaned"
   features_data_dir: "data/features"
   processed_data_dir: "data/processed"
   experiment_log: "experiments/logs/experiment_log.csv"
   models_dir: "experiments/models"
+  results_dir: "experiments/results"
   figures_dir: "experiments/figures"
 
 preprocessing:
