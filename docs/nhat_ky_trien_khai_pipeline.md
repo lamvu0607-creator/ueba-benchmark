@@ -133,9 +133,9 @@
 
 | Mô hình | Số mẫu đánh giá | Số dị biệt phát hiện | Tỷ lệ dị biệt (%) | Thời gian huấn luyện (s) | Vị trí lưu trữ Model |
 |:---|:---:|:---:|:---:|:---:|:---|
-| **Isolation Forest** | 1,055,283 | 52,765 | 5.00% | 9.36s | `experiments/models/isolation_forest.joblib` |
-| **Local Outlier Factor** | 1,055,283 | 52,367 | 4.96% | 0.62s | `experiments/models/local_outlier_factor.joblib` |
-| **One-Class SVM** | 1,055,283 | 52,660 | 4.99% | 1.75s | `experiments/models/one_class_svm.joblib` |
+| **Isolation Forest** | 1,055,283 | 52,765 | 5.00% | 9.55s | `experiments/models/isolation_forest.joblib` |
+| **Local Outlier Factor** | 1,055,283 | 54,192 | 5.14% | 2.97s | `experiments/models/local_outlier_factor.joblib` |
+| **One-Class SVM** | 1,055,283 | 49,984 | 4.74% | 9.88s | `experiments/models/one_class_svm.joblib` |
 
 * **Đầu ra kết quả**:
   * Bảng tổng hợp Leaderboard: `experiments/results/benchmark_summary.csv`
