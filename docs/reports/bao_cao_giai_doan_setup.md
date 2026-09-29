@@ -2,7 +2,7 @@
 
 * **Dự án**: Benchmark Isolation Forest / LOF / One-Class SVM trên log xác thực Windows (4624 / 4625)
 * **Chương trình**: Thực chiến AI – Xây dựng Baseline UEBA có thể tái lập
-* **Môi trường thực thi**: Conda Environment `chord-app` (Python 3.10)
+* **Môi trường thực thi**: Tùy chọn Conda hoặc Virtualenv tiêu chuẩn (Nếu sử dụng Conda: `ueba-benchmark`, Python >= 3.10)
 * **Thời điểm báo cáo**: 13/09/2026
 * **Tài liệu tham chiếu**: [Tong quan de tai ueba.md](file:///d:/Github%20Repo/ueba-benchmark/docs/Tong%20quan%20de%20tai%20ueba.md)
 
@@ -20,7 +20,7 @@ Căn cứ theo đề cương đề tài tại **Mục 3 (Kế hoạch theo tuầ
 
 ### 2.1. Chuẩn hóa Môi trường & Quản lý Phụ thuộc
 1. **Đóng băng phiên bản thư viện ([requirements.txt](file:///d:/Github%20Repo/ueba-benchmark/requirements.txt))**:
-   - Cố định phiên bản các gói phần mềm lõi trong môi trường `chord-app`:
+   - Cố định phiên bản các gói phần mềm lõi trong môi trường (venv hoặc conda `ueba-benchmark`):
      - Math & Data: `numpy==1.26.4`, `pandas==2.2.2`, `pyarrow==15.0.2`
      - Machine Learning: `scikit-learn==1.4.2`, `joblib==1.4.2`
      - Visualization: `matplotlib==3.8.4`, `seaborn==0.13.2`
@@ -51,7 +51,6 @@ ueba-benchmark/
 ├── docs/                           # Tài liệu kỹ thuật
 │   ├── Tong quan de tai ueba.md    # Đề cương chi tiết đề tài thực tập
 │   ├── project_structure.md        # Kiến trúc cấu trúc dự án
-│   ├── pipeline_flow.md            # Luồng hoạt động hệ thống
 │   └── reports/
 │       └── bao_cao_giai_doan_setup.md # Báo cáo hoàn thành tuần 0.5
 ├── notebooks/                      # Nghiên cứu & Phân tích thăm dò

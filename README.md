@@ -52,7 +52,10 @@ ueba-benchmark/
 
 ## 2. Thiết lập môi trường
 
-Kích hoạt môi trường conda của dự án (`ueba-benchmark`) và cài đặt dependencies:
+Bạn có thể sử dụng môi trường ảo tiêu chuẩn (`venv`) hoặc Conda:
+
+### Lựa chọn 1: Sử dụng Conda
+Nếu sử dụng Conda, tên môi trường quy ước là `ueba-benchmark`:
 
 ```bash
 # Kích hoạt môi trường conda
@@ -62,6 +65,22 @@ conda activate ueba-benchmark
 pip install -r requirements.txt
 
 # Cài đặt src dưới dạng editable package (tránh lỗi import)
+pip install -e .
+```
+
+### Lựa chọn 2: Sử dụng Python Virtualenv tiêu chuẩn (Không dùng Conda)
+```bash
+# Tạo và kích hoạt môi trường ảo
+python -m venv .venv
+
+# Kích hoạt môi trường:
+# - Trên Windows:
+.venv\Scripts\activate
+# - Trên Linux / macOS:
+source .venv/bin/activate
+
+# Cài đặt dependencies và editable package
+pip install -r requirements.txt
 pip install -e .
 ```
 
