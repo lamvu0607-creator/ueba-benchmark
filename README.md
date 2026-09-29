@@ -201,4 +201,6 @@ Tái lập: `python main.py --stage benchmark` (seed 42, K=20, ngân sách cản
 * **Manifest tái lập** (commit, sha256 dữ liệu, phiên bản thư viện): `experiments/results/run_manifest.json`
 * **Nhật ký thí nghiệm** (tương thích 18 cột cũ + cột truy vết mới): `experiments/logs/experiment_log.csv`
 
-Chi tiết phân tích & bằng chứng: [`reports/week3/label_free_benchmark.md`](reports/week3/label_free_benchmark.md)
+Tài liệu Tuần 3:
+* **Báo cáo tóm tắt**: [`reports/week3/tom_tat_tuan3.md`](reports/week3/tom_tat_tuan3.md)
+* **Phân tích chi tiết & bằng chứng**: [`reports/week3/label_free_benchmark.md`](reports/week3/label_free_benchmark.md)
