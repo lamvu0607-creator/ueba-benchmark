@@ -1,0 +1,13 @@
+{
+  "day_col": "day",
+  "split_day": 42,
+  "min_day": 1,
+  "max_day": 60,
+  "n_train": 721612,
+  "n_eval": 333671,
+  "n_train_days": 42,
+  "n_eval_days": 18,
+  "strategy": "time",
+  "n_total": 1055283,
+  "eval_ratio": 0.31619101226874685
+}

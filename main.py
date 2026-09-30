@@ -49,35 +49,27 @@ def run_pipeline(args):
     logger.info(f"Cấu hình hệ thống: {args.config}")
     logger.info(f"Giai đoạn thực thi: {args.stage}")
 
-    # Stage 1: Clean & Ingest (raw -> interim)
+    # Stage 1: Clean & Ingest (raw/interim -> cleaned)
     if args.stage in ["all", "clean"]:
-        logger.info("--> [Stage 1: Clean] Bắt đầu chuyển đổi log thô sang Parquet chuẩn...")
-        raw_files = (
-            list(raw_dir.glob("*.csv"))
-            + list(raw_dir.glob("*.parquet"))
-            + list(raw_dir.glob("*.json"))
-            + list(raw_dir.glob("*.evtx"))
-            + list(raw_dir.glob("*.bz2"))
+        cleaned_dir = Path(paths.get("cleaned_data_dir", "data/cleaned"))
+        end_day_clean = args.end_day if args.end_day is not None else 3
+        logger.info(f"--> [Stage 1: Clean] Bắt đầu làm sạch Windows Event Logs (Day {args.start_day:02d} -> Day {end_day_clean:02d})...")
+        from src.data.cleaner import clean_dataset
+        clean_dataset(
+            start_day=args.start_day,
+            end_day=end_day_clean,
+            interim_dir=interim_dir,
+            output_dir=cleaned_dir,
+            adjust_dst=True,
         )
-        if not raw_files:
-            logger.warning(
-                f"Thư mục '{raw_dir}' hiện chưa có dữ liệu log thô (CSV/Parquet/EVTX/JSON). "
-                "Nếu đã có dữ liệu tại 'data/interim/', bạn có thể chạy: python main.py --stage features"
-            )
-            if args.stage == "clean":
-                return
-        else:
-            logger.info(f"Đã phát hiện {len(raw_files)} file log thô trong '{raw_dir}'.")
-            from src.data.raw_to_interim import convert_all_raw_to_interim
-            convert_all_raw_to_interim(raw_dir=raw_dir, interim_dir=interim_dir)
-            logger.info("--> [Stage 1: Clean] Hoàn tất làm sạch và chuẩn hóa log.")
+        logger.info("--> [Stage 1: Clean] Hoàn tất làm sạch và chuẩn hóa log.")
 
     if args.stage == "clean":
         return
 
-    # Stage 2: Feature Engineering (interim -> features -> processed)
+    # Stage 2: Feature Engineering (cleaned/interim -> features -> processed)
     if args.stage in ["all", "features"]:
-        logger.info("--> [Stage 2: Features] Trích xuất ma trận đặc trưng hành vi (User x Day)...")
+        logger.info("--> [Stage 2: Features] Trích xuất ma trận đặc trưng hành vi (Tài khoản × Ngày)...")
         from src.features import (
             build_account_day_matrix,
             prepare_processed_dataset,
@@ -115,32 +107,72 @@ def run_pipeline(args):
 
             logger.info("--> [Stage 2: Features] Hoàn tất trích xuất và chuẩn hóa ma trận đặc trưng.")
         else:
-            logger.warning("Không có dữ liệu đặc trưng nào được tạo. Vui lòng kiểm tra lại data/interim/.")
+            logger.warning("Không có dữ liệu đặc trưng nào được tạo. Vui lòng kiểm tra lại dữ liệu.")
             if args.stage == "features":
                 return
 
     if args.stage == "features":
         return
 
-    # Stage 3: Model Benchmark & Leaderboard
+    # Stage 3: Model Benchmark & Leaderboard (label-free, chia theo THỜI GIAN)
     if args.stage in ["all", "benchmark"]:
-        logger.info("--> [Stage 3: Benchmark] Bắt đầu đánh giá các mô hình...")
-        selected_models = args.models or ["isolation_forest", "local_outlier_factor", "one_class_svm"]
-        logger.info(f"Mô hình được chọn: {selected_models}")
+        from src.models.benchmark import run_model_benchmark
+        from src.models.registry import DEFAULT_MODEL_NAMES
 
-        processed_matrix = processed_dir / "feature_matrix_processed.parquet"
-        if not processed_matrix.exists():
-            logger.warning(
-                f"Chưa tìm thấy ma trận đặc trưng tại '{processed_matrix}'. "
-                "Vui lòng chạy: python main.py --stage features trước."
-            )
-            return
+        evaluation_cfg = sys_cfg.get("evaluation", {}) or {}
+        system_cfg = sys_cfg.get("system", {}) or {}
+
+        selected_models = args.models or list(DEFAULT_MODEL_NAMES)
+        split_day = args.split_day if args.split_day is not None else evaluation_cfg.get("split_day", 42)
+        split_ratio = (
+            args.split_ratio if args.split_ratio is not None else evaluation_cfg.get("test_split_ratio", 0.30)
+        )
+        seed = args.seed if args.seed is not None else system_cfg.get("random_seed", 42)
+        k = args.k if args.k is not None else evaluation_cfg.get("k_metric", 20)
+        budget_ratio = (
+            args.budget_ratio if args.budget_ratio is not None else evaluation_cfg.get("budget_ratio", 0.05)
+        )
+        stability_seeds = evaluation_cfg.get("seeds") or [seed]
 
         logger.info(
-            f"Ma trận đặc trưng đã sẵn sàng tại '{processed_matrix}'.\n"
-            "--> Tầng huấn luyện mô hình và đánh giá leaderboard (Phase 3: Isolation Forest, LOF, OCSVM) "
-            "đang được hoàn thiện tiếp theo."
+            "--> [Stage 3: Benchmark] %d mô hình | train = day <= %s | seed=%s | K=%s | ngân sách=%.1f%%",
+            len(selected_models),
+            split_day,
+            seed,
+            k,
+            float(budget_ratio) * 100,
         )
+
+        processed_matrix = processed_dir / "feature_matrix_processed.parquet"
+        if not processed_matrix.is_file():
+            # Hard-fail thay vì cảnh báo rồi thoát: chạy benchmark trên dữ liệu không tồn tại là lỗi.
+            raise FileNotFoundError(
+                f"Chưa có ma trận đặc trưng '{processed_matrix}'. Hãy chạy trước: "
+                "python main.py --stage features"
+            )
+
+        result = run_model_benchmark(
+            data_path=processed_matrix,
+            model_names=selected_models,
+            params_path=args.model_params,
+            output_models_dir=paths.get("models_dir", "experiments/models"),
+            output_results_dir=paths.get("results_dir", "experiments/results"),
+            split_day=None if split_day is not None and int(split_day) < 0 else split_day,
+            test_split_ratio=float(split_ratio),
+            seed=int(seed),
+            k=int(k),
+            budget_ratio=float(budget_ratio),
+            contamination=evaluation_cfg.get("default_contamination", 0.05),
+            stability_seeds=list(stability_seeds),
+            experiment_log_path=paths.get("experiment_log", "experiments/logs/experiment_log.csv"),
+            system_config_path=args.config,
+        )
+
+        logger.info("Số mô hình đã chạy: %d; chia tập: %s", len(result["summary"]), result["split"])
+        logger.info("Artifact đã ghi:")
+        for name, path in result["artifacts"].items():
+            logger.info("  - %s: %s", name, path)
+        logger.info("--> [Stage 3: Benchmark] Hoàn tất huấn luyện, chấm điểm và xuất bảng xếp hạng.")
 
 
 def main():
@@ -167,8 +199,8 @@ def main():
     parser.add_argument(
         "--models",
         nargs="+",
-        default=["isolation_forest", "local_outlier_factor", "one_class_svm"],
-        help="List of anomaly detection models to benchmark",
+        default=None,
+        help="List of anomaly detection models to benchmark (default: all 5 models of the registry)",
     )
     parser.add_argument(
         "--start-day",
@@ -181,6 +213,36 @@ def main():
         type=int,
         default=None,
         help="Ending day for feature extraction (default: last available day in interim)",
+    )
+    parser.add_argument(
+        "--seed",
+        type=int,
+        default=None,
+        help="Random seed for the benchmark run (default: system.random_seed in system_config.yaml)",
+    )
+    parser.add_argument(
+        "--split-day",
+        type=int,
+        default=None,
+        help="train = day <= SPLIT_DAY; -1 to derive it from --split-ratio instead",
+    )
+    parser.add_argument(
+        "--split-ratio",
+        type=float,
+        default=None,
+        help="Test ratio used when --split-day is -1 (default: evaluation.test_split_ratio)",
+    )
+    parser.add_argument(
+        "--k",
+        type=int,
+        default=None,
+        help="K for Precision@K / top-K overlap (default: evaluation.k_metric)",
+    )
+    parser.add_argument(
+        "--budget-ratio",
+        type=float,
+        default=None,
+        help="Alert budget ratio for budget-based metrics (default: evaluation.budget_ratio)",
     )
 
     args = parser.parse_args()

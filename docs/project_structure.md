@@ -94,15 +94,27 @@ ueba-benchmark/
 - **[preprocessor.py](file:///d:/Github%20Repo/ueba-benchmark/src/features/preprocessor.py)**: Thực hiện các phép biến đổi chuẩn hóa (`log1p` cho volume/counts, xử lý missing values) sang tầng `processed`.
 
 #### C. `src/models/` (Tầng Mô hình học máy - Phase 3)
-- Lớp cơ sở trừu tượng `BaseAnomalyModel` và Factory pattern hỗ trợ 3 mô hình cốt lõi: Isolation Forest, Local Outlier Factor, One-Class SVM.
+- **[base.py](file:///d:/Github%20Repo/ueba-benchmark/src/models/base.py)**: hợp đồng giao diện chung `BaseAnomalyModel` (ABC): `fit` / `score` (**CAO = DỊ BIỆT**) / `predict` (ngưỡng phân vị fit trên train) / `score_rank_pct` / `get_metadata` / `save` / `load`, kèm whitelist tham số sklearn và kiểm tra đầu vào (NaN/Inf, sai số đặc trưng).
+- **[detectors.py](file:///d:/Github%20Repo/ueba-benchmark/src/models/detectors.py)**: 3 thuật toán sklearn — **Isolation Forest** (fit toàn bộ train), **Local Outlier Factor** và **One-Class SVM** (fit trên mẫu con 20.000 dòng, `novelty=True`).
+- **[baselines.py](file:///d:/Github%20Repo/ueba-benchmark/src/models/baselines.py)**: 2 baseline label-free — `ZScoreBaseline` (median + độ tán xạ MAD→IQR→std theo từng đặc trưng, agg max) và `RuleThresholdBaseline` (6 luật nghiệp vụ trong `model_params.yaml`).
+- **[pipeline.py](file:///d:/Github%20Repo/ueba-benchmark/src/models/pipeline.py)**: `AnomalyPipeline` = **16 đặc trưng core → imputer median → RobustScaler → mô hình**; imputer/scaler chỉ fit trên train (không rò rỉ), baseline luật cố tình không bị scale để giữ ngữ nghĩa ngưỡng.
+- **[registry.py](file:///d:/Github%20Repo/ueba-benchmark/src/models/registry.py)**: registry 5 mô hình (tên canonical snake_case + alias CamelCase của log cũ) và factory `create_model` / `create_pipeline` đọc 3 khối cấu hình `defaults` / `training` / `preprocessing`.
+- **[benchmark.py](file:///d:/Github%20Repo/ueba-benchmark/src/models/benchmark.py)**: điều phối benchmark label-free — chia theo thời gian, chạy 5 mô hình, xuất `benchmark_summary.csv`, `anomaly_scores.parquet`, `model_topk_overlap.csv`, `model_stability.csv`, `split_info.json`, `run_manifest.json` và ghi `experiment_log.csv`. Hàm `train_and_evaluate_model` được giữ làm shim tương thích ngược (**deprecated**: fit và chấm trên cùng tập = rò rỉ dữ liệu).
 
 #### D. `src/evaluation/` (Tầng Đánh giá Mô hình - Phase 3)
-- Module tiêm bất thường giả lập (`injector.py`) và bộ tính toán chỉ số an ninh thông tin (`metrics.py`: PR-AUC, ROC-AUC, Precision@K, FPR).
+- **[split.py](file:///d:/Github%20Repo/ueba-benchmark/src/evaluation/split.py)**: `time_split` chia train/test theo **NGÀY** (mặc định `day ≤ 42` là train) + `SplitInfo` ghi lại ranh giới và số dòng từng phần.
+- **[metrics.py](file:///d:/Github%20Repo/ueba-benchmark/src/evaluation/metrics.py)**: chỉ số label-free (`alert_rate`, ngân sách cảnh báo, Top-K có tie-break ổn định, trùng nhau Top-K, Spearman, phân vị điểm, độ ổn định đa seed, đo thời gian) và chỉ số cần nhãn dùng từ Tuần 4 (`precision_at_k`, `recall_at_budget`, `roc_auc`, `average_precision`).
+- **[experiment_log.py](file:///d:/Github%20Repo/ueba-benchmark/src/evaluation/experiment_log.py)**: ghi `experiments/logs/experiment_log.csv` tương thích **18 cột cũ** (tên + thứ tự) rồi tới cột truy vết mới, có chống ghi trùng theo `(model, seed, split_day, n_fit, n_eval, commit)`.
+- **[manifest.py](file:///d:/Github%20Repo/ueba-benchmark/src/evaluation/manifest.py)**: `run_manifest.json` — commit/branch/dirty, `sha256` của parquet, cấu hình run, phiên bản Python + sklearn/scipy/polars/numpy/pandas/joblib.
+- `injector.py` (kịch bản tiêm bất thường) **chưa có** — thuộc phạm vi Tuần 4, cùng với nhãn tấn công thật `redteam.txt`.
 
 ### 2.5. File điều phối - [main.py](file:///d:/Github%20Repo/ueba-benchmark/main.py)
 - CLI Entrypoint duy nhất điều phối toàn bộ pipeline qua tham số `--stage [all|clean|features|benchmark]`.
 - Hỗ trợ truyền tham số dải ngày (`--start-day`, `--end-day`) và danh sách mô hình (`--models`).
 
-### 2.6. Thư mục `experiments/` & `tests/`
-- **`experiments/`**: Quản lý nhật ký thực nghiệm (`logs/experiment_log.csv`), checkpoints mô hình (`models/`) và biểu đồ đánh giá (`figures/`).
-- **`tests/`**: Bộ kiểm thử tự động gồm [test_configs.py](file:///d:/Github%20Repo/ueba-benchmark/tests/test_configs.py) và [test_features.py](file:///d:/Github%20Repo/ueba-benchmark/tests/test_features.py), chạy qua lệnh `pytest` hoặc `conda run -n ueba-benchmark pytest`.
+### 2.6. Thư mục `experiments/`, `scripts/` & `tests/`
+- **`experiments/results/`**: artifact KẾT QUẢ **được commit vào git** (bài học Tuần 2: log bị ignore nên 8 dòng kết quả suýt mất): `benchmark_summary.csv`, `anomaly_scores.parquet`, `model_topk_overlap.csv`, `model_stability.csv`, `split_info.json`, `run_manifest.json`.
+- **`experiments/logs/experiment_log.csv`**: nhật ký thí nghiệm (18 cột cũ + cột truy vết mới) — cũng được commit.
+- **`experiments/models/`**: pipeline `.joblib` đã fit (bỏ qua trong git vì là nhị phân lớn).
+- **`scripts/diagnostics/`**: script tạo bằng chứng cho báo cáo — `day_split_table.py` (bảng chia theo ngày), `alert_rate_calibration.py` (độ trôi alert rate), `feature_variance_check.py` (đặc trưng hằng số / MAD = 0).
+- **`tests/`**: [conftest.py](file:///d:/Github%20Repo/ueba-benchmark/tests/conftest.py) (fixture thư mục tạm ghi được), [test_configs.py](file:///d:/Github%20Repo/ueba-benchmark/tests/test_configs.py), [test_features.py](file:///d:/Github%20Repo/ueba-benchmark/tests/test_features.py), [test_models.py](file:///d:/Github%20Repo/ueba-benchmark/tests/test_models.py) (giao diện/detector/baseline/pipeline/registry), [test_evaluation.py](file:///d:/Github%20Repo/ueba-benchmark/tests/test_evaluation.py) (split/chỉ số/log/manifest). Chạy: `pytest tests/ -q` (31 test).

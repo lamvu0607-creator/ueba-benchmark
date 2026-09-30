@@ -1,5 +1,22 @@
 # Model hyperparameter configurations for UEBA Anomaly Detection
 
+# ---------------------------------------------------------------------------
+# Tham số dùng chung — registry tách rõ 3 loại cấu hình: defaults / training / preprocessing
+# ---------------------------------------------------------------------------
+defaults:
+  contamination: 0.05 # ngân sách cảnh báo: threshold_ = quantile(score_train, 1 - contamination)
+  random_state: 42
+
+training:
+  # Ghi đè ngân sách lấy mẫu con khi fit cho MỌI mô hình. null = dùng mặc định từng lớp:
+  # LOF/One-Class SVM 20.000 dòng; Isolation Forest và 2 baseline dùng toàn bộ tập train.
+  max_train_samples: null
+
+preprocessing:
+  imputer: "median" # median fit trên tập train (KHÔNG fill 0 các NULL hợp lệ như interarrival_dt_mean)
+  scaler: "robust" # chỉ áp dụng cho mô hình requires_scaling (IF/LOF/OCSVM); baseline dùng đơn vị gốc
+  feature_set: "core" # 16 đặc trưng core trong configs/feature_schema.yaml
+
 isolation_forest:
   n_estimators: 150
   max_samples: "auto"
@@ -27,3 +44,43 @@ one_class_svm:
   tol: 0.001
   nu: 0.05 # Upper bound on fraction of training errors, lower bound on support vectors
   shrinking: true
+
+# ---------------------------------------------------------------------------
+# Baseline label-free (Tuần 3) — 2 mốc so sánh KHÔNG cần nhãn
+# ---------------------------------------------------------------------------
+# Điểm của Z-score: agg_j |(x_j - loc_j) / scale_j|  (điểm CAO = DỊ BIỆT)
+zscore_baseline:
+  method: "robust" # robust = median/MAD*1.4826 (chống outlier) | classic = mean/std
+  agg: "max" # max = có bất kỳ đặc trưng nào lệch mạnh | mean | p95
+  z_threshold: 3.0 # ngưỡng tuyệt đối |z| >= 3, CHỈ dùng khi threshold_mode: "fixed"
+  threshold_mode: "quantile" # quantile = ngân sách cảnh báo theo contamination (so sánh được với ML)
+
+# Điểm của baseline luật: tỷ lệ luật được thoả (0..1). Luật làm việc theo TÊN đặc trưng.
+rule_threshold_baseline:
+  threshold_mode: "quantile" # "fixed" -> cảnh báo khi thoả >= min_rules luật
+  min_rules: 2 # chỉ dùng khi threshold_mode: "fixed"
+  rules:
+    - feature: "failure_ratio"
+      op: ">="
+      value: 0.5
+      rationale: "Tỷ lệ đăng nhập thất bại cao — dấu hiệu brute force/dò mật khẩu (schema ghi rõ đây là đặc trưng cường độ thất bại DUY NHẤT)."
+    - feature: "failure_locked_out_share"
+      op: ">="
+      value: 0.5
+      rationale: "Phần lớn thất bại là do tài khoản bị khoá — mức leo thang của tấn công (tín hiệu lockout)."
+    - feature: "ntlm_ratio"
+      op: ">="
+      value: 0.5
+      rationale: "NTLM chiếm ưu thế trong ngày — schema ghi NTLM là 48.18% ở event 4625 so với 17.35% ở 4624."
+    - feature: "off_hours_ratio"
+      op: ">="
+      value: 0.5
+      rationale: "Hoạt động chủ yếu ngoài giờ làm việc (18h-7h) — trái nhịp hành vi bình thường."
+    - feature: "same_second_share"
+      op: ">="
+      value: 0.5
+      rationale: "Nhiều sự kiện cùng một giây (delta_t = 0) — burst bất thường của công cụ tự động."
+    - feature: "remote_logon_ratio"
+      op: ">="
+      value: 0.9
+      rationale: "Gần như toàn bộ đăng nhập đến từ nguồn khác host (Source != LogHost) — truy cập từ xa."

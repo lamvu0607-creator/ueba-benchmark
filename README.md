@@ -145,12 +145,62 @@ Bộ đặc trưng được chuẩn hóa theo hợp đồng [`configs/feature_sc
 
 ## 5. Kiểm thử tự động (Unit Tests)
 
-Bộ kiểm thử đảm bảo tính toàn vẹn của cấu hình hệ thống, hợp đồng đặc trưng v2 và logic phân loại thực thể:
+Bộ kiểm thử đảm bảo tính toàn vẹn của cấu hình hệ thống, hợp đồng đặc trưng v2, giao diện mô hình
+(`BaseAnomalyModel` + `AnomalyPipeline`), time-based split và các chỉ số đánh giá:
 
 ```bash
-pytest
+conda run -n ueba-benchmark python -m pytest tests/ -q
 ```
-hoặc chạy qua môi trường conda:
+hoặc chạy qua môi trường ảo:
 ```bash
-conda run -n ueba-benchmark pytest
+.venv\Scripts\python -m pytest tests/
 ```
+
+> Trên Windows, `conda run` có thể lỗi khi bị pipe; khi đó gọi trực tiếp python của env:
+> `& "$env:CONDA_PREFIX\python.exe" -m pytest tests/ -q`
+
+---
+
+## 6. Dữ liệu đã xử lý & Tải về từ Google Drive
+
+Do tập dữ liệu 60 ngày (Windows Event 4624/4625) có dung lượng rất lớn (>22 GB) nên được lưu trữ ngoài Git trên Google Drive:
+
+### Liên kết tải dữ liệu:
+* **Gói dữ liệu 1 (Google Drive Part 1):** [Tải xuống tại đây](https://drive.google.com/file/d/1aMz0oPItXDYn7u326Pl_jTnmdqFvsCmE/view?usp=sharing)
+* **Gói dữ liệu 2 (Google Drive Part 2):** [Tải xuống tại đây](https://drive.google.com/file/d/1FjXHtZAjKQxYtN2sv7OO6YMkNbqs00ek/view?usp=sharing)
+
+### Hướng dẫn sử dụng:
+1. Tải 2 gói dữ liệu từ link trên.
+2. Giải nén vào thư mục `data/` trong dự án (`data/cleaned/` hoặc `data/interim/`).
+3. Chạy trực tiếp benchmark:
+   ```bash
+   python main.py --stage benchmark
+   ```
+
+### Kết quả Benchmark label-free (Tuần 3) — chia tập theo THỜI GIAN
+
+> ⚠️ **Số liệu cũ đã được sửa.** Bảng "1,055,283 mẫu đánh giá" trước đây là **artifact của rò rỉ dữ liệu**:
+> mô hình được fit và chấm điểm trên **cùng một ma trận** 60 ngày (mọi điểm số đều "đã thấy" chính nó).
+> Từ Tuần 3, benchmark dùng time-based split: **train = ngày 1–42 (721.612 dòng)**,
+> **test = ngày 43–60 (333.671 dòng)**; imputer/scaler chỉ được fit trên train.
+
+Tái lập: `python main.py --stage benchmark` (seed 42, K=20, ngân sách cảnh báo 5%, 16 đặc trưng core).
+
+| Mô hình | n_fit | n_eval | Tỷ lệ cảnh báo (%) | Lệch ngân sách (pp) | Fit (s) | Chấm điểm (s) |
+|:---|:---:|:---:|:---:|:---:|:---:|:---:|
+| **Isolation Forest** | 721.612 | 333.671 | 5,93 | +0,93 | 11,43 | 1,97 |
+| **One-Class SVM** | 20.000 | 333.671 | 6,39 | +1,39 | 3,36 | 16,57 |
+| **Z-score Baseline** | 721.612 | 333.671 | 5,85 | +0,85 | 2,63 | 0,12 |
+| **Local Outlier Factor** | 20.000 | 333.671 | 9,24 | +4,24 | 2,23 | 4,91 |
+| **Rule-Threshold Baseline** | 721.612 | 333.671 | 20,35 | +15,35 | 1,15 | 0,09 |
+
+* **Bảng xếp hạng chi tiết**: `experiments/results/benchmark_summary.csv`
+* **Điểm số dị biệt** (mỗi mô hình 3 cột `_score`/`_pct`/`_anomaly`): `experiments/results/anomaly_scores.parquet`
+* **Độ ổn định đa seed** (3 seed, mẫu 50.000 dòng): `experiments/results/model_stability.csv`
+* **Trùng nhau Top-20 giữa các mô hình**: `experiments/results/model_topk_overlap.csv` — các mô hình gần như **không đồng thuận** (đây là lý do Tuần 4 cần nhãn thật để xếp hạng)
+* **Manifest tái lập** (commit, sha256 dữ liệu, phiên bản thư viện): `experiments/results/run_manifest.json`
+* **Nhật ký thí nghiệm** (tương thích 18 cột cũ + cột truy vết mới): `experiments/logs/experiment_log.csv`
+
+Tài liệu Tuần 3:
+* **Báo cáo tóm tắt**: [`reports/week3/tom_tat_tuan3.md`](reports/week3/tom_tat_tuan3.md)
+* **Phân tích chi tiết & bằng chứng**: [`reports/week3/label_free_benchmark.md`](reports/week3/label_free_benchmark.md)

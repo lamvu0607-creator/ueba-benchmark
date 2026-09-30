@@ -247,7 +247,9 @@ Trong quá trình test đã phát hiện và sửa **3 lỗi thật**:
   (`TimeCreated/TargetUserName/IpAddress/WorkstationName` → thực tế `Time/UserName/Source/LogHost`); chốt đường dẫn output;
   `README.md` vẫn mô tả danh sách "16 đặc trưng" cũ; `tests/` chưa có unit test; script tương quan chưa thêm
   within-account / VIF / Cramér's V.
-- Đặc trưng bổ sung §7.3 (novelty, sequence, burst theo cửa sổ) chưa thêm.
+- Đặc trưng bổ sung §7.3 (novelty, sequence, burst theo cửa sổ) chưa thêm — **đã có đề xuất phân tầng
+  kèm bằng chứng loại trừ tại [`bao_cao_bo_dac_trung_v3.md`](bao_cao_bo_dac_trung_v3.md)** (Tier A 30 biến
+  model + Tier B 30 biến thử nghiệm + Tier C 7 biến chẩn đoán).
 - Rà soát `src/evaluation/injector.py`: kịch bản "Off-hours Compromise" dựa vào RDP nhưng RDP chỉ chiếm 0,013% sự kiện thật
   (nay tín hiệu sẽ hiện ở `rare_logon_type_count_log`, cần xác nhận khi chạy benchmark).
 
