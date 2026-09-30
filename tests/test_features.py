@@ -55,7 +55,6 @@ def test_normalize_features():
         "failure_locked_out_share": [None],
         "interarrival_dt_mean": [None],
         "delta_t_cv": [None],
-        "success_after_failure_ratio": [None],
     })
 
     df_norm = normalize_features(df_raw, fill_null_strategy="indicator")
@@ -69,8 +68,6 @@ def test_normalize_features():
     # NULL handling: fill 0 khi dùng indicator
     assert df_norm["failure_locked_out_share"][0] == 0.0
     assert df_norm["interarrival_dt_mean"][0] == 0.0
-    # v3.0: NULL của success_after_failure_ratio (ngày không có thất bại) -> 0.0
-    assert df_norm["success_after_failure_ratio"][0] == 0.0
 
 
 def test_feature_schema_validation_success():
@@ -147,8 +144,8 @@ def test_feature_extraction_columns_and_counts():
 
 def test_model_interfaces():
     """
-    Hợp đồng giữa tầng feature và tầng model: parquet processed phải có đủ 22 đặc trưng core dạng số,
-    và ``AnomalyPipeline`` phải chọn ĐÚNG 22 cột đó (không dùng biến thể thô trùng lặp).
+    Hợp đồng giữa tầng feature và tầng model: parquet processed phải có đủ 20 đặc trưng core dạng số,
+    và ``AnomalyPipeline`` phải chọn ĐÚNG 20 cột đó (không dùng biến thể thô trùng lặp).
 
     Test này là bản phục hồi của ``test_features.py::test_model_interfaces`` trong bản benchmark
     đã mất (dấu vết nằm ở ``.pytest_cache/v/cache/nodeids``).
@@ -156,7 +153,7 @@ def test_model_interfaces():
     core = list(FeatureSchema().core_features)
     pipeline = AnomalyPipeline(IsolationForestDetector(contamination=0.05))
     assert pipeline.feature_names == core
-    assert len(core) == 22
+    assert len(core) == 20
 
     if not PROCESSED_MATRIX.is_file():
         pytest.skip("Chưa có data/processed/feature_matrix_processed.parquet")
@@ -176,13 +173,13 @@ def test_model_interfaces():
     assert non_core <= {"total_logons", "distinct_hosts", "rare_logon_type_count"}
 
     sample = pl.read_parquet(PROCESSED_MATRIX, columns=core).head(1000)
-    assert sample.width == 22
+    assert sample.width == 20
     for name in core:
         assert sample[name].cast(pl.Float64, strict=False).null_count() < sample.height
 
 
 def _synthetic_events() -> pl.DataFrame:
-    """3 tài khoản bao đủ các case biên của nhóm 9 (streak, NULL, entropy hai đầu mút)."""
+    """3 tài khoản bao đủ các case biên của nhóm 9 (1 sự kiện, trải đều nhiều giờ, gai hoà nhau)."""
     rows = [
         # UserA: 09h có 3 lần 4625 liên tiếp + 1 lần 4624, sau đó 10h có 1 lần 4624
         ("dom1", "UserA", 9 * 3600 + 10, 4625, "host1"),
@@ -205,13 +202,13 @@ def _synthetic_events() -> pl.DataFrame:
 
 def test_intraday_behavior_features():
     """
-    6 đặc trưng nhóm 9 (schema v3.0) đúng công thức trên dữ liệu tổng hợp, gồm cả case biên.
+    4 đặc trưng nhóm 9 (schema v3.0) đúng công thức trên dữ liệu tổng hợp, gồm cả case biên.
 
     Bằng chứng giá trị kỳ vọng (tự tính tay):
-      * UserA: host distribution 3/2 -> evenness = -(0,6·ln0,6 + 0,4·ln0,4)/ln2 = 0,970950;
-        hour distribution 4/1 -> H/ln2 = 0,721928; success_after_failure = 1/2 (1 trong 2 lần 4624
-        có 4625 liền trước).
+      * UserA: host distribution 3/2 -> evenness = -(0,6·ln0,6 + 0,4·ln0,4)/ln2 = 0,9709506;
+        hour distribution 4/1 -> H/ln2 = 0,7219281.
       * UserC: 4 khung giờ đều nhau -> H/ln4 = 1,0; 1 host -> 0,0.
+      * UserB (1 sự kiện): mọi entropy = 0 (quy ước S <= 1).
     """
     feats = intraday_behavior_features(_synthetic_events()).sort("UserName")
     by_user = {row["UserName"]: row for row in feats.to_dicts()}
@@ -219,28 +216,22 @@ def test_intraday_behavior_features():
     assert feats.height == 3
     assert list(feats.columns[2:]) == list(INTRADAY_V3_FEATURES)
 
-    # UserA — chuỗi thất bại, tỷ lệ thành công sau thất bại, giờ cao điểm, hai evenness
+    # UserA — giờ cao điểm 9h + hai evenness
     user_a = by_user["UserA"]
-    assert user_a["max_failure_streak"] == 3
-    assert user_a["success_after_failure_ratio"] == pytest.approx(0.5, abs=1e-12)
     assert user_a["activity_peak_hour_sin"] == pytest.approx(math.sin(2 * math.pi * 9 / 24), abs=1e-12)
     assert user_a["activity_peak_hour_cos"] == pytest.approx(math.cos(2 * math.pi * 9 / 24), abs=1e-12)
     assert user_a["hour_entropy"] == pytest.approx(0.721928094887, abs=1e-9)
-    assert user_a["dst_host_entropy"] == pytest.approx(0.97095059, abs=1e-7)
+    assert user_a["dst_host_entropy"] == pytest.approx(0.970950594455, abs=1e-9)
 
-    # UserB — ngày 1 sự kiện: streak = 1, ratio NULL (không có 4624), entropy = 0
+    # UserB — ngày 1 sự kiện: entropy = 0 (mọi sự kiện cùng 1 giờ / 1 host)
     user_b = by_user["UserB"]
-    assert user_b["max_failure_streak"] == 1
-    assert user_b["success_after_failure_ratio"] is None
     assert user_b["hour_entropy"] == 0.0
     assert user_b["dst_host_entropy"] == 0.0
 
-    # UserC — trải đều 4 giờ, 1 host, không có thất bại
+    # UserC — trải đều 4 giờ, 1 host
     user_c = by_user["UserC"]
     assert user_c["hour_entropy"] == pytest.approx(1.0, abs=1e-12)
     assert user_c["dst_host_entropy"] == 0.0
-    assert user_c["max_failure_streak"] == 0
-    assert user_c["success_after_failure_ratio"] is None  # không có thất bại -> NULL (raw)
 
     # Bất biến: vào khung CHƯA sắp xếp vẫn cho cùng kết quả (hàm tự sort)
     shuffled = intraday_behavior_features(
@@ -249,17 +240,10 @@ def test_intraday_behavior_features():
     by_user_shuffled = {row["UserName"]: row for row in shuffled.to_dicts()}
     for account, expected_row in by_user.items():
         got = by_user_shuffled[account]
-        assert got["max_failure_streak"] == expected_row["max_failure_streak"]
-        for column in ("success_after_failure_ratio", "hour_entropy", "dst_host_entropy",
-                       "activity_peak_hour_sin", "activity_peak_hour_cos"):
-            expected_value = expected_row[column]
-            got_value = got[column]
-            if expected_value is None:
-                assert got_value is None
-            else:
-                assert got_value == pytest.approx(expected_value, abs=1e-9), (account, column)
+        for column in INTRADAY_V3_FEATURES:
+            assert got[column] == pytest.approx(expected_row[column], abs=1e-9), (account, column)
 
-    # Bất biến: khung rỗng vẫn trả đúng schema (6 cột), không crash
+    # Bất biến: khung rỗng vẫn trả đúng schema, không crash
     empty = intraday_behavior_features(_synthetic_events().head(0))
     assert empty.height == 0
     assert list(empty.columns[2:]) == list(INTRADAY_V3_FEATURES)
