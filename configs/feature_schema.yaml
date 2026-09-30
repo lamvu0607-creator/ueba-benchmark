@@ -1,6 +1,16 @@
 # Hợp đồng schema đặc trưng (Feature Contract) — UEBA Anomaly Detection Benchmark
 #
-# Sinh bởi : scripts/feature_engineering/extract_account_day_matrix.py  (BẢN 2.0)
+# Phiên bản : v2.0 (16 core) -> v3.0 (20 core)
+#   * v3.0 (2026-09-30) bổ sung 4 đặc trưng nhóm 9 — CHỈ dùng trạng thái TRONG NGÀY nên không
+#     cần Dense Panel và không có rủi ro rò rỉ tương lai:
+#       rhythm : activity_peak_hour_sin, activity_peak_hour_cos, hour_entropy
+#       fanout : dst_host_entropy
+#     2 đặc trưng cùng nhóm đã cài + ĐO trên dữ liệu thật rồi bác bỏ (rho 0.9973 / 0.9180 với
+#     failure_ratio) — xem mục `removed:` cuối file.
+#     Căn cứ & danh sách Tier A/B/C còn lại: docs/reports/bao_cao_bo_dac_trung_v3.md
+#
+# Sinh bởi : src/features/extractor.py  (đường chuẩn: `python main.py --stage features`)
+#            scripts/feature_engineering/extract_account_day_matrix.py (bản độc lập, CHẬM hơn 1 phiên bản)
 # Căn cứ   : docs/feature_engineering/feature_correlation_review.md (§7 rút gọn, §11 kế hoạch sửa)
 # Khoá bản ghi: (DomainName, UserName, day)
 #
@@ -41,6 +51,11 @@ features:
     nullable: "NULL khi failure_count = 0"
     note: "Tín hiệu lockout (brute force). Thay thế unknown_user_count (Status null 100%)."
 
+  # --- Nhóm 2b (v3.0): ĐÃ ĐO VÀ BÁC BỎ — 2 biến chuỗi thất bại --------------------------
+  # max_failure_streak / success_after_failure_ratio đã được cài + đo trên dữ liệu thật
+  # (10 ngày, 180.606 dòng): ρ = 0,9973 và 0,9180 với failure_ratio ⇒ vượt ngưỡng 0,85.
+  # Xem `removed:` ở cuối file.
+
   # ---------------- Nhóm 3: Thời gian / nhịp ----------------
   - name: off_hours_ratio
     group: time
@@ -79,6 +94,28 @@ features:
     model_transform: none
     note: "Cờ giải thích cho NULL của interarrival_dt_mean / delta_t_cv."
 
+  # --- Nhóm 3b (v3.0): nhịp trong ngày — chỉ dùng trạng thái TRONG NGÀY ----------------
+  - name: activity_peak_hour_sin
+    group: rhythm
+    definition: "sin(2*pi*h_peak/24) với h_peak = khung giờ có nhiều sự kiện nhất (hoà -> giờ nhỏ hơn)"
+    core: true
+    model_transform: none
+    note: "v3.0. Mã hoá CHU KỲ: sin/cos phải đi thành cặp, không dùng số giờ thô (giờ 23 và 0 kề nhau nhưng lệch 23 đơn vị)."
+
+  - name: activity_peak_hour_cos
+    group: rhythm
+    definition: "cos(2*pi*h_peak/24) — cặp với activity_peak_hour_sin"
+    core: true
+    model_transform: none
+    note: "v3.0."
+
+  - name: hour_entropy
+    group: rhythm
+    definition: "Pielou evenness = H / ln(S) của phân bố sự kiện trên các khung giờ có mặt trong ngày"
+    core: true
+    model_transform: none
+    note: "v3.0. Đo độ TRẢI ĐỀU nhịp trong ngày (độc lập với khối lượng); = 0 khi mọi sự kiện cùng 1 khung giờ."
+
   # ---------------- Nhóm 4: Phương thức truy cập (đóng ràng buộc tổng = 1) ----------------
   - name: interactive_ratio
     group: logon_type
@@ -116,6 +153,13 @@ features:
     model_transform: rank_gaussian
     note: "Skewness 139.08 -> nên dùng rank-Gaussian/winsorize thay vì chỉ log1p."
 
+  - name: dst_host_entropy
+    group: fanout
+    definition: "Pielou evenness = H / ln(S) của phân bố sự kiện theo LogHost (S = số host phân biệt, H = Shannon entropy)"
+    core: true
+    model_transform: none
+    note: "v3.0. Dùng evenness thay vì entropy thô vì entropy thô bị chặn bởi ln(n) -> trùng trục với log_total_logons. = 0 khi chỉ 1 host."
+
   # ---------------- Nhóm 7: Ngữ cảnh nguồn ----------------
   - name: missing_source_ratio
     group: context
@@ -137,6 +181,27 @@ features:
     core: true
     model_transform: none
     note: "Thay 3 cờ has_process_info / has_system_process / has_custom_proc; là hệ quả của sơ đồ ẩn danh 'Proc<6 số>.exe'."
+
+# ---------------------------------------------------------------------------
+# CHƯA triển khai (roadmap v3.0) — xem docs/reports/bao_cao_bo_dac_trung_v3.md §5
+# ---------------------------------------------------------------------------
+# Tier A còn lại (cần Dense Panel + cửa sổ nhân quả, rủi ro rò rỉ tương lai):
+#   new_source_count, new_host_count, new_source_count_7d, new_host_count_7d,
+#   source_recency, source_host_pair_novelty, days_since_last_activity, volume_robust_z_7d
+# Tier B (thử nghiệm/ablation, không nạp vector chính):
+#   interarrival_dt_p50, max_interarrival_dt, burst_event_count_60s,
+#   log_total_logons_lag1, log_total_logons_lag7, delta_log_total_logons_1d,
+#   delta_log_total_logons_7d, volume_trend_slope_7d, ewma_volume_7d, volume_rolling_mean_7d,
+#   source_set_novelty, host_set_novelty, new_source_count_14d, new_host_count_14d, host_recency,
+#   peer_volume_ratio, peer_volume_robust_z, peer_failure_ratio_diff, peer_distinct_hosts_diff,
+#   peer_off_hours_diff, peer_jaccard_similarity,
+#   failure_ratio_robust_z_7d, distinct_hosts_robust_z_7d, off_hours_robust_z_7d,
+#   ntlm_robust_z_7d, failure_ratio_lag1,
+#   logon_type_entropy, src_host_entropy, src_dst_pair_entropy, dst_host_concentration_ratio
+# Tier C (chẩn đoán/luật + chỉ mục panel, KHÔNG vào vector):
+#   volume_residual, residual_robust_zscore, residual_abs_exceed_3sigma, behavior_shift_score_7d,
+#   day, week, day_of_week
+deferred: []
 
 # ---------------------------------------------------------------------------
 # Đã LOẠI BỎ so với bản 1.0 (xem §5 và §7.1 của review) — kèm lý do
@@ -192,3 +257,7 @@ removed:
     reason: "rho = 0.8799 với network_ratio (ngày toàn type 3 -> giá trị = 1)."
   - name: failure_bad_password_share
     reason: "ĐÃ THỬ và BÁC BỎ: rho = 0.9220 với failure_ratio (mọi lý do thất bại đều là bằng chứng 'có thất bại')."
+  - name: max_failure_streak
+    reason: "v3.0, ĐÃ CÀI + ĐO rồi BÁC BỎ: rho = 0.9973 với failure_ratio (10 ngày, 180.606 dòng; max |rho|/Pearson-Spearman). Cơ chế: 87,04% dòng = 0 (ngày không có thất bại) và các 4625 tập trung theo cụm ⇒ chuỗi thất bại chỉ là proxy của cường độ thất bại, đúng loại trùng lặp đã loại failure_count (0.9969)."
+  - name: success_after_failure_ratio
+    reason: "v3.0, ĐÃ CÀI + ĐO rồi BÁC BỎ: rho = 0.9180 với failure_ratio và 0.9261 với max_failure_streak. Cơ chế: dùng chung chỉ báo 'ngày có thất bại hay không' (88,50% dòng = 0) — cùng cơ chế đã loại failure_bad_password_share (0.9220)."

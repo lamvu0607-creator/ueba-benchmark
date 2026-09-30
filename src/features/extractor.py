@@ -7,6 +7,7 @@ Sử dụng Polars để tối ưu hóa tốc độ xử lý và bộ nhớ.
 from __future__ import annotations
 
 import logging
+import math
 from pathlib import Path
 import time
 from typing import Any, Dict, List, Optional
@@ -39,10 +40,29 @@ RAW_ORDERED_COLS: List[str] = [
     "failure_ratio", "failure_locked_out_share",
     "off_hours_ratio",
     "interarrival_dt_mean", "delta_t_cv", "same_second_share", "is_single_event",
+    "activity_peak_hour_sin", "activity_peak_hour_cos", "hour_entropy",
     "interactive_ratio", "rare_logon_type_count",
     "ntlm_ratio",
-    "distinct_hosts", "distinct_sources_count",
+    "distinct_hosts", "distinct_sources_count", "dst_host_entropy",
     "missing_source_ratio", "remote_logon_ratio", "custom_proc_share",
+]
+
+#: 4 đặc trưng nhóm 9 của schema v3.0 đã QUA cổng kiểm định trên dữ liệu thật
+#: (chỉ dùng trạng thái TRONG NGÀY ⇒ không cần Dense Panel, không rò rỉ tương lai).
+INTRADAY_V3_FEATURES: List[str] = [
+    "activity_peak_hour_sin",
+    "activity_peak_hour_cos",
+    "hour_entropy",
+    "dst_host_entropy",
+]
+
+#: 2 đặc trưng nhóm 9 đã ĐO và BÁC BỎ (xem ``removed:`` trong configs/feature_schema.yaml):
+#: ``max_failure_streak`` (ρ = 0,9973 với failure_ratio) và ``success_after_failure_ratio``
+#: (ρ = 0,9180 với failure_ratio) — đúng cơ chế zero-inflation dùng chung "ngày có thất bại hay không"
+#: đã từng loại ``failure_bad_password_share`` (ρ = 0,9220) và ``failure_count`` (ρ = 0,9969).
+INTRADAY_V3_REJECTED: List[str] = [
+    "max_failure_streak",
+    "success_after_failure_ratio",
 ]
 
 
@@ -86,6 +106,99 @@ def entity_type_expr(fcfg: Dict[str, Any]) -> pl.Expr:
     )
 
 
+def intraday_behavior_features(
+    df_events: pl.DataFrame,
+    keys: Optional[List[str]] = None,
+    assume_sorted: bool = False,
+) -> pl.DataFrame:
+    """
+    Tính **6 đặc trưng nhóm 9 (schema v3.0)** chỉ từ trạng thái TRONG NGÀY.
+
+    Vì sao tách riêng khỏi ``extract_features_single_day``: hàm này không đọc/ghi file và chỉ
+    phụ thuộc các cột sự kiện thô (``Time``, ``EventID``, ``LogHost`` + khoá danh tính) nên
+    kiểm thử được bằng dữ liệu tổng hợp — đúng yêu cầu "mỗi biến phải có cổng kiểm định"
+    (xem ``docs/reports/bao_cao_bo_dac_trung_v3.md`` §7 bước 4).
+
+    ===================================  ==================================================
+    ``activity_peak_hour_sin``           ``sin(2π·h_peak/24)`` — h_peak = khung giờ nhiều sự
+    ``activity_peak_hour_cos``           kiện nhất (hoà nhau → lấy giờ nhỏ hơn, tất định)
+    ``hour_entropy``                     Pielou evenness ``H / ln(S)`` của phân bố sự kiện
+                                         theo các khung giờ có mặt
+    ``dst_host_entropy``                 evenness tương tự trên phân bố theo ``LogHost``
+    ===================================  ==================================================
+
+    Hai biến cùng nhóm đã ĐO trên dữ liệu thật rồi **bác bỏ** (không sinh tại đây):
+    ``max_failure_streak`` (ρ = 0,9973 với ``failure_ratio``) và ``success_after_failure_ratio``
+    (ρ = 0,9180) — vượt ngưỡng 0,85 của hợp đồng schema, xem ``INTRADAY_V3_REJECTED``.
+
+    **Vì sao dùng Pielou evenness thay vì entropy thô:** entropy thô bị chặn trên bởi ``ln(n)``
+    nên tài khoản ít sự kiện *luôn* có entropy nhỏ ⇒ cột sẽ trùng trục với ``log_total_logons``.
+    Chia cho ``ln(S)`` (S = số khung giờ/host phân biệt) cho ra độ "trải đều" ∈ [0, 1] **độc lập
+    với khối lượng**; quy ước ``= 0`` khi ``S <= 1`` (mọi sự kiện cùng 1 giờ / cùng 1 host).
+
+    ``assume_sorted=True`` chỉ dùng khi khung vào ĐÃ sắp xếp theo ``keys + ["Time"]`` — điều kiện
+    bắt buộc để ``shift(1).over(keys)`` và chuỗi thất bại đúng nghĩa thời gian.
+    """
+    keys = list(keys or ["DomainName", "UserName"])
+    out_cols = keys + list(INTRADAY_V3_FEATURES)
+
+    if df_events.height == 0:
+        schema: Dict[str, Any] = {k: pl.String for k in keys}
+        schema.update({c: pl.Float64 for c in INTRADAY_V3_FEATURES})
+        return pl.DataFrame(schema=schema).select(out_cols)
+
+    ev = df_events if assume_sorted else df_events.sort(keys + ["Time"])
+    if "hour" not in ev.columns:
+        ev = ev.with_columns(((pl.col("Time") % 86400) // 3600).cast(pl.Int32).alias("hour"))
+
+    def _evenness(count_col: str, raw_alias: str, distinct_alias: str) -> List[pl.Expr]:
+        """``-Σ p·ln(p)`` và ``S`` cho phân bố đếm theo một chiều phân loại."""
+        p = pl.col(count_col) / pl.col(count_col).sum()
+        return [
+            (-(p * p.log())).sum().alias(raw_alias),
+            pl.col(count_col).len().cast(pl.Float64).alias(distinct_alias),
+        ]
+
+    # (a) Khung giờ: giờ cao điểm (tất định khi hoà nhau) + evenness phân bố giờ
+    hour_counts = ev.group_by(keys + ["hour"]).agg(pl.len().alias("_n"))
+    peak_hour = (
+        hour_counts.sort(["_n", "hour"], descending=[True, False])
+        .group_by(keys, maintain_order=True)
+        .agg(pl.col("hour").first().alias("_peak_hour"))
+    )
+    hour_entropy = hour_counts.group_by(keys).agg(
+        _evenness("_n", "_hour_h", "_hour_distinct")
+    )
+
+    # (b) Máy đích: evenness phân bố theo LogHost (chỉ tính host hợp lệ)
+    host_counts = (
+        ev.filter(pl.col("LogHost").is_not_null() & (pl.col("LogHost").str.strip_chars() != ""))
+        .with_columns(pl.col("LogHost").str.strip_chars().alias("_host"))
+        .group_by(keys + ["_host"])
+        .agg(pl.len().alias("_n"))
+    )
+    host_entropy = host_counts.group_by(keys).agg(
+        _evenness("_n", "_host_h", "_host_distinct")
+    )
+
+    feats = hour_entropy.join(peak_hour, on=keys, how="left").join(
+        host_entropy, on=keys, how="left"
+    )
+
+    return feats.with_columns([
+        pl.when(pl.col("_hour_distinct") > 1)
+        .then(pl.col("_hour_h") / pl.col("_hour_distinct").log())
+        .otherwise(0.0)
+        .alias("hour_entropy"),
+        pl.when(pl.col("_host_distinct").fill_null(0.0) > 1)
+        .then(pl.col("_host_h").fill_null(0.0) / pl.col("_host_distinct").log())
+        .otherwise(0.0)
+        .alias("dst_host_entropy"),
+        (2 * math.pi * pl.col("_peak_hour") / 24).sin().alias("activity_peak_hour_sin"),
+        (2 * math.pi * pl.col("_peak_hour") / 24).cos().alias("activity_peak_hour_cos"),
+    ]).select(out_cols)
+
+
 def extract_features_single_day(
     day: int,
     data_dir: Path,
@@ -117,7 +230,10 @@ def extract_features_single_day(
             logger.warning(f"Không tìm thấy dữ liệu cho Day {day:02d} trong {data_dir}, bỏ qua.")
             return pl.DataFrame()
 
-        cols_24 = [c for c in ["Time", "EventID", "UserName", "LogHost", "LogonType", "AuthenticationPackage", "Source", "DomainName"] if c in pl.scan_parquet(path_4624).collect_schema().names()]
+        cols_24 = [c for c in [
+            "Time", "EventID", "UserName", "LogHost", "LogonType", "AuthenticationPackage",
+            "Source", "DomainName", "ProcessName",
+        ] if c in pl.scan_parquet(path_4624).collect_schema().names()]
         cols_25 = cols_24 + ["FailureReason"]
 
         lf_4624 = pl.scan_parquet(path_4624).select(cols_24).with_columns(pl.lit(None, dtype=pl.String).alias("FailureReason"))
@@ -206,6 +322,14 @@ def extract_features_single_day(
         (pl.col("_same_second_count") / pl.col("total_logons")).alias("same_second_share"),
         (pl.col("total_logons") == 1).cast(pl.UInt8).alias("is_single_event"),
     ])
+
+    # Nhóm 9 (schema v3.0): 6 đặc trưng TRONG NGÀY — không dùng lịch sử nên không rủi ro
+    # rò rỉ tương lai (khác nhóm novelty/recency phải chờ Dense Panel).
+    df_day = df_day.join(
+        intraday_behavior_features(df_events, assume_sorted=True),
+        on=["DomainName", "UserName"],
+        how="left",
+    )
 
     # Chọn đúng các cột hợp đồng
     df_day = df_day.select(RAW_ORDERED_COLS)

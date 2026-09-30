@@ -45,7 +45,7 @@ def synthetic_matrix(n_samples: int = 500, n_features: int = 16, outlier_index: 
 
 def synthetic_feature_frame(n_rows: int = N_ROWS, outlier_index: int = OUTLIER_INDEX, seed: int = 1) -> pl.DataFrame:
     """
-    DataFrame mô phỏng parquet thật: đủ 16 đặc trưng core + vài cột KHÔNG core (bẫy),
+    DataFrame mô phỏng parquet thật: đủ 22 đặc trưng core + vài cột KHÔNG core (bẫy),
     cố tình để 3 NULL hợp lệ, và 1 dòng dị biệt (mọi đặc trưng = 99.0) nằm ngoài tập train.
     ``outlier_index=None`` để tạo dữ liệu "sạch" (không tiêm dị biệt) phục vụ đo drift.
     """
@@ -327,12 +327,12 @@ def test_baselines_config_integration():
 # Pipeline 16 đặc trưng core (B4)
 # --------------------------------------------------------------------------- #
 def test_core_features_only():
-    """Pipeline chỉ dùng 16 đặc trưng core; cột không core không được ảnh hưởng điểm; NULL phải impute có căn cứ."""
+    """Pipeline chỉ dùng 22 đặc trưng core; cột không core không được ảnh hưởng điểm; NULL phải impute có căn cứ."""
     df = synthetic_feature_frame()
     pipeline = AnomalyPipeline(IsolationForestDetector(contamination=0.05, random_state=42), random_state=42)
 
     assert pipeline.feature_names == CORE_FEATURES
-    assert len(pipeline.feature_names) == 16
+    assert len(pipeline.feature_names) == 22
     assert pipeline.get_metadata()["scaler"] == "RobustScaler"
 
     pipeline.fit(df.head(N_TRAIN))
@@ -373,7 +373,7 @@ def test_isolation_forest_pipeline(temp_artifact_dir):
     path = pipeline.save(temp_artifact_dir / "isolation_forest_pipeline.joblib")
     reloaded = AnomalyPipeline.load(path)
     assert reloaded.model.name == "isolation_forest"
-    assert reloaded.get_metadata()["n_features"] == 16
+    assert reloaded.get_metadata()["n_features"] == 22
     assert np.allclose(reloaded.score(df.tail(N_ROWS - N_TRAIN)), scores)
 
 

@@ -20,11 +20,13 @@ def normalize_features(
     fill_null_strategy: str = "indicator",
 ) -> pl.DataFrame:
     """
-    Áp dụng các biến đổi tiền xử lý theo Feature Schema v2:
+    Áp dụng các biến đổi tiền xử lý theo Feature Schema v2/v3:
     - log1p cho các cột volume và counts lệch nặng:
         log_total_logons = log1p(total_logons)
         log_distinct_hosts = log1p(distinct_hosts)
         rare_logon_type_count_log = log1p(rare_logon_type_count)
+    - Cột đã ở thang tỷ lệ/entropy (nhóm 9 của v3.0) giữ NGUYÊN: không log1p, không scale
+      (``activity_peak_hour_sin/cos`` ∈ [-1, 1]; ``hour_entropy``/``dst_host_entropy`` ∈ [0, 1]).
     - Xử lý NULL có kiểm soát:
         - failure_locked_out_share: fill 0 khi failure_count = 0
         - interarrival_dt_mean / delta_t_cv: fill 0 nếu dùng indicator flag is_single_event
