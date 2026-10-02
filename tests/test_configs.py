@@ -34,8 +34,8 @@ def test_feature_schema_contract():
     assert schema.label_key == "entity_type"
 
     core_feats = schema.core_features
-    assert len(core_feats) == 20, (
-        f"Hợp đồng Schema v3.0 phải có đúng 20 core features, hiện có {len(core_feats)}"
+    assert len(core_feats) == 24, (
+        f"Hợp đồng Schema v3.0 phải có đúng 24 core features, hiện có {len(core_feats)}"
     )
 
     expected_core = [
@@ -55,17 +55,25 @@ def test_feature_schema_contract():
         "missing_source_ratio",
         "remote_logon_ratio",
         "custom_proc_share",
-        # v3.0 (nhóm 9) — chỉ dùng trạng thái trong ngày, đã qua cổng |rho| >= 0,85
+        # v3.0 nhóm 9 (trong ngày) — đã qua cổng |rho| >= 0,85
         "activity_peak_hour_sin",
         "activity_peak_hour_cos",
         "hour_entropy",
         "dst_host_entropy",
+        # v3.0 nhóm 10 (lịch sử) — chỉ dùng dữ liệu <= t-1; 4 biến đã qua cổng kiểm định
+        "new_source_count_7d",
+        "new_host_count_7d",
+        "days_since_last_activity",
+        "volume_robust_z_7d",
     ]
     for feat in expected_core:
         assert feat in core_feats, f"Đặc trưng cốt lõi '{feat}' thiếu trong schema"
 
-    # 2 đặc trưng đã ĐO và bác bỏ phải nằm ở mục `removed` (kèm lý do định lượng), KHÔNG ở core.
+    # 6 đặc trưng đã ĐO và bác bỏ phải nằm ở mục `removed` (kèm lý do định lượng), KHÔNG ở core.
     removed = {entry["name"] for entry in schema.raw_schema.get("removed", [])}
-    for rejected in ("max_failure_streak", "success_after_failure_ratio"):
-        assert rejected not in core_feats, f"'{rejected}' phải bị loại khỏi core (đã đo vượt ngưỡng rho)"
+    for rejected in (
+        "max_failure_streak", "success_after_failure_ratio",
+        "new_source_count", "new_host_count", "source_recency", "source_host_pair_novelty",
+    ):
+        assert rejected not in core_feats, f"'{rejected}' phải bị loại khỏi core (đã đo vượt ngưỡng)"
         assert rejected in removed, f"'{rejected}' phải được ghi vào mục `removed` kèm lý do"

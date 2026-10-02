@@ -1,13 +1,15 @@
 # Hợp đồng schema đặc trưng (Feature Contract) — UEBA Anomaly Detection Benchmark
 #
-# Phiên bản : v2.0 (16 core) -> v3.0 (20 core)
-#   * v3.0 (2026-09-30) bổ sung 4 đặc trưng nhóm 9 — CHỈ dùng trạng thái TRONG NGÀY nên không
-#     cần Dense Panel và không có rủi ro rò rỉ tương lai:
-#       rhythm : activity_peak_hour_sin, activity_peak_hour_cos, hour_entropy
-#       fanout : dst_host_entropy
-#     2 đặc trưng cùng nhóm đã cài + ĐO trên dữ liệu thật rồi bác bỏ (rho 0.9973 / 0.9180 với
+# Phiên bản : v2.0 (16 core) -> v3.0 (28 core)
+#   * v3.0 (2026-09-30) bổ sung 12 đặc trưng, TẤT CẢ đều chỉ dùng dữ liệu ≤ t−1:
+#       nhóm 9 (trong ngày) : activity_peak_hour_sin/cos, hour_entropy, dst_host_entropy
+#       nhóm 10 (lịch sử)   : new_source_count, new_host_count,
+#                             new_source_count_7d, new_host_count_7d, source_recency,
+#                             source_host_pair_novelty, days_since_last_activity,
+#                             volume_robust_z_7d
+#     2 đặc trưng đã cài + ĐO trên dữ liệu thật rồi bác bỏ (rho 0.9973 / 0.9180 với
 #     failure_ratio) — xem mục `removed:` cuối file.
-#     Căn cứ & danh sách Tier A/B/C còn lại: docs/reports/bao_cao_bo_dac_trung_v3.md
+#     Căn cứ & danh sách Tier B/C còn lại: docs/reports/bao_cao_bo_dac_trung_v3.md
 #
 # Sinh bởi : src/features/extractor.py  (đường chuẩn: `python main.py --stage features`)
 #            scripts/feature_engineering/extract_account_day_matrix.py (bản độc lập, CHẬM hơn 1 phiên bản)
@@ -174,7 +176,39 @@ features:
     core: true
     model_transform: none
 
-  # ---------------- Nhóm 8: Ngữ cảnh tiến trình ----------------
+  # ---------------- Nhóm 10 (v3.0): Tính mới & Lịch sử — CHỈ dùng dữ liệu ≤ t−1 ---------
+  # 4/8 ứng viên đã bị BÁC BỎ sau khi đo trên dữ liệu thật (xem mục `removed:` cuối file):
+  # new_source_count, new_host_count, source_recency, source_host_pair_novelty.
+  - name: new_source_count_7d
+    group: novelty
+    definition: "số Source của ngày t KHÔNG thấy trong 7 NGÀY LỊCH gần nhất (t−7 … t−1)"
+    core: true
+    model_transform: log1p
+    note: "v3.0 Tier A. Cửa sổ là ngày lịch (không phải '7 dòng trước đó' của panel thưa)."
+
+  - name: new_host_count_7d
+    group: novelty
+    definition: "số LogHost của ngày t không thấy trong 7 ngày lịch gần nhất"
+    core: true
+    model_transform: log1p
+    note: "v3.0 Tier A."
+
+  - name: days_since_last_activity
+    group: novelty
+    definition: "số ngày kể từ phiên hoạt động gần nhất của tài khoản (t − max ngày < t)"
+    core: true
+    model_transform: log1p
+    nullable: "NULL ở dòng hoạt động đầu tiên của tài khoản"
+    note: "v3.0 Tier A. Bắt tài khoản 'ngủ đông' quay lại — bù cho điểm mù của volume_robust_z_7d."
+
+  - name: volume_robust_z_7d
+    group: deviation
+    definition: "z bền vững của log1p(volume_t) so với 7 NGÀY LỊCH trước đó (median + IQR/1.349 → std → 0 với dung sai 1e-9), WINSORIZE ở ±10; ngày trống tính là volume 0"
+    core: true
+    model_transform: none
+    nullable: "NULL khi chưa đủ 7 ngày lịch sử (warm-up)"
+    note: "v3.0 Tier A. Winsorize ±10 là BẮT BUỘC: baseline cực ổn định (IQR ≈ 0) làm z hợp lệ về toán nhưng cực lớn — ví dụ thật User718489 (5.966–6.058 sự kiện/ngày trong 7 ngày rồi tụt còn 472) cho z = −976, đủ để lấn át khoảng cách của IForest/LOF/OCSVM. LƯU Ý diễn giải: nếu 7 ngày trước ĐỀU TRỐNG thì baseline không có độ tán xạ ⇒ quy ước z = 0; tín hiệu 'quay lại sau im lặng' nằm ở days_since_last_activity."
+
   - name: custom_proc_share
     group: context
     definition: "số sự kiện có ProcessName bắt đầu bằng 'proc' / total_logons"
@@ -185,9 +219,7 @@ features:
 # ---------------------------------------------------------------------------
 # CHƯA triển khai (roadmap v3.0) — xem docs/reports/bao_cao_bo_dac_trung_v3.md §5
 # ---------------------------------------------------------------------------
-# Tier A còn lại (cần Dense Panel + cửa sổ nhân quả, rủi ro rò rỉ tương lai):
-#   new_source_count, new_host_count, new_source_count_7d, new_host_count_7d,
-#   source_recency, source_host_pair_novelty, days_since_last_activity, volume_robust_z_7d
+# Tier A: đã triển khai ĐỦ (4 biến nhóm 9 + 8 biến nhóm 10 = 28 core).
 # Tier B (thử nghiệm/ablation, không nạp vector chính):
 #   interarrival_dt_p50, max_interarrival_dt, burst_event_count_60s,
 #   log_total_logons_lag1, log_total_logons_lag7, delta_log_total_logons_1d,
@@ -261,3 +293,15 @@ removed:
     reason: "v3.0, ĐÃ CÀI + ĐO rồi BÁC BỎ: rho = 0.9973 với failure_ratio (10 ngày, 180.606 dòng; max |rho|/Pearson-Spearman). Cơ chế: 87,04% dòng = 0 (ngày không có thất bại) và các 4625 tập trung theo cụm ⇒ chuỗi thất bại chỉ là proxy của cường độ thất bại, đúng loại trùng lặp đã loại failure_count (0.9969)."
   - name: success_after_failure_ratio
     reason: "v3.0, ĐÃ CÀI + ĐO rồi BÁC BỎ: rho = 0.9180 với failure_ratio và 0.9261 với max_failure_streak. Cơ chế: dùng chung chỉ báo 'ngày có thất bại hay không' (88,50% dòng = 0) — cùng cơ chế đã loại failure_bad_password_share (0.9220)."
+  - name: new_source_count
+    reason: "v3.0 nhóm 10, ĐÃ CÀI + ĐO rồi BÁC BỎ: rho = 0.9999 với new_source_count_7d (10 ngày, 180.606 dòng) — trên LANL, lần xuất hiện ĐẦU TIÊN của một Source gần như luôn nằm ngoài cửa sổ 7 ngày, nên bản 'toàn lịch sử' và bản '7 ngày' là cùng một biến. Giữ bản _7d vì ít bị cold-start ở đầu dải quan sát."
+  - name: new_host_count
+    reason: "v3.0 nhóm 10, ĐÃ CÀI + ĐO rồi BÁC BỎ: rho = 0.9999 với new_host_count_7d (cùng cơ chế như new_source_count). Ở bản 28 biến, cặp này đẩy VIF lên 8.197."
+  - name: source_recency
+    reason: "v3.0 nhóm 10, ĐÃ CÀI + ĐO rồi BÁC BỎ: rho = 0.9238 với days_since_last_activity — hai biến cùng đo 'khoảng cách tới lần hoạt động gần nhất'; giữ days_since_last_activity vì phạm vi tài khoản và bù được điểm mù của volume_robust_z_7d."
+  - name: source_host_pair_novelty
+    reason: "v3.0 nhóm 10, ĐÃ CÀI + ĐO rồi BÁC BỎ: rho = 0.9052 với new_host_count (và 0.8004 với new_source_count) — một LogHost mới gần như luôn kéo theo một cặp (Source,LogHost) mới ⇒ cùng một trục 'đích mới'."
+  - name: volume_residual
+    reason: "Đề xuất Tier C của báo cáo v3.0: giữ ở tầng CHẨN ĐOÁN/luật, không nạp vector (không có trong features)."
+  - name: behavior_shift_score_7d
+    reason: "Đề xuất Tier C: chỉ số tổng hợp để xếp hạng rủi ro cho SOC, không phải đặc trưng hành vi."
