@@ -1,6 +1,6 @@
 ,isolation_forest,local_outlier_factor,one_class_svm,zscore_baseline,rule_threshold_baseline
 isolation_forest,1.0,0.0,0.0,0.0,0.0
-local_outlier_factor,0.0,1.0,0.0,0.0,0.0
-one_class_svm,0.0,0.0,1.0,0.1,0.0
-zscore_baseline,0.0,0.0,0.1,1.0,0.0
+local_outlier_factor,0.0,1.0,0.7,0.0,0.0
+one_class_svm,0.0,0.7,1.0,0.0,0.0
+zscore_baseline,0.0,0.0,0.0,1.0,0.0
 rule_threshold_baseline,0.0,0.0,0.0,0.0,1.0
