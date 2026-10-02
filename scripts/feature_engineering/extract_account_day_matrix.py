@@ -1,6 +1,13 @@
 """
 extract_account_day_matrix.py
 
+⚠️ BẢN ĐỘC LẬP NÀY CHẬM HƠN PIPELINE CHÍNH 1 PHIÊN BẢN HỢP ĐỒNG.
+   Nó vẫn sinh **20 cột của schema v2.0**; hợp đồng hiện hành là **v3.0 (24 cột)** với 4 đặc trưng
+   nhóm 9 (`activity_peak_hour_sin/cos`, `hour_entropy`, `dst_host_entropy`).
+   ⇒ Chạy file này rồi kiểm bằng `check_feature_matrix.py` sẽ **FAIL** (thiếu 4 cột).
+   Đường chuẩn sinh ma trận theo hợp đồng mới: `python main.py --stage features`
+   (mã nguồn: src/features/extractor.py). File này chỉ giữ để tái lập báo cáo Tuần 2.
+
 Pipeline tổng hợp log thô (Event 4624 & 4625) thành Ma trận Đặc trưng (Tài khoản × Ngày).
 
 QUAN TRỌNG — BỘ ĐẶC TRƯNG THÔ, KHÔNG CHUẨN HÓA:

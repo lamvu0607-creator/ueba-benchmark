@@ -99,7 +99,13 @@ def run_pipeline(args):
                 schema = FeatureSchema()
                 val_res = schema.validate_features(df_processed)
                 if val_res["is_valid"]:
-                    logger.info("--> [Stage 2: Features] Xác thực Schema thành công: 16 đặc trưng cốt lõi hợp lệ.")
+                    logger.info(
+                        "--> [Stage 2: Features] Xác thực Schema thành công: %d đặc trưng cốt lõi hợp lệ "
+                        "(%d dòng × %d cột).",
+                        len(schema.core_features),
+                        val_res["row_count"],
+                        val_res["column_count"],
+                    )
                 else:
                     logger.warning(f"--> [Stage 2: Features] Cảnh báo kiểm định Schema: {val_res}")
             except Exception as e:

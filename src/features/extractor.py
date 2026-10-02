@@ -14,6 +14,8 @@ from typing import Any, Dict, List, Optional
 import polars as pl
 import yaml
 
+from src.features.history import HISTORY_V3_FEATURES, add_history_features
+
 logger = logging.getLogger("ueba_benchmark.features.extractor")
 
 DEFAULT_FEATURE_CFG: Dict[str, Any] = {
@@ -64,6 +66,11 @@ INTRADAY_V3_REJECTED: List[str] = [
     "max_failure_streak",
     "success_after_failure_ratio",
 ]
+
+#: Hợp đồng đầy đủ của **ma trận thô** = đặc trưng TRONG NGÀY + 8 đặc trưng LỊCH SỬ (Tier A).
+#: 8 biến lịch sử không tính được trong ``extract_features_single_day`` (chỉ thấy 1 ngày) nên
+#: được thêm ở ``build_account_day_matrix`` bằng ``src.features.history.add_history_features``.
+MATRIX_ORDERED_COLS: List[str] = list(RAW_ORDERED_COLS) + list(HISTORY_V3_FEATURES)
 
 
 def resolve_feature_config(cfg: Dict[str, Any]) -> Dict[str, Any]:
@@ -199,16 +206,45 @@ def intraday_behavior_features(
     ]).select(out_cols)
 
 
+def _presence_frames(df_events: pl.DataFrame, day: int, keys: List[str]) -> pl.DataFrame:
+    """
+    Dựng **vật liệu lịch sử** cho ngày ``day``: sự hiện diện của từng thực thể
+    (``Source``/``LogHost``) dưới dạng dài ``(keys, day, kind, entity)``.
+
+    Vì sao cần: ma trận thô chỉ có *số đếm* (``distinct_sources_count``, ``distinct_hosts``)
+    chứ không giữ *danh tính* Source/LogHost, nên không thể suy ra "nguồn này đã từng thấy chưa".
+    Khung này là đầu vào bắt buộc của ``src.features.history.add_history_features``.
+    """
+    day_expr = pl.lit(day).cast(pl.Int32).alias("day")
+    valid_source = pl.col("Source").is_not_null() & (pl.col("Source").str.strip_chars() != "")
+    valid_host = pl.col("LogHost").is_not_null() & (pl.col("LogHost").str.strip_chars() != "")
+
+    return pl.concat([
+        df_events.filter(valid_source)
+        .select(keys + [pl.col("Source").str.strip_chars().alias("entity")])
+        .unique()
+        .with_columns(pl.lit("Source").alias("kind")),
+        df_events.filter(valid_host)
+        .select(keys + [pl.col("LogHost").str.strip_chars().alias("entity")])
+        .unique()
+        .with_columns(pl.lit("LogHost").alias("kind")),
+    ]).with_columns(day_expr)
+
+
 def extract_features_single_day(
     day: int,
     data_dir: Path,
     output_daily_dir: Optional[Path] = None,
     feature_cfg: Optional[Dict[str, Any]] = None,
-) -> pl.DataFrame:
+    return_presences: bool = False,
+):
     """
     Trích xuất vector đặc trưng THÔ cho từng cặp (DomainName, UserName, day).
     Ưu tiên đọc trực tiếp từ dữ liệu log sạch (data/cleaned/cleaned_day-XX.parquet).
     Nếu chưa có, tự động fallback sang đọc từ log interim.
+
+    ``return_presences=True`` trả thêm ``(entities, pairs)`` — vật liệu để tính 8 đặc trưng
+    lịch sử ở :func:`src.features.history.add_history_features` (xem :func:`_presence_frames`).
     """
     fcfg = feature_cfg or DEFAULT_FEATURE_CFG
     
@@ -346,6 +382,8 @@ def extract_features_single_day(
         daily_file = output_daily_dir / f"user_features_day-{day:02d}.parquet"
         df_day.write_parquet(daily_file, compression="snappy")
 
+    if return_presences:
+        return df_day, _presence_frames(df_events, day, ["DomainName", "UserName"])
     return df_day
 
 
@@ -418,13 +456,17 @@ def build_account_day_matrix(
 
     logger.info(f"Bắt đầu trích xuất đặc trưng từ Day {start_day:02d} đến Day {end_day:02d}...")
     daily_dfs: List[pl.DataFrame] = []
+    entity_dfs: List[pl.DataFrame] = []
     for d in range(start_day, end_day + 1):
         if d not in days_avail:
             continue
         t0 = time.time()
-        df_d = extract_features_single_day(d, data_source, daily_dir, feature_cfg=fcfg)
+        df_d, entities_d = extract_features_single_day(
+            d, data_source, daily_dir, feature_cfg=fcfg, return_presences=True
+        )
         if df_d.height > 0:
             daily_dfs.append(df_d)
+            entity_dfs.append(entities_d)
             logger.info(f"Day {d:02d}: {df_d.height:,} dòng ({time.time() - t0:.2f}s)")
 
     if not daily_dfs:
@@ -432,6 +474,26 @@ def build_account_day_matrix(
         return pl.DataFrame()
 
     df_full = pl.concat(daily_dfs, how="vertical")
+
+    # 8 đặc trưng LỊCH SỬ (Tier A, schema v3.0): cần thấy toàn bộ dải ngày nên tính ở đây,
+    # sau khi đã ghép các ngày. Hàm bảo đảm chỉ dùng dữ liệu ≤ t−1 (xem src/features/history.py).
+    t_hist = time.time()
+    entities_full = pl.concat(entity_dfs, how="vertical") if entity_dfs else None
+    df_full = add_history_features(df_full, entities=entities_full)
+    df_full = df_full.select(MATRIX_ORDERED_COLS)
+    logger.info(
+        "Đã tính %d đặc trưng lịch sử trong %.1fs (ma trận %d cột).",
+        len(HISTORY_V3_FEATURES), time.time() - t_hist, df_full.width,
+    )
+
+    # Ghi lại các file ngày để bản `daily/` khớp hợp đồng đầy đủ (bản ghi trong
+    # `extract_features_single_day` mới chỉ có đặc trưng TRONG NGÀY).
+    for key, part in df_full.partition_by("day", as_dict=True).items():
+        day_value = key[0] if isinstance(key, tuple) else key
+        part.write_parquet(
+            daily_dir / f"user_features_day-{int(day_value):02d}.parquet", compression="snappy"
+        )
+
     matrix_file = out_path / "feature_matrix_raw.parquet"
     df_full.write_parquet(matrix_file, compression="snappy")
     logger.info(f"Đã lưu ma trận tổng hợp {df_full.height:,} dòng x {df_full.width} cột tại '{matrix_file}'.")

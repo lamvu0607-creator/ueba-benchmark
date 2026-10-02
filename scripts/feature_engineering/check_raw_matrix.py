@@ -32,10 +32,16 @@ EXPECTED_FEATS = [
     "failure_ratio", "failure_locked_out_share",
     "off_hours_ratio",
     "interarrival_dt_mean", "delta_t_cv", "same_second_share", "is_single_event",
+    # v3.0 — nhóm 9 (chỉ dùng trạng thái trong ngày)
+    "activity_peak_hour_sin", "activity_peak_hour_cos", "hour_entropy",
     "interactive_ratio", "rare_logon_type_count",
     "ntlm_ratio",
-    "distinct_hosts", "distinct_sources_count",
+    # v3.0 — evenness phân bố máy đích
+    "distinct_hosts", "distinct_sources_count", "dst_host_entropy",
     "missing_source_ratio", "remote_logon_ratio", "custom_proc_share",
+    # v3.0 — nhóm 10 (lịch sử; chỉ dùng dữ liệu <= t-1; 4 biến đã qua cổng kiểm định)
+    "new_source_count_7d", "new_host_count_7d",
+    "days_since_last_activity", "volume_robust_z_7d",
 ]
 TOP_N = 4
 
@@ -71,7 +77,7 @@ def main() -> int:
     print(f"Cột  : {df.columns}")
     print()
 
-    check("1. Đúng hợp đồng 20 cột", list(df.columns) == META_COLS + EXPECTED_FEATS,
+    check("1. Đúng hợp đồng 28 cột", list(df.columns) == META_COLS + EXPECTED_FEATS,
           f"{len(df.columns)} cột")
     log_cols = [c for c in df.columns if c.startswith("log_")]
     check("2. KHÔNG có cột log (bất biến của bước RAW)", len(log_cols) == 0,

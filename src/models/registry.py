@@ -1,5 +1,5 @@
 """
-Module Registry - Danh mục 5 mô hình canonical, alias tương thích ngược, và factory.
+Module Registry - Danh mục 6 mô hình canonical, alias tương thích ngược, và factory.
 
 Vì sao cần registry:
   * ``experiments/logs/experiment_log.csv`` lịch sử ghi tên mô hình theo kiểu CamelCase
@@ -25,7 +25,7 @@ from typing import Any, Dict, List, Optional, Sequence, Type
 import yaml
 
 from src.models.base import BaseAnomalyModel
-from src.models.baselines import RuleThresholdBaseline, ZScoreBaseline
+from src.models.baselines import RandomBaseline, RuleThresholdBaseline, ZScoreBaseline
 from src.models.detectors import (
     IsolationForestDetector,
     LocalOutlierFactorDetector,
@@ -46,13 +46,15 @@ __all__ = [
     "resolve_model",
 ]
 
-#: 5 mô hình của benchmark, đúng thứ tự xuất hiện trong bảng xếp hạng.
+#: 6 mô hình của benchmark, đúng thứ tự xuất hiện trong bảng xếp hạng.
+#: ``RandomBaseline`` đặt CUỐI vì nó là **mốc dưới** (đoán mò) để đối chiếu mọi chỉ số.
 MODEL_CLASSES = (
     IsolationForestDetector,
     LocalOutlierFactorDetector,
     OneClassSVMDetector,
     ZScoreBaseline,
     RuleThresholdBaseline,
+    RandomBaseline,
 )
 
 #: Tên canonical dùng cho CLI ``--models`` và tên cột trong artifact.

@@ -9,13 +9,13 @@ defaults:
 
 training:
   # Ghi đè ngân sách lấy mẫu con khi fit cho MỌI mô hình. null = dùng mặc định từng lớp:
-  # LOF/One-Class SVM 20.000 dòng; Isolation Forest và 2 baseline dùng toàn bộ tập train.
+  # LOF/One-Class SVM 20.000 dòng; Isolation Forest và 3 baseline dùng toàn bộ tập train.
   max_train_samples: null
 
 preprocessing:
   imputer: "median" # median fit trên tập train (KHÔNG fill 0 các NULL hợp lệ như interarrival_dt_mean)
   scaler: "robust" # chỉ áp dụng cho mô hình requires_scaling (IF/LOF/OCSVM); baseline dùng đơn vị gốc
-  feature_set: "core" # 16 đặc trưng core trong configs/feature_schema.yaml
+  feature_set: "core" # 24 đặc trưng core trong configs/feature_schema.yaml (v3.0)
 
 isolation_forest:
   n_estimators: 150
@@ -46,7 +46,7 @@ one_class_svm:
   shrinking: true
 
 # ---------------------------------------------------------------------------
-# Baseline label-free (Tuần 3) — 2 mốc so sánh KHÔNG cần nhãn
+# Baseline label-free (Tuần 3) — 3 mốc so sánh KHÔNG cần nhãn
 # ---------------------------------------------------------------------------
 # Điểm của Z-score: agg_j |(x_j - loc_j) / scale_j|  (điểm CAO = DỊ BIỆT)
 zscore_baseline:
@@ -84,3 +84,9 @@ rule_threshold_baseline:
       op: ">="
       value: 0.9
       rationale: "Gần như toàn bộ đăng nhập đến từ nguồn khác host (Source != LogHost) — truy cập từ xa."
+
+# Điểm của baseline ngẫu nhiên: băm tất định theo nội dung dòng → đều trong [0, 1).
+# Là MỐC DƯỚI cho mọi chỉ số (ROC-AUC kỳ vọng 0,5 · AP/Precision@K kỳ vọng ≈ tỷ lệ dương tính).
+# Đổi random_state ⇒ bộ điểm khác, nhưng alert rate vẫn ~ contamination (ngưỡng là phân vị trên train).
+random_baseline:
+  random_state: 42

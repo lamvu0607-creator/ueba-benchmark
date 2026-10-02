@@ -11,7 +11,12 @@ from src.features.extractor import (
     intraday_behavior_features,
     INTRADAY_V3_FEATURES,
     INTRADAY_V3_REJECTED,
+    MATRIX_ORDERED_COLS,
     RAW_ORDERED_COLS,
+)
+from src.features.history import (
+    HISTORY_V3_FEATURES,
+    add_history_features,
 )
 from src.features.preprocessor import (
     normalize_features,
@@ -26,6 +31,9 @@ __all__ = [
     "intraday_behavior_features",
     "INTRADAY_V3_FEATURES",
     "INTRADAY_V3_REJECTED",
+    "MATRIX_ORDERED_COLS",
+    "HISTORY_V3_FEATURES",
+    "add_history_features",
     "RAW_ORDERED_COLS",
     "normalize_features",
     "prepare_processed_dataset",

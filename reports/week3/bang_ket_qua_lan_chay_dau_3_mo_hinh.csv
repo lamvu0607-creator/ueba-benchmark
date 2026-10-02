@@ -1,0 +1,4 @@
+lan_chay,model,n_features,feature_set,seed,split_strategy,split_day,n_train_partition,n_fit,n_eval,contamination,threshold,alert_rate_pct,alert_rate_drift_pp,fit_seconds,score_seconds,imputer,scaler,timestamp,git_commit
+lan_chay_dau_2026-09-29,isolation_forest,16,core,42,time,42,721612,721612,333671,0.05,-0.0,5.9349,0.9349,11.431,1.971,SimpleImputer,RobustScaler,2026-09-29 23:46:23,124de89a
+lan_chay_dau_2026-09-29,local_outlier_factor,16,core,42,time,42,721612,20000,333671,0.05,-0.05421495,9.236,4.236,2.226,4.905,SimpleImputer,RobustScaler,2026-09-29 23:46:23,124de89a
+lan_chay_dau_2026-09-29,one_class_svm,16,core,42,time,42,721612,20000,333671,0.05,0.00014639,6.388,1.388,3.355,16.57,SimpleImputer,RobustScaler,2026-09-29 23:46:23,124de89a

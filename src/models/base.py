@@ -1,7 +1,7 @@
 """
 Module Base Model - Hợp đồng giao diện chung (contract) cho mọi mô hình phát hiện dị biệt UEBA.
 
-Toàn bộ mô hình (3 thuật toán sklearn + 2 baseline label-free) đều kế thừa ``BaseAnomalyModel``
+Toàn bộ mô hình (3 thuật toán sklearn + 3 baseline label-free) đều kế thừa ``BaseAnomalyModel``
 nên dùng chung đúng một API: ``fit`` / ``score`` / ``predict`` / ``score_rank_pct`` /
 ``get_metadata`` / ``save`` / ``load``. Ba bất biến bắt buộc:
 
@@ -190,7 +190,7 @@ class BaseAnomalyModel(ABC):
             )
 
     # ------------------------------------------------------------------ #
-    # Vòng đời mô hình (API công khai dùng chung cho cả 5 mô hình)
+    # Vòng đời mô hình (API công khai dùng chung cho cả 6 mô hình)
     # ------------------------------------------------------------------ #
     def fit(self, X: Any) -> "BaseAnomalyModel":
         """
@@ -252,7 +252,7 @@ class BaseAnomalyModel(ABC):
         """
         Nhãn nhị phân (1 = dị biệt, 0 = bình thường) theo ``threshold_`` đã fit (bất biến số 2).
 
-        Tỷ lệ nhãn 1 xấp xỉ ``contamination`` nên "alert rate" của cả 5 mô hình so sánh được trực tiếp.
+        Tỷ lệ nhãn 1 xấp xỉ ``contamination`` nên "alert rate" của cả 6 mô hình so sánh được trực tiếp.
         """
         self._check_fitted("predict")
         return (self.score(X) >= float(self.threshold_)).astype(np.int8)

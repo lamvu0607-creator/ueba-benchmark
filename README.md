@@ -104,7 +104,7 @@ python main.py --stage all
 # 1. Chỉ làm sạch dữ liệu thô (raw -> interim)
 python main.py --stage clean
 
-# 2. Trích xuất và chuẩn hóa 16 đặc trưng hành vi (interim -> features -> processed)
+# 2. Trích xuất và chuẩn hóa 20 đặc trưng hành vi (interim -> features -> processed)
 python main.py --stage features
 
 # 2b. Trích xuất đặc trưng cho dải ngày cụ thể (ví dụ: Day 1 đến Day 10)
@@ -116,9 +116,9 @@ python main.py --stage benchmark --models isolation_forest local_outlier_factor 
 
 ---
 
-## 4. Danh sách 16 Đặc trưng hành vi cốt lõi (Feature Schema v2)
+## 4. Danh sách 24 Đặc trưng hành vi cốt lõi (Feature Schema v3.0)
 
-Bộ đặc trưng được chuẩn hóa theo hợp đồng [`configs/feature_schema.yaml`](configs/feature_schema.yaml) sau quá trình phân tích tương quan Spearman và kiểm soát đa cộng tuyến (VIF):
+Bộ đặc trưng được chuẩn hóa theo hợp đồng [`configs/feature_schema.yaml`](configs/feature_schema.yaml) sau quá trình phân tích tương quan Spearman và kiểm soát đa cộng tuyến (VIF). **v3.0** bổ sung 8 đặc trưng chỉ dùng dữ liệu ≤ t−1 (4 đặc trưng nhóm 9 trong-ngày + 4 đặc trưng nhóm 10 lịch sử), **đã đo trên dữ liệu thật 10 ngày (180.606 dòng): 0 cặp \|ρ\| ≥ 0,85, VIF max 7,31**; 6 ứng viên khác bị bác bỏ sau khi đo (xem mục `removed:` của schema):
 
 | STT | Tên đặc trưng | Nhóm | Mô tả ý nghĩa an toàn thông tin |
 | :---: | :--- | :--- | :--- |
@@ -138,14 +138,22 @@ Bộ đặc trưng được chuẩn hóa theo hợp đồng [`configs/feature_sc
 | 14 | `missing_source_ratio` | Context | Tỷ lệ sự kiện khuyết thông tin Source (chỉ báo chất lượng dữ liệu / nguồn ẩn danh) |
 | 15 | `remote_logon_ratio` | Context | Tỷ lệ đăng nhập từ xa ($\text{Source} \neq \text{LogHost}$) |
 | 16 | `custom_proc_share` | Context | Tỷ lệ đăng nhập phát sinh từ tiến trình ẩn danh / ứng dụng tùy biến |
+| **17** | **`activity_peak_hour_sin`** | **Rhythm (v3.0)** | $\sin(2\pi \cdot h_{\text{peak}} / 24)$ — giờ cao điểm mã hoá chu kỳ |
+| **18** | **`activity_peak_hour_cos`** | **Rhythm (v3.0)** | $\cos(2\pi \cdot h_{\text{peak}} / 24)$ — cặp với #17 (sin/cos phải đi cùng nhau) |
+| **19** | **`hour_entropy`** | **Rhythm (v3.0)** | Pielou evenness $H / \ln(S)$ của phân bố sự kiện trên các khung giờ có mặt (độ trải đều nhịp trong ngày) |
+| **20** | **`dst_host_entropy`** | **Fan-out (v3.0)** | Pielou evenness của phân bố sự kiện theo `LogHost` (độ tập trung/trải đều đích kết nối) |
+| **21** | **`new_source_count_7d`** | **Novelty (v3.0)** | Số máy nguồn của ngày t **không thấy trong 7 ngày lịch gần nhất** (cửa sổ là NGÀY LỊCH, không phải "7 dòng trước đó" của panel thưa) |
+| **22** | **`new_host_count_7d`** | **Novelty (v3.0)** | Số máy đích của ngày t không thấy trong 7 ngày lịch gần nhất |
+| **23** | **`days_since_last_activity`** | **Novelty (v3.0)** | Số ngày kể từ phiên hoạt động trước đó của tài khoản (NULL ở dòng đầu tiên) — bắt tài khoản "ngủ đông" quay lại |
+| **24** | **`volume_robust_z_7d`** | **Deviation (v3.0)** | z bền vững của $\ln(1+\text{volume})$ so với 7 ngày lịch trước đó (median + IQR/1.349 → std → 0; **winsorize ±10**; ngày trống = volume 0) |
 
-> **Ghi chú về thiết kế:** Các đặc trưng dạng đếm thô (`failure_count`, `off_hours_count`, `burst_logon_count`) và các biến phụ thuộc tuyệt đối (`work_hours_ratio`) đã được loại bỏ để tránh hiện tượng đa cộng tuyến nghiêm trọng (VIF > 1000) và hiện tượng sụp đổ thứ bậc trong các thuật toán dựa trên khoảng cách.
+> **Ghi chú về thiết kế:** Các đặc trưng dạng đếm thô (`failure_count`, `off_hours_count`, `burst_logon_count`) và các biến phụ thuộc tuyệt đối (`work_hours_ratio`) đã được loại bỏ để tránh hiện tượng đa cộng tuyến nghiêm trọng (VIF > 1000) và hiện tượng sụp đổ thứ hạng trong các thuật toán dựa trên khoảng cách. Sáu đặc trưng của v3.0 **đã được cài đặt, đo trên dữ liệu thật rồi bác bỏ**: `max_failure_streak` (ρ = 0,9973), `success_after_failure_ratio` (0,9180), `new_source_count` (0,9999 với bản `_7d`), `new_host_count` (0,9999), `source_recency` (0,9238), `source_host_pair_novelty` (0,9052) — xem mục `removed:` của schema và [`docs/reports/bao_cao_bo_dac_trung_v3.md`](docs/reports/bao_cao_bo_dac_trung_v3.md).
 
 ---
 
 ## 5. Kiểm thử tự động (Unit Tests)
 
-Bộ kiểm thử đảm bảo tính toàn vẹn của cấu hình hệ thống, hợp đồng đặc trưng v2, giao diện mô hình
+Bộ kiểm thử đảm bảo tính toàn vẹn của cấu hình hệ thống, hợp đồng đặc trưng v3, giao diện mô hình
 (`BaseAnomalyModel` + `AnomalyPipeline`), time-based split và các chỉ số đánh giá:
 
 ```bash
@@ -184,7 +192,18 @@ Do tập dữ liệu 60 ngày (Windows Event 4624/4625) có dung lượng rất 
 > Từ Tuần 3, benchmark dùng time-based split: **train = ngày 1–42 (721.612 dòng)**,
 > **test = ngày 43–60 (333.671 dòng)**; imputer/scaler chỉ được fit trên train.
 
-Tái lập: `python main.py --stage benchmark` (seed 42, K=20, ngân sách cảnh báo 5%, 16 đặc trưng core).
+Tái lập: `python main.py --stage benchmark` (seed 42, K=20, ngân sách cảnh báo 5%).
+
+> ⚠️ Bảng dưới đây được chạy với **16 đặc trưng core của schema v2.0** (trước khi bổ sung 4 đặc trưng
+> nhóm 9 của v3.0). Sau khi dựng lại ma trận (`python main.py --stage features`) hãy chạy lại benchmark
+> và cập nhật bảng — các con số cũ **không** còn mô tả đúng bộ đặc trưng hiện tại.
+
+> **Mô hình thứ 6 — `random_baseline` (mốc dưới, bổ sung sau Tuần 3):** điểm là **băm ngẫu nhiên tất định**
+> theo nội dung dòng nên cùng một dòng luôn nhận cùng điểm (tái lập, bất biến thứ tự) nhưng **không** có
+> quan hệ thống kê với dữ liệu. Kỳ vọng lý thuyết: `ROC-AUC ≈ 0,5`, `AP`/`Precision@K ≈ tỷ lệ dương tính`,
+> `alert rate ≈ contamination`. Đã validate trên ma trận **24 đặc trưng**: alert rate **4,96%** (lệch −0,04 pp),
+> ngưỡng 0,9502, phân vị điểm khớp phân phối đều (p25 = 0,250 · p50 = 0,500 · p95 = 0,950) ⇒ **mốc dưới dùng
+> để kiểm tra mọi mô hình khác có thực sự vượt "đoán mò" hay không** (nhất là khi có nhãn ở Tuần 4).
 
 | Mô hình | n_fit | n_eval | Tỷ lệ cảnh báo (%) | Lệch ngân sách (pp) | Fit (s) | Chấm điểm (s) |
 |:---|:---:|:---:|:---:|:---:|:---:|:---:|
