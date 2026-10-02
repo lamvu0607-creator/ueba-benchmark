@@ -1,9 +1,9 @@
 {
   "format": "ueba-run-manifest/1",
-  "created_at": "2026-10-02T00:17:05+00:00",
+  "created_at": "2026-10-02T05:01:53+00:00",
   "git": {
-    "commit": "1d2209d10f26f228cdaf612e48b785a76dd66e67",
-    "branch": "feature/model-benchmark-framework",
+    "commit": "202624a42f9768a44ddc56581b03f7e05507a3c1",
+    "branch": "main",
     "is_dirty": true
   },
   "libraries": {
@@ -551,6 +551,82 @@
       "n_train_rows": 721612,
       "n_nulls_imputed": 151064,
       "is_fitted": true
+    },
+    {
+      "model": {
+        "model_name": "random_baseline",
+        "model_class": "RandomBaseline",
+        "is_baseline": true,
+        "requires_scaling": false,
+        "contamination": 0.05,
+        "random_state": 42,
+        "max_train_samples": null,
+        "native_params": {},
+        "n_fit": 721612,
+        "n_features_in": 24,
+        "feature_names_in": [
+          "log_total_logons",
+          "failure_ratio",
+          "failure_locked_out_share",
+          "off_hours_ratio",
+          "interarrival_dt_mean",
+          "delta_t_cv",
+          "same_second_share",
+          "is_single_event",
+          "activity_peak_hour_sin",
+          "activity_peak_hour_cos",
+          "hour_entropy",
+          "interactive_ratio",
+          "rare_logon_type_count_log",
+          "ntlm_ratio",
+          "log_distinct_hosts",
+          "distinct_sources_count",
+          "dst_host_entropy",
+          "missing_source_ratio",
+          "remote_logon_ratio",
+          "new_source_count_7d",
+          "new_host_count_7d",
+          "days_since_last_activity",
+          "volume_robust_z_7d",
+          "custom_proc_share"
+        ],
+        "threshold": 0.9501981081275022,
+        "is_fitted": true,
+        "sklearn_version": "1.9.1",
+        "note": "Baseline ngẫu nhiên tất định theo nội dung dòng (băm splitmix64 theo seed): mốc dưới cho mọi chỉ số — ROC-AUC kỳ vọng 0,5, AP/Precision@K kỳ vọng ≈ tỷ lệ dương tính."
+      },
+      "feature_names": [
+        "log_total_logons",
+        "failure_ratio",
+        "failure_locked_out_share",
+        "off_hours_ratio",
+        "interarrival_dt_mean",
+        "delta_t_cv",
+        "same_second_share",
+        "is_single_event",
+        "activity_peak_hour_sin",
+        "activity_peak_hour_cos",
+        "hour_entropy",
+        "interactive_ratio",
+        "rare_logon_type_count_log",
+        "ntlm_ratio",
+        "log_distinct_hosts",
+        "distinct_sources_count",
+        "dst_host_entropy",
+        "missing_source_ratio",
+        "remote_logon_ratio",
+        "new_source_count_7d",
+        "new_host_count_7d",
+        "days_since_last_activity",
+        "volume_robust_z_7d",
+        "custom_proc_share"
+      ],
+      "n_features": 24,
+      "imputer": "SimpleImputer",
+      "scaler": null,
+      "n_train_rows": 721612,
+      "n_nulls_imputed": 151064,
+      "is_fitted": true
     }
   ],
   "artifacts": {
@@ -567,7 +643,8 @@
       "local_outlier_factor": 3.0936,
       "one_class_svm": 0.8345,
       "zscore_baseline": 4.5762,
-      "rule_threshold_baseline": 15.3512
+      "rule_threshold_baseline": 15.3512,
+      "random_baseline": -0.04
     },
     "stability_seeds": [
       42,
