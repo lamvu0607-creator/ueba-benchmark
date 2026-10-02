@@ -1,5 +1,5 @@
 """
-Module Benchmark - Điều phối benchmark phát hiện dị biệt **label-free** cho 5 mô hình.
+Module Benchmark - Điều phối benchmark phát hiện dị biệt **label-free** cho 6 mô hình.
 
 Luồng chuẩn (Tuần 3)::
 

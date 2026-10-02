@@ -11,7 +11,7 @@ import yaml
 
 from src.features.schema import FeatureSchema
 from src.models.base import as_float_matrix
-from src.models.baselines import RuleThresholdBaseline, ZScoreBaseline
+from src.models.baselines import RandomBaseline, RuleThresholdBaseline, ZScoreBaseline
 from src.models.benchmark import DEFAULT_MODEL_PARAMS, train_and_evaluate_model
 from src.models.detectors import (
     IsolationForestDetector,
@@ -305,6 +305,50 @@ def test_baselines():
         RuleThresholdBaseline(rules=rules).fit(X)
 
 
+def test_random_baseline():
+    """
+    Baseline ngẫu nhiên: mốc dưới cho mọi chỉ số, đồng thời KHÔNG được "ăn may" nhờ thứ tự dòng.
+
+    Kiểm 6 bất biến:
+      1. là baseline, không cần scaler, không có estimator sklearn;
+      2. alert rate ≈ contamination (ngưỡng là phân vị trên tập fit);
+      3. điểm tất định: gọi lại cùng dữ liệu cho cùng điểm;
+      4. BẤT BIẾN THỨ TỰ: đảo thứ tự dòng thì điểm của từng dòng không đổi;
+      5. KHÔNG tương quan với dữ liệu (đúng nghĩa "đoán mò");
+      6. đổi ``random_state`` ⇒ bộ điểm khác (seed có tác dụng).
+    """
+    X = synthetic_matrix(n_samples=1000, outlier_index=7, seed=3)
+    model = RandomBaseline(random_state=42, contamination=0.05).fit(X)
+
+    # 1) Hợp đồng lớp
+    assert model.is_baseline is True
+    assert model.requires_scaling is False
+    assert model.estimator_class is None
+    assert model.n_fit_ == X.shape[0]
+
+    scores = model.score(X)
+
+    # 2) Ngân sách: điểm đều + ngưỡng phân vị ⇒ alert rate ≈ contamination
+    assert scores.min() >= 0.0 and scores.max() < 1.0
+    assert abs(float(model.predict(X).mean()) - 0.05) < 0.02
+
+    # 3) Tất định
+    assert np.array_equal(scores, model.score(X))
+
+    # 4) Bất biến thứ tự dòng
+    perm = np.random.default_rng(0).permutation(X.shape[0])
+    shuffled_scores = model.score(X[perm])
+    assert np.allclose(shuffled_scores, scores[perm])
+
+    # 5) Không tương quan với dữ liệu: mọi |corr| đều nhỏ (mốc dưới thật sự)
+    for col in range(X.shape[1]):
+        assert abs(float(np.corrcoef(scores, X[:, col])[0, 1])) < 0.1
+
+    # 6) Seed có tác dụng
+    other = RandomBaseline(random_state=7, contamination=0.05).fit(X)
+    assert not np.allclose(other.score(X), scores)
+
+
 def test_baselines_config_integration():
     """Cấu hình YAML phải nạp được vào 2 baseline (6 luật, tham số z-score hợp lệ)."""
     with open(PARAMS_PATH, "r", encoding="utf-8") as f:
@@ -327,12 +371,12 @@ def test_baselines_config_integration():
 # Pipeline 16 đặc trưng core (B4)
 # --------------------------------------------------------------------------- #
 def test_core_features_only():
-    """Pipeline chỉ dùng 20 đặc trưng core; cột không core không được ảnh hưởng điểm; NULL phải impute có căn cứ."""
+    """Pipeline chỉ dùng 24 đặc trưng core; cột không core không được ảnh hưởng điểm; NULL phải impute có căn cứ."""
     df = synthetic_feature_frame()
     pipeline = AnomalyPipeline(IsolationForestDetector(contamination=0.05, random_state=42), random_state=42)
 
     assert pipeline.feature_names == CORE_FEATURES
-    assert len(pipeline.feature_names) == 20
+    assert len(pipeline.feature_names) == 24
     assert pipeline.get_metadata()["scaler"] == "RobustScaler"
 
     pipeline.fit(df.head(N_TRAIN))
@@ -373,7 +417,7 @@ def test_isolation_forest_pipeline(temp_artifact_dir):
     path = pipeline.save(temp_artifact_dir / "isolation_forest_pipeline.joblib")
     reloaded = AnomalyPipeline.load(path)
     assert reloaded.model.name == "isolation_forest"
-    assert reloaded.get_metadata()["n_features"] == 20
+    assert reloaded.get_metadata()["n_features"] == 24
     assert np.allclose(reloaded.score(df.tail(N_ROWS - N_TRAIN)), scores)
 
 
@@ -405,7 +449,7 @@ def test_one_class_svm_pipeline():
 # Registry & factory (B5)
 # --------------------------------------------------------------------------- #
 def test_model_factory():
-    """Factory: 5 tên canonical + alias CamelCase của log cũ tạo đúng lớp; tên lạ bị chặn."""
+    """Factory: 6 tên canonical + alias CamelCase của log cũ tạo đúng lớp; tên lạ bị chặn."""
     params = load_params(PARAMS_PATH)
 
     assert DEFAULT_MODEL_NAMES == [
@@ -414,6 +458,7 @@ def test_model_factory():
         "one_class_svm",
         "zscore_baseline",
         "rule_threshold_baseline",
+        "random_baseline",
     ]
     assert available_models() == DEFAULT_MODEL_NAMES
 

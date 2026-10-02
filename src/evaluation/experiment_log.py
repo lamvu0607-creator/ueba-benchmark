@@ -82,6 +82,7 @@ LEGACY_MODEL_NAMES: Dict[str, str] = {
     "one_class_svm": "OneClassSVM",
     "zscore_baseline": "ZScoreBaseline",
     "rule_threshold_baseline": "RuleThresholdBaseline",
+    "random_baseline": "RandomBaseline",
 }
 
 #: Phân vị của log cũ (đúng 7 giá trị: min, p25, median, p75, p95, p99, max).
@@ -95,7 +96,7 @@ def _canonical_name(name: str) -> str:
     """
     Đổi tên/alias thành key canonical.
 
-    Với 5 mô hình chuẩn thì tra thẳng bảng (không cần import), chỉ tên/alias lạ mới gọi registry —
+    Với 6 mô hình chuẩn thì tra thẳng bảng (không cần import), chỉ tên/alias lạ mới gọi registry —
     nhờ vậy module log không tạo vòng import ``src.models <-> src.evaluation``.
     """
     key = str(name).strip().lower()

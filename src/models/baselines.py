@@ -13,7 +13,7 @@ Có thể đặt ``threshold_mode: "fixed"`` nếu muốn dùng ngưỡng tuyệ
 from __future__ import annotations
 
 import logging
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any, ClassVar, Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
 
@@ -21,7 +21,7 @@ from src.models.base import BaseAnomalyModel
 
 logger = logging.getLogger("ueba_benchmark.models.baselines")
 
-__all__ = ["ZScoreBaseline", "RuleThresholdBaseline", "RULE_OPERATORS"]
+__all__ = ["RandomBaseline", "ZScoreBaseline", "RuleThresholdBaseline", "RULE_OPERATORS"]
 
 #: Các toán tử so sánh được phép trong luật.
 RULE_OPERATORS = (">=", ">", "<=", "<", "==", "!=")
@@ -127,6 +127,92 @@ class ZScoreBaseline(BaseAnomalyModel):
         if str(self.native_params.get("threshold_mode", "quantile")) == "fixed":
             return float(self.native_params.get("z_threshold", 3.0))
         return super()._resolve_threshold(fit_scores)
+
+
+class RandomBaseline(BaseAnomalyModel):
+    """
+    Baseline **"đoán mò"** (null hypothesis): điểm dị biệt là **ngẫu nhiên tất định theo nội dung dòng**.
+
+    Vì sao cần baseline này:
+      * Là **mốc dưới** cho MỌI chỉ số. Kỳ vọng lý thuyết: ``ROC-AUC ≈ 0,5``,
+        ``Average Precision ≈ tỷ lệ dương tính``, ``Precision@K ≈ tỷ lệ dương tính``,
+        và ``alert rate ≈ contamination`` (vì ngưỡng lấy theo phân vị trên tập fit).
+      * Nếu mô hình "thật" không vượt được mốc này thì kết quả **không có nghĩa** —
+        đúng loại kiểm tra mà kết luận Tuần 3 (không thể xếp hạng bằng label-free) cần có.
+
+    Vì sao **băm theo NỘI DUNG dòng** thay vì gọi ``rng(n)`` mỗi lần chấm điểm:
+      * cùng một dòng luôn nhận cùng điểm ⇒ tái lập được, chấm theo lô (batch) không đổi kết quả;
+      * bất biến với **thứ tự dòng** (không phụ thuộc thứ tự/kích thước batch);
+      * vẫn **không có quan hệ thống kê** với dữ liệu ⇒ đúng nghĩa "ngẫu nhiên".
+    Cái giá phải trả: điểm là hàm của nội dung dòng nên **không** dùng để minh hoạ "cùng dữ liệu,
+    hai lần gọi khác nhau" — muốn vậy phải đổi ``random_state`` (``seed``).
+
+    Tham số (đọc từ ``configs/model_params.yaml`` -> ``random_baseline``):
+      * ``random_state``: seed của phép băm (đổi seed ⇒ bộ điểm khác, alert rate vẫn ~ ``contamination``).
+
+    Điểm nằm trong ``[0, 1)`` (phân phối đều) nên có thể đọc trực tiếp như "percentile ngẫu nhiên".
+    """
+
+    name = "random_baseline"
+    aliases = ("RandomBaseline", "random")
+    is_baseline = True
+    estimator_class = None
+    default_max_train_samples = None
+
+    #: Hằng số trộn của splitmix64/FNV (chỉ để băm, không phải tham số người dùng).
+    _MIX_A: ClassVar[int] = 0x9E3779B97F4A7C15
+    _MIX_B: ClassVar[int] = 0xBF58476D1CE4E5B9
+    _MIX_C: ClassVar[int] = 0x94D049BB133111EB
+    _FNV_PRIME: ClassVar[int] = 0x100000001B3
+
+    def _fit_estimator(self, X: np.ndarray) -> None:
+        """Không học gì từ dữ liệu (đó chính là ý nghĩa "đoán mò"); chỉ ghi log để không hiểu nhầm."""
+        logger.info(
+            "[%s] baseline ngẫu nhiên: KHÔNG học từ dữ liệu (băm theo seed=%s, %d đặc trưng). "
+            "Kỳ vọng: ROC-AUC ≈ 0,5 · AP ≈ tỷ lệ dương tính · alert rate ≈ %.2f%%.",
+            self.name,
+            self.random_state,
+            int(X.shape[1]),
+            self.contamination * 100,
+        )
+        return None
+
+    def _anomaly_score(self, X: np.ndarray) -> np.ndarray:
+        return self._hash_scores(X)
+
+    def _hash_scores(self, X: np.ndarray) -> np.ndarray:
+        """
+        Băm từng dòng thành số đều trong ``[0, 1)`` bằng splitmix64 trên chữ ký đã lượng tử hoá.
+
+        Lượng tử hoá ``floor(x * 1e6)`` để hai giá trị "gần bằng nhau về mặt ngữ nghĩa" vẫn cho
+        cùng điểm (chống nhiễu dấu phẩy động), và ``nan_to_num`` để NaN/Inf không làm hỏng phép băm
+        (pipeline đã impute trước khi chấm điểm, đây chỉ là chốt an toàn).
+        """
+        payload = np.nan_to_num(
+            np.asarray(X, dtype=np.float64), nan=0.0, posinf=0.0, neginf=0.0
+        )
+        quant = np.floor(payload * 1e6).astype(np.int64).astype(np.uint64)
+
+        h = np.full(
+            quant.shape[0], np.uint64(self.random_state) + np.uint64(self._MIX_A), dtype=np.uint64
+        )
+        for col in range(quant.shape[1]):
+            h = (h ^ quant[:, col]) * np.uint64(self._FNV_PRIME)
+        # Finalizer splitmix64: trộn bit để tránh tương quan giữa các dòng "gần giống nhau".
+        h ^= h >> np.uint64(30)
+        h *= np.uint64(self._MIX_B)
+        h ^= h >> np.uint64(27)
+        h *= np.uint64(self._MIX_C)
+        h ^= h >> np.uint64(31)
+        return (h >> np.uint64(11)).astype(np.float64) / float(1 << 53)
+
+    def get_metadata(self) -> Dict[str, Any]:
+        metadata = super().get_metadata()
+        metadata["note"] = (
+            "Baseline ngẫu nhiên tất định theo nội dung dòng (băm splitmix64 theo seed): "
+            "mốc dưới cho mọi chỉ số — ROC-AUC kỳ vọng 0,5, AP/Precision@K kỳ vọng ≈ tỷ lệ dương tính."
+        )
+        return metadata
 
 
 class RuleThresholdBaseline(BaseAnomalyModel):
