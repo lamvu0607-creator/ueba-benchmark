@@ -56,6 +56,10 @@
 > Cột "Lệch ngân sách" là **độ trôi hiệu chuẩn**, không phải chất lượng mô hình — ngưỡng được fit trên train nên
 > nếu phân phối điểm của test khác train thì tỷ lệ cảnh báo trôi. Bảng này chưa nói mô hình nào tốt hơn: thiếu nhãn.
 
+**Phân tích định lượng bảng này** (chi phí chấm điểm, hình dạng phân phối điểm, so sánh 16 → 24 đặc trưng):
+xem [`phan_tich_bang_ket_qua_lan_chay_dau.md`](phan_tich_bang_ket_qua_lan_chay_dau.md) ·
+bảng trích sẵn: [`bang_ket_qua_lan_chay_dau_3_mo_hinh.csv`](bang_ket_qua_lan_chay_dau_3_mo_hinh.csv).
+
 ## 5. Phát hiện chính (đều có script đo lại được)
 
 | # | Phát hiện | Ý nghĩa / đã xử lý |

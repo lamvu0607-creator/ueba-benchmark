@@ -1,9 +1,10 @@
-# Báo cáo: Bộ đặc trưng mở rộng v3.0 (đề xuất) — 30 biến model + 30 biến thử nghiệm + 7 biến chẩn đoán
+# Báo cáo: Bộ đặc trưng mở rộng v3.0 — Tier A **24 biến model** (16 v2.0 + 8 mới) + 30 biến thử nghiệm + 7 biến chẩn đoán
 
 > **Dự án:** UEBA Anomaly Detection Benchmark (Windows Event 4624 & 4625 — LANL Unified Host and Network Dataset)
-> **Ngày thực hiện:** 2026-09-30
+> **Ngày thực hiện:** 2026-09-30 · **Cập nhật:** 2026-09-30 (đã triển khai ĐỦ Tier A + đo trên dữ liệu thật)
+> **Trạng thái:** ✅ **Tier A đã cài đặt đủ 14 ứng viên** → 8 biến qua cổng (schema lên **24 core**), ❌ 6 biến **đã cài + đo rồi bác bỏ** (xem bảng ngay dưới)
 > **Căn cứ:** [`configs/feature_schema.yaml`](../../configs/feature_schema.yaml) · [`docs/feature_engineering/feature_correlation_review.md`](../feature_engineering/feature_correlation_review.md) §7.3, §11 · [`docs/reports/bao_cao_sua_bo_dac_trung.md`](bao_cao_sua_bo_dac_trung.md) · [`reports/week2/multicollinearity_check.md`](../../reports/week2/multicollinearity_check.md) · [`reports/week2/normalization_assessment.md`](../../reports/week2/normalization_assessment.md) · [`reports/week3/tom_tat_tuan3.md`](../../reports/week3/tom_tat_tuan3.md)
-> **Phạm vi:** **chỉ đề xuất và biện luận bộ đặc trưng** (danh sách, tầng lớp, lý do loại trừ, quy trình nghiệm thu). **Không** sửa `configs/feature_schema.yaml`, `src/features/extractor.py` hay mã mô hình trong báo cáo này.
+> **Phạm vi:** đề xuất, biện luận **và** triển khai toàn bộ Tier A. Tier B/C vẫn chỉ là đề xuất (theo thiết kế không nạp vector).
 > **Vị trí lưu trữ:** `docs/reports/bao_cao_bo_dac_trung_v3.md`
 
 ---
@@ -17,13 +18,28 @@ Hai bộ đặc trưng đang được cân nhắc (43 biến "Core + 25 mới" v
 
 Báo cáo đề xuất bộ **v3.0** gồm 3 tầng tách bạch (không trùng nhau, đã kiểm chứng bằng script):
 
-| Tầng | Số biến | Vai trò | Có vào vector model? |
+| Tầng | Số biến | Trạng thái | Có vào vector model? |
 |:---|---:|:---|:---:|
-| **Tier A — Core model** | **30** | 16 core hiện có + 14 biến mới đã sàng theo bằng chứng LANL | ✅ có |
-| **Tier B — Experimental** | **30** | đối chứng/ablation, chia 6 nhóm chức năng (gồm cả **peer cohort** của Bộ 61) | ❌ chưa (chỉ khi thắng ablation) |
-| **Tier C — Diagnostic / Panel** | **7** | phần dư, cờ luật, chỉ số trôi, chỉ mục thời gian | ❌ không (chỉ giải thích & cảnh báo) |
+| **Tier A — Core model** | **24** (16 v2.0 + 8 mới) | ✅ **đã triển khai đủ**: 8/14 ứng viên qua cổng, 6 bị bác bỏ bằng số đo | ✅ có |
+| **Tier B — Experimental** | **30** | đề xuất | ❌ chưa (chỉ khi thắng ablation) |
+| **Tier C — Diagnostic / Panel** | **7** | đề xuất | ❌ không (chỉ giải thích & cảnh báo) |
 
-**Không đưa thẳng 43/61 biến vào vector**, vì: (a) 7/16 biến hiện tại đã có **MAD = 0** và nhiều biến zero-inflated 87–99% ⇒ thêm biến tương tự chỉ làm loãng khoảng cách; (b) 5 mô hình đang dùng đều dựa trên khoảng cách (IForest/LOF/OCSVM) nên 61 chiều cần chọn lọc; (c) **Tuần 3 kết luận không thể xếp hạng bằng chỉ số label-free** (Top-20 overlap ≈ 0) ⇒ chỉ có ablation **có nhãn `redteam.txt` ở Tuần 4** mới được quyền chốt.
+**Đã làm ngay và đo trên dữ liệu thật** — 14 ứng viên được cài đặt, đo trên 10 ngày LANL (180.606 dòng), kết quả **8 biến qua cổng, 6 biến bị loại vì vượt ngưỡng \|ρ\| ≥ 0,85**:
+
+| Bị bác bỏ | ρ đo được | Đối tác |
+|:---|---:|:---|
+| `max_failure_streak` | **0,9973** | `failure_ratio` |
+| `success_after_failure_ratio` | **0,9180** | `failure_ratio` |
+| `new_source_count` | **0,9999** | `new_source_count_7d` |
+| `new_host_count` | **0,9999** | `new_host_count_7d` |
+| `source_recency` | **0,9238** | `days_since_last_activity` |
+| `source_host_pair_novelty` | **0,9052** | `new_host_count` |
+
+Bộ cuối cùng (24 core) đạt **0 cặp \|ρ\| ≥ 0,85** và **VIF max 7,31**; 2 lỗi thật được phát hiện nhờ quá trình đo (bug `ProcessName` làm `custom_proc_share` = 0 âm thầm; z khối lượng bùng nổ tới −976 ⇒ phải winsorize ±10) — chi tiết §10.
+
+> **Về con số "18":** nó đến từ khuyến nghị **LỊCH SỬ** của [`feature_correlation_review.md`](../feature_engineering/feature_correlation_review.md) §7.2/§11.4 — "rút **30 → 18**" trên bộ **v1.0 (32 cột)** của Tuần 2; đề xuất đó **chưa bao giờ là schema đang chạy**. Đường đi số lượng thực tế: 32 → 30 (v1.0, lưu trữ) → **16** (v2.0, đã chạy benchmark Tuần 3) → **20** (v3.0 nhóm 9, đã chạy ở commit `1d2209d`) → **24** (v3.0 đủ Tier A, hiện tại).
+
+**Không đưa thẳng 43/61 biến vào vector**, vì: (a) 7/16 biến v2.0 đã có **MAD = 0** và nhiều biến zero-inflated 87–99% ⇒ thêm biến tương tự chỉ làm loãng khoảng cách; (b) 5 mô hình đang dùng đều dựa trên khoảng cách (IForest/LOF/OCSVM) nên 61 chiều cần chọn lọc; (c) **Tuần 3 kết luận không thể xếp hạng bằng chỉ số label-free** (Top-20 overlap ≈ 0) ⇒ chỉ có ablation **có nhãn `redteam.txt` ở Tuần 4** mới được quyền chốt.
 
 ---
 
@@ -38,7 +54,16 @@ Báo cáo đề xuất bộ **v3.0** gồm 3 tầng tách bạch (không trùng 
 | Zero-inflation (đo trên 1.055.283 dòng) | `is_single_event` 98,47% · `failure_locked_out_share` 98,86% · `custom_proc_share` 90,33% · `failure_ratio` 87,36% · `interactive_ratio` 87,00% · `rare_logon_type_count` 71,09% | `reports/week2/normalization_assessment.md` Bảng 1 |
 | NULL hợp lệ | `failure_locked_out_share` 85,46% · `delta_t_cv` 2,22% · `interarrival_dt_mean` 1,40% | `docs/reports/bao_cao_sua_bo_dac_trung.md` §10 |
 
-**Hệ quả trực tiếp:** cả hai bộ đang so sánh đều **tính thiếu chi phí triển khai** — toàn bộ novelty/recency/lag/rolling/peer đều là **code phải viết mới**, trong khi dữ liệu trong workspace hiện **rỗng** (`data/cleaned`, `data/interim`, `data/features`, `data/processed` không có file), nên chưa thể đo lại hệ số trên bộ mở rộng ngay.
+**Hệ quả trực tiếp:** cả hai bộ đang so sánh đều **tính thiếu chi phí triển khai** — toàn bộ novelty/recency/lag/rolling/peer đều là **code phải viết mới**. Trạng thái dữ liệu tại workspace (đã kiểm lại khi triển khai):
+
+| Đường dẫn | Nội dung | Dùng được cho |
+|:---|:---|:---|
+| `data/raw/wls_day-01..60.bz2` | 60 ngày log thô LANL | `python main.py --stage clean` |
+| `data/interim/event_4624|4625/*.parquet` | 60 ngày mỗi loại, có cả `ProcessName` | `python main.py --stage features` (fallback) |
+| `data/processed/feature_matrix_processed.parquet` | **1.055.283 × 23** — artifact của **schema v2.0 (16 core)** | phải **dựng lại** để dùng v3.0 |
+| `data/cleaned/` | chỉ có `.gitkeep` | — (đường `cleaned` không dùng được) |
+
+⇒ Có thể dựng lại ma trận và **đo ngay** (đã làm, xem §10); chỉ 8 biến novelty/recency còn lại mới cần Dense Panel.
 
 ---
 
@@ -108,7 +133,7 @@ Không đưa vào bất kỳ tầng nào (kể cả thử nghiệm), vì lý do 
 2. **Không biến nào phụ thuộc tương lai:** mọi biến lịch sử/cửa sổ phải tính trên **dữ liệu ≤ t−1** (nhân quả). Biến novelty phải ghi rõ mốc "chưa từng thấy **trước ngày t**".
 3. **Một trục thông tin chỉ giữ 1–2 đại diện:** trục *volume-vs-baseline* giữ 1 biến, trục *Δt phân phối* giữ mean + CV + 1 phân vị, trục *novelty theo cửa sổ* giữ 7d (14d chỉ là thử nghiệm).
 
-### 5.2. Tier A — 30 biến vào vector model
+### 5.2. Tier A — 24 biến vào vector model (sau khi đo: 16 v2.0 + 8 biến mới qua cổng)
 
 **A.1. 16 biến core hiện có (giữ nguyên, không đổi định nghĩa)**
 
@@ -151,7 +176,9 @@ Không đưa vào bất kỳ tầng nào (kể cả thử nghiệm), vì lý do 
 | 30 | `volume_robust_z_7d` | deviation | z-score bền vững của volume so với **7 ngày trước** (median/MAD) | chung | none |
 
 
-> **Tính khả thi của Tier A:** **10/14** biến mới tính được từ **chính cột đang có** trong log sạch/interim (`Time`, `EventID`, `UserName`, `DomainName`, `Source`, `LogHost`, `LogonType`, `FailureReason`). Chỉ **4 biến** (#19 `new_source_count_7d`, #20 `new_host_count_7d`, #21 `source_recency`, #22 `source_host_pair_novelty`) cần **trạng thái lịch sử** ⇒ bắt buộc có Dense Panel + cửa sổ nhân quả (xem §8).
+> **Trạng thái Tier A (đã triển khai ĐỦ):** cả 12 biến mới của Tier A đã được **cài đặt và đo trên dữ liệu thật**.
+> **8 biến được nhận** (#26–#29 nhóm 9 và `new_source_count_7d`, `new_host_count_7d`, `days_since_last_activity`, `volume_robust_z_7d` của nhóm 10 — đã vào schema, core = **24**), **6 biến bị bác bỏ** vì vượt ngưỡng \|ρ\| ≥ 0,85 (#24 `max_failure_streak` 0,9973 · #25 `success_after_failure_ratio` 0,9180 · #17 `new_source_count` 0,9999 · #18 `new_host_count` 0,9999 · #21 `source_recency` 0,9238 · #22 `source_host_pair_novelty` 0,9052).
+> **Không cần "thêm dòng" vào ma trận:** cửa sổ nhân quả theo NGÀY LỊCH được tính bằng `shift`/`min`/`max` trên panel thưa + lưới dày NỘI BỘ cho baseline khối lượng, nên số dòng (và do đó ranh giới train/test 721.612/333.671) **giữ nguyên** — xem §10.
 
 ### 5.3. Tier B — 30 biến thử nghiệm (chia 6 nhóm để ablation)
 
@@ -227,7 +254,7 @@ Các hàm chỉ số cần nhãn đã **cài đặt + kiểm thử sẵn** trong
 2. **Cửa sổ nhân quả**: mọi `*_7d/*_14d/lag/recency` phải dùng `shift` + `rolling` **trước** khi gộp ngày t; đây là chỗ dễ rò rỉ nhất của cả hai bộ (Bộ 2 mô tả novelty "trong lịch sử quan sát" mà không chốt mốc).
 3. **Cohort cho `peer_*`**: chốt định nghĩa nhóm đồng đẳng (khuyến nghị `entity_type` + dải volume quá khứ) và tính **chỉ trên ngày ≤ t−1**.
 4. **Nhóm burst theo cửa sổ** (`max_failures_5m`, `max_distinct_hosts_15m`) — cả Bộ 1 và Bộ 2 **đều thiếu**, trong khi §7.3 của review coi đây là nhóm "không trùng nhau về cấu trúc"; với LANL (Δt = 0 chiếm 70,57%) đây có thể là tín hiệu mạnh nhất sau novelty. Đề xuất bổ sung vào **Tier B** ở phiên bản kế tiếp sau khi có Dense Panel.
-5. **Dữ liệu để đo**: workspace hiện **rỗng** ở `data/cleaned`, `data/interim`, `data/features`, `data/processed` ⇒ bước 3–5 chỉ chạy được sau khi giải nén gói dữ liệu (link trong `README.md` §6) và chạy `python main.py --stage clean` / `--stage features`.
+5. **Dữ liệu để đo**: `data/interim` có đủ 60 ngày ⇒ **đã dựng lại ma trận và đo** (§10). `data/processed/feature_matrix_processed.parquet` hiện vẫn là artifact **v2.0 (16 core)**; muốn dùng v3.0 phải chạy `python main.py --stage features` (~15 phút cho 60 ngày) rồi chạy lại `--stage benchmark`.
 
 ---
 
@@ -235,23 +262,73 @@ Các hàm chỉ số cần nhãn đã **cài đặt + kiểm thử sẵn** trong
 
 * **Không sửa mã/cấu hình**: chưa đổi `configs/feature_schema.yaml` (vẫn 16 core, test `tests/test_configs.py::test_feature_schema_contract` sẽ fail nếu thêm biến mà không cập nhật test — cần cập nhật **cùng lúc**).
 * **Số liệu trong báo cáo là số đo có sẵn** trong các artifact đã commit (liệt kê ở phần *Căn cứ*). **Chưa có phép đo mới** trên bộ mở rộng vì dữ liệu chưa có trong workspace.
-* **Trạng thái độ bất ổn:** Tier A/B/C đã được kiểm chứng **tính nhất quán tên biến** (không trùng lặp, không giao nhau, Tier A chứa đủ 16 core) — nhưng **chưa** kiểm chứng hệ số tương quan/VIF vì lý do trên; đây là điều kiện của bước 3.
+* **Trạng thái kiểm định:** Tier A/B/C đã được kiểm chứng **tính nhất quán tên biến** (không trùng lặp, không giao nhau, Tier A chứa đủ 16 core v2.0). Riêng **6 biến không cần lịch sử đã được đo trên dữ liệu thật và qua cổng** (§10.2: 0 cặp \|ρ\| ≥ 0,85, VIF max 7,30 trên 10 ngày/180.606 dòng). Trên 60 ngày **vẫn phải đo lại** (ma trận đầy đủ sẽ có thêm mùa vụ cuối tuần và các tài khoản chỉ xuất hiện ở giai đoạn sau).
 * Bộ 1 và Bộ 2 **không bị loại bỏ hoàn toàn**: mọi biến của chúng rơi vào Tier A/B/C hoặc danh sách loại trừ §4 đều có lý do kèm theo (đây là yêu cầu bắt buộc của hợp đồng schema).
+
+## 10. Kết quả triển khai (đã chạy thật) + số đo cổng kiểm định
+
+### 10.1. Đã thay đổi gì trong mã/cấu hình
+
+| File | Thay đổi |
+|:---|:---|
+| `configs/feature_schema.yaml` | **16 → 24 core**: +4 nhóm 9 (`activity_peak_hour_sin/cos`, `hour_entropy`, `dst_host_entropy`) +4 nhóm 10 (`new_source_count_7d`, `new_host_count_7d`, `days_since_last_activity`, `volume_robust_z_7d`); 6 biến bị bác bỏ ghi vào `removed:` kèm ρ; thêm khối `deferred:` (Tier B/C) |
+| `src/features/history.py` **(mới)** | Module đặc trưng LIÊN-NGÀY: `add_history_features()`, `HISTORY_V3_FEATURES`, `HISTORY_V3_REJECTED`. Cửa sổ theo **NGÀY LỊCH**; baseline khối lượng dùng **lưới dày nội bộ** (ngày trống = 0) nhưng **không thêm dòng nào** vào ma trận |
+| `src/features/extractor.py` | +`intraday_behavior_features()` (4 biến trong-ngày), +`_presence_frames()` (vật liệu Source/LogHost cho nhóm 10 — ma trận thô không giữ danh tính nên extractor phải cấp), `MATRIX_ORDERED_COLS` (28 cột), **fix bug `ProcessName`** |
+| `tests/` | Thêm `test_intraday_behavior_features`, `test_history_features_values`, `test_history_features_are_causal` (chống rò rỉ tương lai), `test_volume_robust_z_is_winsorized` — **34 passed, 1 skipped** |
+| `scripts/.../check_raw_matrix.py` | Hợp đồng raw **28 cột** |
+| `README.md`, `docs/project_structure.md`, `configs/model_params.yaml` | 16 → 24 core |
+
+### 10.2. Số đo trên DỮ LIỆU THẬT — 10 ngày (180.606 dòng), dựng lại từ `data/interim`
+
+| Bộ | Cặp \|ρ\| ≥ 0,85 | VIF max |
+|:---|---:|---:|
+| 16 biến (v2.0) | 0 | 7,30 |
+| 22 biến (6 ứng viên nhóm 9) | **3** ❌ | NaN (cột hằng số) |
+| 28 biến (8 nhóm 9 + 8 nhóm 10, thử nghiệm) | **5** ❌ | **8.197** ❌ |
+| **24 biến (chốt)** | **0** ✅ | **7,31** ✅ |
+
+**4 biến nhóm 10 được giữ** (max \|ρ\| với 23 biến còn lại): `new_host_count_7d` 0,7301 · `new_source_count_7d` 0,7299 · `days_since_last_activity` 0,6982 · `volume_robust_z_7d` 0,227.
+Phân bố: `new_source_count_7d` zero 82,59% (p99 = 2, max 1.770) · `new_host_count_7d` zero 69,07% (p99 = 7, max 9.314) · `days_since_last_activity` NULL 13,32% (chỉ ở dòng đầu của mỗi tài khoản) · `volume_robust_z_7d` NULL 67,13% (**10 ngày thì 7 ngày đầu là warm-up**; trên 60 ngày tỷ lệ này sẽ ≈ 12%).
+
+### 10.3. Hai lỗi thật phát hiện nhờ quá trình đo (đã sửa + đã khoá bằng test)
+
+1. **`custom_proc_share` = 0 âm thầm.** Đường fallback đọc `data/interim` chỉ `select` 8 cột nên thiếu `ProcessName` ⇒ một đặc trưng **core** bị 0 tuyệt đối mà không có cảnh báo. Sau khi sửa: 11.016/180.606 dòng (6,10%) khác 0.
+2. **`volume_robust_z_7d` bùng nổ tới −976.** Không phải lỗi số học: tài khoản `User718489` giữ 5.966–6.058 sự kiện/ngày suốt 7 ngày rồi tụt còn 472 ⇒ IQR ≈ 0,005 ⇒ z = −976, đủ để lấn át khoảng cách của IForest/LOF/OCSVM. Đã thêm **winsorize ±10** (kèm dung sai scale 1e-9) và test riêng; sau khi sửa miền giá trị là [−10, 10].
+
+### 10.4. Việc còn lại để dùng v3.0 trong benchmark
+
+```bash
+# 1) Dựng lại ma trận 20 core từ interim (~15 phút cho 60 ngày)
+python main.py --stage features
+
+# 2) Kiểm định artifact (script, exit code cho CI)
+python scripts/feature_engineering/check_raw_matrix.py
+python scripts/feature_engineering/check_feature_matrix.py --matrix data/features/raw/feature_matrix_raw.parquet
+python scripts/feature_engineering/check_multicollinearity.py
+python scripts/diagnostics/feature_variance_check.py
+
+# 3) Chạy lại benchmark rồi mới so sánh với bảng Tuần 3 (bảng cũ là số của 16 core)
+python main.py --stage benchmark
+```
+
+**Lưu ý bắt buộc:** `data/processed/feature_matrix_processed.parquet` hiện vẫn là artifact **v2.0 (16 core)**
+⇒ `tests/test_features.py::test_model_interfaces` sẽ **skip** kèm thông điệp yêu cầu dựng lại (đây là guard có chủ ý,
+không phải test hỏng); sau khi chạy bước 1, guard này tự chuyển thành kiểm tra đầy đủ.
+
+
 
 ### Phụ lục — Lệnh tái lập nhanh
 
 ```bash
-# Hợp đồng hiện tại (16 core)
+# Hợp đồng đang hiệu lực (kỳ vọng 20 core)
 python -c "from src.features.schema import FeatureSchema as F; s=F(); print(len(s.core_features)); print(s.core_features)"
 
-# Sau khi cập nhật schema lên Tier A (kỳ vọng 30)
-python -c "from src.features.schema import FeatureSchema as F; s=F(); print(len(s.core_features), len(s.core_features)==30)"
+# 2 biến đã đo và bác bỏ (không được nằm trong core)
+python -c "from src.features.extractor import INTRADAY_V3_REJECTED as R; print(R)"
 
-# Bằng chứng đa cộng tuyến / phân phối
+# Bằng chứng đa cộng tuyến / phân phối (sau khi dựng lại matrix)
 python scripts/feature_engineering/check_multicollinearity.py
 python scripts/diagnostics/feature_variance_check.py
 python -m pytest tests/ -q
-
-
 ```
 
