@@ -3,7 +3,7 @@
 Đây là bản v1.0 (trước khi sửa các bất thường của bộ đặc trưng), chỉ giữ để đối chiếu.
 Bản dùng để chạy là: extract_account_day_matrix.py (bản 2.0 — tự dò dữ liệu/config, không cần tham số).
 Nếu chạy file này, kết quả sẽ quay lại schema cũ (30 đặc trưng, có 13 cặp |rho| >= 0.85, 2 đặc trưng chết).
-Xem lý do và danh sách khác biệt: docs/reports/bao_cao_sua_bo_dac_trung.md §4–§5.
+Xem lý do và danh sách khác biệt: reports/archive/bao_cao_sua_bo_dac_trung.md §4–§5.
 
 extract_account_day_matrix.py  (v1.0 — bản lưu trữ)
 

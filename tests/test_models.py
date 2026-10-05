@@ -371,12 +371,12 @@ def test_baselines_config_integration():
 # Pipeline 16 đặc trưng core (B4)
 # --------------------------------------------------------------------------- #
 def test_core_features_only():
-    """Pipeline chỉ dùng 24 đặc trưng core; cột không core không được ảnh hưởng điểm; NULL phải impute có căn cứ."""
+    """Pipeline chỉ dùng 39 đặc trưng core; cột không core không được ảnh hưởng điểm; NULL phải impute có căn cứ."""
     df = synthetic_feature_frame()
     pipeline = AnomalyPipeline(IsolationForestDetector(contamination=0.05, random_state=42), random_state=42)
 
     assert pipeline.feature_names == CORE_FEATURES
-    assert len(pipeline.feature_names) == 24
+    assert len(pipeline.feature_names) == 39
     assert pipeline.get_metadata()["scaler"] == "RobustScaler"
 
     pipeline.fit(df.head(N_TRAIN))
@@ -417,7 +417,7 @@ def test_isolation_forest_pipeline(temp_artifact_dir):
     path = pipeline.save(temp_artifact_dir / "isolation_forest_pipeline.joblib")
     reloaded = AnomalyPipeline.load(path)
     assert reloaded.model.name == "isolation_forest"
-    assert reloaded.get_metadata()["n_features"] == 24
+    assert reloaded.get_metadata()["n_features"] == 39
     assert np.allclose(reloaded.score(df.tail(N_ROWS - N_TRAIN)), scores)
 
 

@@ -86,4 +86,7 @@ experiments/results/*
 !experiments/results/model_stability.csv
 !experiments/results/split_info.json
 !experiments/results/run_manifest.json
-
+# Scratch / temporary scripts
+.tmp_*
+*.tmp
+.lof_shape.txt

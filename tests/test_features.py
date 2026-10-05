@@ -15,6 +15,7 @@ from src.features.extractor import (
     INTRADAY_V3_REJECTED,
     MATRIX_ORDERED_COLS,
     RAW_ORDERED_COLS,
+    TEMPLATE_V4_FEATURES,
     entity_type_expr,
     intraday_behavior_features,
     resolve_feature_config,
@@ -113,10 +114,11 @@ def test_feature_extraction_columns_and_counts():
     """
     assert len(RAW_ORDERED_COLS) == len(set(RAW_ORDERED_COLS)) == 24
     assert RAW_ORDERED_COLS[:4] == ["DomainName", "UserName", "day", "entity_type"]
-    # Ma trận ĐẦY ĐỦ = 24 cột trong ngày + 4 cột lịch sử (Tier A / nhóm 10)
-    assert len(MATRIX_ORDERED_COLS) == 28
+    # Ma trận ĐẦY ĐỦ = 24 cột trong ngày + 4 cột lịch sử (nhóm 10) + 15 cột template v4 (nhóm 11)
+    assert len(MATRIX_ORDERED_COLS) == 43
     assert MATRIX_ORDERED_COLS[:24] == RAW_ORDERED_COLS
-    assert MATRIX_ORDERED_COLS[24:] == HISTORY_V3_FEATURES
+    assert MATRIX_ORDERED_COLS[24:28] == HISTORY_V3_FEATURES
+    assert MATRIX_ORDERED_COLS[28:] == TEMPLATE_V4_FEATURES
     for name in HISTORY_V3_REJECTED:
         assert name not in MATRIX_ORDERED_COLS, f"'{name}' đã bị bác bỏ, không được sinh vào ma trận"
 
@@ -130,7 +132,7 @@ def test_feature_extraction_columns_and_counts():
     core = list(FeatureSchema().core_features)
     missing = [name for name in core if name not in extracted and derived.get(name) not in extracted]
     assert missing == [], f"Extractor không sinh được các đặc trưng core: {missing}"
-    assert len(core) == 24
+    assert len(core) == 39
 
     # 4 đặc trưng v3.0 phải nằm trong hợp đồng cột của extractor; 2 biến đã bác bỏ thì KHÔNG.
     for name in INTRADAY_V3_FEATURES:
@@ -162,7 +164,7 @@ def test_model_interfaces():
     core = list(FeatureSchema().core_features)
     pipeline = AnomalyPipeline(IsolationForestDetector(contamination=0.05))
     assert pipeline.feature_names == core
-    assert len(core) == 24
+    assert len(core) == 39
 
     if not PROCESSED_MATRIX.is_file():
         pytest.skip("Chưa có data/processed/feature_matrix_processed.parquet")
@@ -189,7 +191,7 @@ def test_model_interfaces():
         .filter(pl.col("day") > 7)
         .select(core)
     )
-    assert sample.width == 24
+    assert sample.width == 39
     assert sample.height >= 1000
     sample = sample.head(1000)
     for name in core:

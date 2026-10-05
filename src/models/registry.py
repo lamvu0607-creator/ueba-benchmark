@@ -161,8 +161,14 @@ def create_pipeline(
     contamination: Optional[float] = None,
     random_state: int = 42,
     schema_path: Optional[Path | str] = None,
+    max_train_samples: Optional[int] = None,
 ) -> AnomalyPipeline:
-    """Tạo ``AnomalyPipeline`` hoàn chỉnh (mô hình + imputer + scaler) từ cùng một cấu hình YAML."""
+    """
+    Tạo ``AnomalyPipeline`` hoàn chỉnh (mô hình + imputer + scaler) từ cùng một cấu hình YAML.
+
+    ``max_train_samples`` (tuỳ chọn) ghi đè ngân sách lấy mẫu con khi fit — dùng cho thí nghiệm
+    so sánh ngân sách fit (ví dụ LOF/OCSVM 50.000 dòng trong khi Isolation Forest fit toàn bộ).
+    """
     params = params or {}
     preprocessing = params.get("preprocessing") or {}
 
@@ -171,6 +177,7 @@ def create_pipeline(
         params=params,
         contamination=contamination,
         random_state=random_state,
+        max_train_samples=max_train_samples,
         feature_names=feature_names,
     )
     return AnomalyPipeline(

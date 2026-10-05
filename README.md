@@ -15,8 +15,8 @@ ueba-benchmark/
 ├── main.py                         # Entrypoint điều phối toàn bộ pipeline
 ├── configs/
 │   ├── system_config.yaml          # Cấu hình đường dẫn 4 tầng data, seed, bộ lọc account
-│   ├── feature_schema.yaml         # Hợp đồng đặc trưng v2 (16 core features, transforms)
-│   └── model_params.yaml           # Siêu tham số cho IForest, LOF, OCSVM
+│   ├── feature_schema.yaml         # Hợp đồng đặc trưng v4 (39 core features, transforms)
+│   └── model_params.yaml           # Siêu tham số cho IForest, LOF, OCSVM & Baselines
 ├── data/                           # Quản lý 4 tầng dữ liệu theo chuẩn Data Lakehouse
 │   ├── raw/                        # Tầng 1: Log sự kiện gốc (EVTX / CSV / Parquet / JSON)
 │   ├── interim/                    # Tầng 2: Log đã làm sạch & chuẩn hóa theo ngày (.parquet)
@@ -29,11 +29,12 @@ ueba-benchmark/
 │   │   ├── quality_survey.py       # Khảo sát chất lượng dữ liệu đa ngày
 │   │   └── validate_interim.py     # Kiểm định tính toàn vẹn của interim
 │   ├── features/                   # Tầng trích xuất & tiền xử lý đặc trưng
-│   │   ├── schema.py               # Quản lý và kiểm định hợp đồng Feature Schema v2
+│   │   ├── schema.py               # Quản lý và kiểm định hợp đồng Feature Schema v3
 │   │   ├── extractor.py            # Trích xuất ma trận Tài khoản x Ngày bằng Polars
+│   │   ├── history.py              # Trích xuất đặc trưng lịch sử 7 ngày (Novelty / Rolling)
 │   │   └── preprocessor.py         # Chuẩn hóa log1p, xử lý NULL có kiểm soát
-│   ├── models/                     # Tầng mô hình bất thường (Phase 3)
-│   └── evaluation/                 # Tầng đánh giá & tiêm bất thường (Phase 3)
+│   ├── models/                     # Tầng mô hình bất thường (Phase 3: IF, LOF, OCSVM, Baselines)
+│   └── evaluation/                 # Tầng đánh giá time-split, metrics, manifest & logging
 ├── scripts/                        # Scripts phân tích chuyên sâu & công cụ bổ trợ
 │   ├── convert_raw_to_interim.py
 │   ├── survey_multi_days_quality.py
@@ -43,9 +44,12 @@ ueba-benchmark/
 ├── docs/                           # Tài liệu kỹ thuật, kiến trúc & báo cáo đa cộng tuyến
 ├── reports/                        # Báo cáo kết quả khảo sát & biểu đồ trực quan
 ├── experiments/                    # Nhật ký thực nghiệm, model weights & metrics
-└── tests/                          # Bộ kiểm thử tự động (Unit Tests)
+└── tests/                          # Bộ kiểm thử tự động (36 Unit Tests)
+    ├── test_cleaner.py             # Test chuẩn hóa dữ liệu thô và sửa lỗi destination
     ├── test_configs.py             # Test cấu hình YAML & tính hợp lệ của Feature Schema
-    └── test_features.py            # Test logic phân loại thực thể & tiền xử lý đặc trưng
+    ├── test_features.py            # Test logic phân loại thực thể & trích xuất đặc trưng
+    ├── test_models.py              # Test giao diện detector, baselines, pipeline & registry
+    └── test_evaluation.py          # Test time split, chỉ số đánh giá, log & manifest
 ```
 
 ---
@@ -104,14 +108,16 @@ python main.py --stage all
 # 1. Chỉ làm sạch dữ liệu thô (raw -> interim)
 python main.py --stage clean
 
-# 2. Trích xuất và chuẩn hóa 20 đặc trưng hành vi (interim -> features -> processed)
+# 2. Trích xuất và chuẩn hóa 39 đặc trưng hành vi cốt lõi (interim -> features -> processed)
 python main.py --stage features
 
 # 2b. Trích xuất đặc trưng cho dải ngày cụ thể (ví dụ: Day 1 đến Day 10)
 python main.py --stage features --start-day 1 --end-day 10
 
-# 3. Chạy benchmark các mô hình bất thường
+# 3. Chạy benchmark các mô hình bất thường (chọn mô hình hoặc chạy toàn bộ 6 mô hình)
 python main.py --stage benchmark --models isolation_forest local_outlier_factor one_class_svm
+# Hoặc chạy toàn bộ 6 mô hình mặc định:
+python main.py --stage benchmark
 ```
 
 ---
@@ -194,24 +200,18 @@ Do tập dữ liệu 60 ngày (Windows Event 4624/4625) có dung lượng rất 
 
 Tái lập: `python main.py --stage benchmark` (seed 42, K=20, ngân sách cảnh báo 5%).
 
-> ⚠️ Bảng dưới đây được chạy với **16 đặc trưng core của schema v2.0** (trước khi bổ sung 4 đặc trưng
-> nhóm 9 của v3.0). Sau khi dựng lại ma trận (`python main.py --stage features`) hãy chạy lại benchmark
-> và cập nhật bảng — các con số cũ **không** còn mô tả đúng bộ đặc trưng hiện tại.
-
-> **Mô hình thứ 6 — `random_baseline` (mốc dưới, bổ sung sau Tuần 3):** điểm là **băm ngẫu nhiên tất định**
-> theo nội dung dòng nên cùng một dòng luôn nhận cùng điểm (tái lập, bất biến thứ tự) nhưng **không** có
-> quan hệ thống kê với dữ liệu. Kỳ vọng lý thuyết: `ROC-AUC ≈ 0,5`, `AP`/`Precision@K ≈ tỷ lệ dương tính`,
-> `alert rate ≈ contamination`. Đã validate trên ma trận **24 đặc trưng**: alert rate **4,96%** (lệch −0,04 pp),
-> ngưỡng 0,9502, phân vị điểm khớp phân phối đều (p25 = 0,250 · p50 = 0,500 · p95 = 0,950) ⇒ **mốc dưới dùng
-> để kiểm tra mọi mô hình khác có thực sự vượt "đoán mò" hay không** (nhất là khi có nhãn ở Tuần 4).
+Bảng kết quả chính thức được chạy trên ma trận **24 đặc trưng cốt lõi (Schema v3.0)** với đầy đủ **6 mô hình canonical** trong registry:
 
 | Mô hình | n_fit | n_eval | Tỷ lệ cảnh báo (%) | Lệch ngân sách (pp) | Fit (s) | Chấm điểm (s) |
 |:---|:---:|:---:|:---:|:---:|:---:|:---:|
-| **Isolation Forest** | 721.612 | 333.671 | 5,93 | +0,93 | 11,43 | 1,97 |
-| **One-Class SVM** | 20.000 | 333.671 | 6,39 | +1,39 | 3,36 | 16,57 |
-| **Z-score Baseline** | 721.612 | 333.671 | 5,85 | +0,85 | 2,63 | 0,12 |
-| **Local Outlier Factor** | 20.000 | 333.671 | 9,24 | +4,24 | 2,23 | 4,91 |
-| **Rule-Threshold Baseline** | 721.612 | 333.671 | 20,35 | +15,35 | 1,15 | 0,09 |
+| **Isolation Forest** | 721.612 | 333.671 | 5,71 | +0,71 | 12,42 | 2,19 |
+| **One-Class SVM** | 20.000 | 333.671 | 5,83 | +0,83 | 5,41 | 19,76 |
+| **Local Outlier Factor** | 20.000 | 333.671 | 8,09 | +3,09 | 3,26 | 5,77 |
+| **Z-score Baseline** | 721.612 | 333.671 | 9,58 | +4,58 | 4,71 | 0,19 |
+| **Rule-Threshold Baseline** | 721.612 | 333.671 | 20,35 | +15,35 | 1,78 | 0,16 |
+| **Random Baseline** | 721.612 | 333.671 | 4,96 | −0,04 | 2,47 | 0,50 |
+
+> **Ghi chú về Random Baseline:** Đây là mốc dưới (lower bound) sử dụng thuật toán băm ngẫu nhiên tất định theo dòng (ROC-AUC kỳ vọng ≈ 0,5, alert rate ≈ ngân sách 5%) dùng để đối chứng, kiểm tra xem các mô hình học máy và baseline luật có thực sự vượt qua mức "đoán mò" hay không.
 
 * **Bảng xếp hạng chi tiết**: `experiments/results/benchmark_summary.csv`
 * **Điểm số dị biệt** (mỗi mô hình 3 cột `_score`/`_pct`/`_anomaly`): `experiments/results/anomaly_scores.parquet`
@@ -220,6 +220,8 @@ Tái lập: `python main.py --stage benchmark` (seed 42, K=20, ngân sách cản
 * **Manifest tái lập** (commit, sha256 dữ liệu, phiên bản thư viện): `experiments/results/run_manifest.json`
 * **Nhật ký thí nghiệm** (tương thích 18 cột cũ + cột truy vết mới): `experiments/logs/experiment_log.csv`
 
-Tài liệu Tuần 3:
-* **Báo cáo tóm tắt**: [`reports/week3/tom_tat_tuan3.md`](reports/week3/tom_tat_tuan3.md)
-* **Phân tích chi tiết & bằng chứng**: [`reports/week3/label_free_benchmark.md`](reports/week3/label_free_benchmark.md)
+Tài liệu tham khảo:
+* **Từ điển dữ liệu 21 trường log LANL**: [`docs/data_dictionary.md`](docs/data_dictionary.md)
+* **Báo cáo tóm tắt Tuần 3**: [`reports/week3/tom_tat_tuan3.md`](reports/week3/tom_tat_tuan3.md)
+* **Phân tích chi tiết & bằng chứng**: [`reports/week3/label_free_benchmark.md`](reports/week3/label_free_benchmark.md)
+* **Báo cáo bộ đặc trưng v3.0**: [`docs/reports/bao_cao_bo_dac_trung_v3.md`](docs/reports/bao_cao_bo_dac_trung_v3.md)

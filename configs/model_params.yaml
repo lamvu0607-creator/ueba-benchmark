@@ -8,14 +8,13 @@ defaults:
   random_state: 42
 
 training:
-  # Ghi đè ngân sách lấy mẫu con khi fit cho MỌI mô hình. null = dùng mặc định từng lớp:
-  # LOF/One-Class SVM 20.000 dòng; Isolation Forest và 3 baseline dùng toàn bộ tập train.
-  max_train_samples: null
+  # Ghi đè ngân sách lấy mẫu con khi fit cho MỌI mô hình để so sánh công bằng (Fixed Sample Budget = 50.000).
+  max_train_samples: 50000
 
 preprocessing:
   imputer: "median" # median fit trên tập train (KHÔNG fill 0 các NULL hợp lệ như interarrival_dt_mean)
   scaler: "robust" # chỉ áp dụng cho mô hình requires_scaling (IF/LOF/OCSVM); baseline dùng đơn vị gốc
-  feature_set: "core" # 24 đặc trưng core trong configs/feature_schema.yaml (v3.0)
+  feature_set: "core" # 39 đặc trưng core trong configs/feature_schema.yaml (v4.0)
 
 isolation_forest:
   n_estimators: 150

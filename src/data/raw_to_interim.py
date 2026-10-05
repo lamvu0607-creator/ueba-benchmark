@@ -3,7 +3,7 @@
 Đặc điểm kỹ thuật:
 - Lọc EventID 4624 và 4625 từ file nén wls_day-XX.bz2 (JSON Lines).
 - Phân tách thành 2 thư mục riêng biệt: interim/event_4624 và interim/event_4625.
-- Áp đặt Schema chuẩn 21 trường theo data_dictionary.md.
+- Áp đặt Schema chuẩn 21 trường theo docs/data_dictionary.md.
 - Tối ưu Streaming & Batch ParquetWriter: peak RAM < 500MB, chống tràn bộ nhớ.
 - Lọc chuỗi thô ở cấp độ C trước khi parse JSON để đạt tốc độ xử lý tối đa.
 """

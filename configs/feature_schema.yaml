@@ -1,6 +1,13 @@
 # Hợp đồng schema đặc trưng (Feature Contract) — UEBA Anomaly Detection Benchmark
 #
-# Phiên bản : v2.0 (16 core) -> v3.0 (28 core)
+# Phiên bản : v2.0 (16 core) -> v3.0 (24 core) -> v4.0 (39 core)
+#   * v4.0 (2026-10-04) bổ sung 15 đặc trưng sinh từ Combinatorial Template
+#     (PHÉP ĐO × ĐỐI TƯỢNG × CHIỀU × CỬA SỔ, src/features/templates.py), chọn qua phễu:
+#       3.136 tổ hợp → 471 hợp lệ ngữ pháp → vòng 1 (lập luận, luật R1–R4) còn 78
+#       → vòng 2 (số liệu: E rò rỉ, B thông tin, A |rho| < 0,85, C phân tách kịch bản tiêm) còn 26
+#       → chốt quy mô (~15, VIF ≤ 10): 15 vào core (nhóm 11), 11 vào `reserve:`.
+#     Tính bằng src/features/template_engine.py. Căn cứ: docs/reports/bao_cao_bo_dac_trung_v4.md
+#     52 ứng viên vòng 2 bị loại được ghi ở cuối mục `removed:` kèm cổng + số đo.
 #   * v3.0 (2026-09-30) bổ sung 12 đặc trưng, TẤT CẢ đều chỉ dùng dữ liệu ≤ t−1:
 #       nhóm 9 (trong ngày) : activity_peak_hour_sin/cos, hour_entropy, dst_host_entropy
 #       nhóm 10 (lịch sử)   : new_source_count, new_host_count,
@@ -216,6 +223,157 @@ features:
     model_transform: none
     note: "Thay 3 cờ has_process_info / has_system_process / has_custom_proc; là hệ quả của sơ đồ ẩn danh 'Proc<6 số>.exe'."
 
+  # ---------------- Nhóm 11 (v4.0): sinh từ Combinatorial Template — qua phễu 2 vòng ----------------
+  # Tên = measure_[base_][object_][entity_][window]; câu định nghĩa SINH TỰ ĐỘNG từ template
+  # (src/features/templates.py). Giá trị đã ở dạng dùng cho model (đếm → log1p, peer_z cắt ±10)
+  # nên model_transform = none. Số đo cổng: docs/feature_engineering/tables/v4_round2_gates.csv
+  # (21 ngày LANL, 7 kịch bản tiêm tại ngày 21). Báo cáo: docs/reports/bao_cao_bo_dac_trung_v4.md
+  - name: delta_mean_share_fail_7d
+    group: template_v4
+    definition: "tỷ lệ đăng nhập thất bại (4625) hôm nay trừ trung bình của 7 ngày lịch trước"
+    core: true
+    model_transform: none
+    nullable: "NULL ở 7 ngày đầu của dải quan sát (warm-up) hoặc khi 7 ngày trước không có ngày hoạt động nào"
+    template: {measure: delta_mean, object: fail, entity: event, window: 7d}
+    scenarios: [brute_force, password_spraying]
+    note: "v4.0. AUC 0.999 trên brute_force; max |rho| 0.8209 với delta_mean_distinct_fail_host_7d."
+
+  - name: delta_mean_distinct_fail_host_7d
+    group: template_v4
+    definition: "log số máy đích (LogHost) khác nhau (đăng nhập thất bại (4625)) hôm nay trừ trung bình của 7 ngày lịch trước"
+    core: true
+    model_transform: none
+    nullable: "NULL ở 7 ngày đầu của dải quan sát (warm-up)"
+    template: {measure: delta_mean, object: fail, entity: LogHost, window: 7d}
+    scenarios: [brute_force, password_spraying]
+    note: "v4.0. AUC 0.990 trên password_spraying; max |rho| 0.6605 với failure_ratio."
+
+  - name: novelty_fail_host_7d
+    group: template_v4
+    definition: "số máy đích (LogHost) trong đăng nhập thất bại (4625) hôm nay chưa xuất hiện trong 7 ngày lịch trước"
+    core: true
+    model_transform: none
+    template: {measure: novelty, object: fail, entity: LogHost, window: 7d}
+    scenarios: [brute_force, password_spraying]
+    note: "v4.0. AUC 0.987 trên password_spraying; max |rho| 0.6348 với delta_mean_distinct_fail_host_7d."
+
+  - name: novelty_fail_failreason_7d
+    group: template_v4
+    definition: "số lý do thất bại trong đăng nhập thất bại (4625) hôm nay chưa xuất hiện trong 7 ngày lịch trước"
+    core: true
+    model_transform: none
+    template: {measure: novelty, object: fail, entity: fail_reason, window: 7d}
+    scenarios: [brute_force]
+    note: "v4.0. AUC 0.728 trên brute_force; max |rho| 0.8373 với novelty_fail_host_7d."
+
+  - name: delta_mean_distinct_source_7d
+    group: template_v4
+    definition: "log số máy nguồn (Source) khác nhau (mọi sự kiện) hôm nay trừ trung bình của 7 ngày lịch trước"
+    core: true
+    model_transform: none
+    nullable: "NULL ở 7 ngày đầu của dải quan sát (warm-up)"
+    template: {measure: delta_mean, object: all, entity: Source, window: 7d}
+    scenarios: [new_workstation_burst]
+    note: "v4.0. AUC 1.000 trên new_workstation_burst; max |rho| 0.4451 với distinct_sources_count."
+
+  - name: jaccard_source_7d
+    group: template_v4
+    definition: "độ trùng (Jaccard) giữa tập máy nguồn (Source) hôm nay và tập máy nguồn (Source) của 7 ngày lịch trước (mọi sự kiện)"
+    core: true
+    model_transform: none
+    nullable: "NULL khi chưa có lịch sử 7 ngày của thực thể đó hoặc hôm nay không có sự kiện thuộc đối tượng"
+    template: {measure: jaccard, object: all, entity: Source, window: 7d}
+    scenarios: [new_workstation_burst]
+    note: "v4.0. AUC 0.995 trên new_workstation_burst; max |rho| 0.7122 với dist_shift_source_7d."
+
+  - name: peer_z_distinct_source
+    group: template_v4
+    definition: "z bền vững của log số máy nguồn (Source) khác nhau (mọi sự kiện) so với các tài khoản cùng loại (entity_type) trong cùng ngày"
+    core: true
+    model_transform: none
+    template: {measure: peer_z, object: all, entity: Source, window: 1d}
+    scenarios: [new_workstation_burst]
+    note: "v4.0. AUC 1.000 trên new_workstation_burst; max |rho| 0.8305 với distinct_sources_count."
+
+  - name: dist_shift_hour_7d
+    group: template_v4
+    definition: "khoảng cách phân bố (total variation) của mọi sự kiện theo khung giờ giữa hôm nay và 7 ngày lịch trước"
+    core: true
+    model_transform: none
+    nullable: "NULL khi chưa có lịch sử 7 ngày của thực thể đó hoặc hôm nay không có sự kiện thuộc đối tượng"
+    template: {measure: dist_shift, object: all, entity: hour, window: 7d}
+    scenarios: [off_hours]
+    note: "v4.0. AUC 0.987 trên off_hours; max |rho| 0.5707 với hour_entropy."
+
+  - name: jaccard_hour_7d
+    group: template_v4
+    definition: "độ trùng (Jaccard) giữa tập khung giờ hôm nay và tập khung giờ của 7 ngày lịch trước (mọi sự kiện)"
+    core: true
+    model_transform: none
+    nullable: "NULL khi chưa có lịch sử 7 ngày của thực thể đó hoặc hôm nay không có sự kiện thuộc đối tượng"
+    template: {measure: jaccard, object: all, entity: hour, window: 7d}
+    scenarios: [off_hours]
+    note: "v4.0. AUC 0.984 trên off_hours; max |rho| 0.6915 với log_total_logons."
+
+  - name: peer_z_share_night
+    group: template_v4
+    definition: "z bền vững của tỷ lệ sự kiện ngoài giờ (18h–7h) so với các tài khoản cùng loại (entity_type) trong cùng ngày"
+    core: true
+    model_transform: none
+    template: {measure: peer_z, object: night, entity: event, window: 1d}
+    scenarios: [off_hours]
+    note: "v4.0. AUC 0.980 trên off_hours; max |rho| 0.7464 với off_hours_ratio."
+
+  - name: delta_mean_distinct_pair_7d
+    group: template_v4
+    definition: "log số cặp (Source, LogHost) khác nhau (mọi sự kiện) hôm nay trừ trung bình của 7 ngày lịch trước"
+    core: true
+    model_transform: none
+    nullable: "NULL ở 7 ngày đầu của dải quan sát (warm-up)"
+    template: {measure: delta_mean, object: all, entity: pair, window: 7d}
+    scenarios: [lateral_fanout, new_workstation_burst]
+    note: "v4.0. AUC 1.000 trên lateral_fanout; max |rho| 0.7796 với delta_mean_distinct_source_7d."
+
+  - name: novelty_share_pair_7d
+    group: template_v4
+    definition: "tỷ lệ mọi sự kiện hôm nay thuộc cặp (Source, LogHost) chưa xuất hiện trong 7 ngày lịch trước"
+    core: true
+    model_transform: none
+    nullable: "NULL khi hôm nay không có sự kiện hợp lệ (Source/LogHost rỗng)"
+    template: {measure: novelty_share, object: all, entity: pair, window: 7d}
+    scenarios: [lateral_fanout, new_workstation_burst]
+    note: "v4.0. AUC 0.990 trên lateral_fanout; max |rho| 0.7562 với new_host_count_7d."
+
+  - name: delta_mean_count_7d
+    group: template_v4
+    definition: "log số mọi sự kiện hôm nay trừ trung bình của 7 ngày lịch trước"
+    core: true
+    model_transform: none
+    nullable: "NULL ở 7 ngày đầu của dải quan sát (warm-up)"
+    template: {measure: delta_mean, object: all, entity: event, window: 7d}
+    scenarios: [dormant_wakeup]
+    note: "v4.0. AUC 0.999 trên dormant_wakeup; max |rho| 0.7961 với delta_mean_distinct_pair_7d."
+
+  - name: dist_shift_logontype_7d
+    group: template_v4
+    definition: "khoảng cách phân bố (total variation) của mọi sự kiện theo loại logon giữa hôm nay và 7 ngày lịch trước"
+    core: true
+    model_transform: none
+    nullable: "NULL khi chưa có lịch sử 7 ngày của thực thể đó hoặc hôm nay không có sự kiện thuộc đối tượng"
+    template: {measure: dist_shift, object: all, entity: logon_type, window: 7d}
+    scenarios: [logon_type_switch]
+    note: "v4.0. AUC 1.000 trên logon_type_switch; max |rho| 0.6980 với rare_logon_type_count_log."
+
+  - name: jaccard_logontype_7d
+    group: template_v4
+    definition: "độ trùng (Jaccard) giữa tập loại logon hôm nay và tập loại logon của 7 ngày lịch trước (mọi sự kiện)"
+    core: true
+    model_transform: none
+    nullable: "NULL khi chưa có lịch sử 7 ngày của thực thể đó hoặc hôm nay không có sự kiện thuộc đối tượng"
+    template: {measure: jaccard, object: all, entity: logon_type, window: 7d}
+    scenarios: [logon_type_switch]
+    note: "v4.0. AUC 1.000 trên logon_type_switch; max |rho| 0.6692 với dist_shift_logontype_7d."
+
 # ---------------------------------------------------------------------------
 # CHƯA triển khai (roadmap v3.0) — xem docs/reports/bao_cao_bo_dac_trung_v3.md §5
 # ---------------------------------------------------------------------------
@@ -230,10 +388,62 @@ features:
 #   failure_ratio_robust_z_7d, distinct_hosts_robust_z_7d, off_hours_robust_z_7d,
 #   ntlm_robust_z_7d, failure_ratio_lag1,
 #   logon_type_entropy, src_host_entropy, src_dst_pair_entropy, dst_host_concentration_ratio
+#   (v4.0: phần lớn nhóm novelty/peer/robust-z ở trên nay được sinh lại có hệ thống bằng template —
+#    xem docs/feature_engineering/tables/v4_template_space.csv; tên v3 Tier B giữ để tra cứu lịch sử.)
 # Tier C (chẩn đoán/luật + chỉ mục panel, KHÔNG vào vector):
 #   volume_residual, residual_robust_zscore, residual_abs_exceed_3sigma, behavior_shift_score_7d,
 #   day, week, day_of_week
 deferred: []
+
+# ---------------------------------------------------------------------------
+# DỰ BỊ v4.0 — đã QUA ĐỦ 4 cổng (E/B/A/C) nhưng không vào core ở bước chốt quy mô
+# (mục tiêu ~15 biến, VIF ≤ 10). Extractor KHÔNG tính; ứng viên đầu tiên cho khâu ablation.
+# ---------------------------------------------------------------------------
+reserve:
+  - name: novelty_hour_7d
+    definition: "số khung giờ trong mọi sự kiện hôm nay chưa xuất hiện trong 7 ngày lịch trước"
+    template: {measure: novelty, object: all, entity: hour, window: 7d}
+    reason: "AUC 0.811 trên off_hours; max |rho| 0.4170. Chưa vào core: kịch bản đã đủ đại diện có AUC cao hơn ở bước chốt."
+  - name: count_night_15m
+    definition: "số sự kiện ngoài giờ (18h–7h) trong khung 15 phút đông nhất của ngày"
+    template: {measure: count, object: night, entity: event, window: 15m}
+    reason: "AUC 0.909 trên off_hours; max |rho| 0.7203. Chưa vào core: kịch bản đã đủ đại diện có AUC cao hơn ở bước chốt."
+  - name: delta_mean_share_night_7d
+    definition: "tỷ lệ sự kiện ngoài giờ (18h–7h) hôm nay trừ trung bình của 7 ngày lịch trước"
+    template: {measure: delta_mean, object: night, entity: event, window: 7d}
+    reason: "AUC 0.978 trên off_hours; max |rho| 0.6293. Chưa vào core: kịch bản đã đủ đại diện có AUC cao hơn ở bước chốt."
+  - name: dist_shift_source_7d
+    definition: "khoảng cách phân bố (total variation) của mọi sự kiện theo máy nguồn (Source) giữa hôm nay và 7 ngày lịch trước"
+    template: {measure: dist_shift, object: all, entity: Source, window: 7d}
+    reason: "AUC 0.871 trên new_workstation_burst; max |rho| 0.7028. Chưa vào core: kịch bản đã đủ đại diện có AUC cao hơn ở bước chốt."
+  - name: dist_shift_pair_7d
+    definition: "khoảng cách phân bố (total variation) của mọi sự kiện theo cặp (Source, LogHost) giữa hôm nay và 7 ngày lịch trước"
+    template: {measure: dist_shift, object: all, entity: pair, window: 7d}
+    reason: "AUC 0.801 trên lateral_fanout; max |rho| 0.6806. Chưa vào core: kịch bản đã đủ đại diện có AUC cao hơn ở bước chốt."
+  - name: jaccard_pair_7d
+    definition: "độ trùng (Jaccard) giữa tập cặp (Source, LogHost) hôm nay và tập cặp (Source, LogHost) của 7 ngày lịch trước (mọi sự kiện)"
+    template: {measure: jaccard, object: all, entity: pair, window: 7d}
+    reason: "AUC 0.979 trên lateral_fanout; max |rho| 0.6151. Chưa vào core: kịch bản đã đủ đại diện có AUC cao hơn ở bước chốt."
+  - name: peer_z_distinct_pair
+    definition: "z bền vững của log số cặp (Source, LogHost) khác nhau (mọi sự kiện) so với các tài khoản cùng loại (entity_type) trong cùng ngày"
+    template: {measure: peer_z, object: all, entity: pair, window: 1d}
+    reason: "AUC 0.989 trên lateral_fanout; max |rho| 0.6108. Chưa vào core: kịch bản đã đủ đại diện có AUC cao hơn ở bước chốt."
+  - name: dist_shift_host_7d
+    definition: "khoảng cách phân bố (total variation) của mọi sự kiện theo máy đích (LogHost) giữa hôm nay và 7 ngày lịch trước"
+    template: {measure: dist_shift, object: all, entity: LogHost, window: 7d}
+    reason: "AUC 0.790 trên lateral_fanout; max |rho| 0.8329. Chưa vào core: kịch bản đã đủ đại diện có AUC cao hơn ở bước chốt."
+  - name: jaccard_host_7d
+    definition: "độ trùng (Jaccard) giữa tập máy đích (LogHost) hôm nay và tập máy đích (LogHost) của 7 ngày lịch trước (mọi sự kiện)"
+    template: {measure: jaccard, object: all, entity: LogHost, window: 7d}
+    reason: "AUC 0.981 trên lateral_fanout; max |rho| 0.7558. Chưa vào core: kịch bản đã đủ đại diện có AUC cao hơn ở bước chốt."
+  - name: active_days_7d
+    definition: "số ngày có hoạt động trong 7 ngày lịch trước"
+    template: {measure: active_days, object: all, entity: event, window: 7d}
+    reason: "AUC 0.998 trên dormant_wakeup; max |rho| 0.7944. Chưa vào core: VIF bộ core lên 11.72 (> 10) nếu thêm."
+  - name: novelty_logontype_7d
+    definition: "số loại logon trong mọi sự kiện hôm nay chưa xuất hiện trong 7 ngày lịch trước"
+    template: {measure: novelty, object: all, entity: logon_type, window: 7d}
+    reason: "AUC 0.996 trên logon_type_switch; max |rho| 0.5417. Chưa vào core: kịch bản đã đủ đại diện có AUC cao hơn ở bước chốt."
 
 # ---------------------------------------------------------------------------
 # Đã LOẠI BỎ so với bản 1.0 (xem §5 và §7.1 của review) — kèm lý do
@@ -305,3 +515,108 @@ removed:
     reason: "Đề xuất Tier C của báo cáo v3.0: giữ ở tầng CHẨN ĐOÁN/luật, không nạp vector (không có trong features)."
   - name: behavior_shift_score_7d
     reason: "Đề xuất Tier C: chỉ số tổng hợp để xếp hạng rủi ro cho SOC, không phải đặc trưng hành vi."
+  # --- v4.0: 52 ứng viên template ĐÃ CÀI + ĐO trên 21 ngày rồi bị loại ở vòng 2 (cổng: lý do) ---
+  - name: count_fail_15m
+    reason: "v4.0 cổng A: |ρ| = 0.9973 với failure_ratio"
+  - name: delta_mean_distinct_fail_source_7d
+    reason: "v4.0 cổng A: |ρ| = 0.9575 với delta_mean_distinct_fail_host_7d"
+  - name: distinct_fail_host
+    reason: "v4.0 cổng A: |ρ| = 0.9967 với failure_ratio"
+  - name: distinct_fail_host_15m
+    reason: "v4.0 cổng A: |ρ| = 0.9971 với failure_ratio"
+  - name: distinct_fail_source
+    reason: "v4.0 cổng A: |ρ| = 0.9551 với failure_ratio"
+  - name: distinct_fail_source_15m
+    reason: "v4.0 cổng A: |ρ| = 0.9554 với failure_ratio"
+  - name: novelty_fail_source_7d
+    reason: "v4.0 cổng A: |ρ| = 0.8976 với novelty_fail_host_7d"
+  - name: novelty_share_fail_host_7d
+    reason: "v4.0 cổng B: NULL 87.6% > 50%"
+  - name: novelty_share_fail_source_7d
+    reason: "v4.0 cổng B: NULL 88.4% > 50%"
+  - name: delta_mean_distinct_fail_failreason_7d
+    reason: "v4.0 cổng A: |ρ| = 0.9921 với delta_mean_distinct_fail_host_7d"
+  - name: delta_mean_distinct_fail_pair_7d
+    reason: "v4.0 cổng A: |ρ| = 0.9599 với delta_mean_distinct_fail_host_7d"
+  - name: dist_shift_fail_host_7d
+    reason: "v4.0 cổng B: NULL 90.7% > 50%"
+  - name: dist_shift_fail_source_7d
+    reason: "v4.0 cổng B: NULL 91.3% > 50%"
+  - name: distinct_fail_failreason
+    reason: "v4.0 cổng A: |ρ| = 0.9970 với failure_ratio"
+  - name: distinct_fail_failreason_15m
+    reason: "v4.0 cổng A: |ρ| = 0.9971 với failure_ratio"
+  - name: distinct_fail_pair
+    reason: "v4.0 cổng A: |ρ| = 0.9552 với failure_ratio"
+  - name: distinct_fail_pair_15m
+    reason: "v4.0 cổng A: |ρ| = 0.9554 với failure_ratio"
+  - name: evenness_fail_host
+    reason: "v4.0 cổng B: NULL 87.6% > 50%"
+  - name: evenness_fail_source
+    reason: "v4.0 cổng B: NULL 88.4% > 50%"
+  - name: fanout_fail_source
+    reason: "v4.0 cổng A: |ρ| = 0.9550 với failure_ratio"
+  - name: jaccard_fail_host_7d
+    reason: "v4.0 cổng B: NULL 90.7% > 50%"
+  - name: jaccard_fail_source_7d
+    reason: "v4.0 cổng B: NULL 91.3% > 50%"
+  - name: novelty_fail_pair_7d
+    reason: "v4.0 cổng A: |ρ| = 0.9313 với novelty_fail_host_7d"
+  - name: novelty_share_fail_failreason_7d
+    reason: "v4.0 cổng B: NULL 87.6% > 50%"
+  - name: novelty_share_fail_pair_7d
+    reason: "v4.0 cổng B: NULL 88.4% > 50%"
+  - name: peer_z_distinct_fail_host
+    reason: "v4.0 cổng A: |ρ| = 0.9878 với failure_ratio"
+  - name: peer_z_distinct_fail_source
+    reason: "v4.0 cổng A: |ρ| = 0.9453 với failure_ratio"
+  - name: peer_z_share_fail
+    reason: "v4.0 cổng A: |ρ| = 0.9853 với failure_ratio"
+  - name: delta_mean_distinct_hour_7d
+    reason: "v4.0 cổng C: AUC tốt nhất trên kịch bản mục tiêu = 0.095 (off_hours) < 0.7"
+  - name: distinct_source_15m
+    reason: "v4.0 cổng A: |ρ| = 0.9314 với distinct_sources_count"
+  - name: novelty_share_hour_7d
+    reason: "v4.0 cổng A: |ρ| = 0.9957 với novelty_hour_7d"
+  - name: novelty_share_source_7d
+    reason: "v4.0 cổng A: |ρ| = 0.9983 với new_source_count_7d"
+  - name: count_night
+    reason: "v4.0 cổng C: AUC tốt nhất trên kịch bản mục tiêu = 0.243 (off_hours) < 0.7"
+  - name: distinct_pair
+    reason: "v4.0 cổng A: |ρ| = 0.9087 với log_distinct_hosts"
+  - name: distinct_pair_15m
+    reason: "v4.0 cổng A: |ρ| = 0.8789 với log_distinct_hosts"
+  - name: novelty_share_success_hour_7d
+    reason: "v4.0 cổng A: |ρ| = 0.9441 với novelty_hour_7d"
+  - name: novelty_share_success_source_7d
+    reason: "v4.0 cổng A: |ρ| = 0.9476 với new_source_count_7d"
+  - name: novelty_success_hour_7d
+    reason: "v4.0 cổng A: |ρ| = 0.9777 với novelty_hour_7d"
+  - name: novelty_success_source_7d
+    reason: "v4.0 cổng A: |ρ| = 0.9492 với new_source_count_7d"
+  - name: novelty_share_success_pair_7d
+    reason: "v4.0 cổng A: |ρ| = 0.9633 với novelty_share_pair_7d"
+  - name: novelty_success_pair_7d
+    reason: "v4.0 cổng A: |ρ| = 0.9548 với novelty_share_pair_7d"
+  - name: delta_mean_distinct_host_7d
+    reason: "v4.0 cổng A: |ρ| = 0.9289 với delta_mean_distinct_pair_7d"
+  - name: distinct_host_15m
+    reason: "v4.0 cổng A: |ρ| = 0.9131 với log_distinct_hosts"
+  - name: novelty_share_host_7d
+    reason: "v4.0 cổng A: |ρ| = 0.9867 với new_host_count_7d"
+  - name: novelty_share_success_host_7d
+    reason: "v4.0 cổng A: |ρ| = 0.9628 với new_host_count_7d"
+  - name: novelty_success_host_7d
+    reason: "v4.0 cổng A: |ρ| = 0.9741 với new_host_count_7d"
+  - name: peer_z_distinct_host
+    reason: "v4.0 cổng A: |ρ| = 0.8970 với peer_z_distinct_pair"
+  - name: recency_host_hist
+    reason: "v4.0 cổng A: |ρ| = 0.9356 với days_since_last_activity"
+  - name: delta_mean_distinct_logontype_7d
+    reason: "v4.0 cổng C: AUC tốt nhất trên kịch bản mục tiêu = 0.635 (logon_type_switch) < 0.7"
+  - name: novelty_share_logontype_7d
+    reason: "v4.0 cổng A: |ρ| = 0.9993 với novelty_logontype_7d"
+  - name: novelty_share_success_logontype_7d
+    reason: "v4.0 cổng A: |ρ| = 0.9084 với novelty_logontype_7d"
+  - name: novelty_success_logontype_7d
+    reason: "v4.0 cổng A: |ρ| = 0.9165 với novelty_logontype_7d"

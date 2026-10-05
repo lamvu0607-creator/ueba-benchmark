@@ -3,7 +3,7 @@
 > **Dự án:** UEBA Anomaly Detection Benchmark (Windows Event 4624 & 4625 — LANL Unified Host and Network Dataset)
 > **Ngày thực hiện:** 2026-09-30 · **Cập nhật:** 2026-09-30 (đã triển khai ĐỦ Tier A + đo trên dữ liệu thật)
 > **Trạng thái:** ✅ **Tier A đã cài đặt đủ 14 ứng viên** → 8 biến qua cổng (schema lên **24 core**), ❌ 6 biến **đã cài + đo rồi bác bỏ** (xem bảng ngay dưới)
-> **Căn cứ:** [`configs/feature_schema.yaml`](../../configs/feature_schema.yaml) · [`docs/feature_engineering/feature_correlation_review.md`](../feature_engineering/feature_correlation_review.md) §7.3, §11 · [`docs/reports/bao_cao_sua_bo_dac_trung.md`](bao_cao_sua_bo_dac_trung.md) · [`reports/week2/multicollinearity_check.md`](../../reports/week2/multicollinearity_check.md) · [`reports/week2/normalization_assessment.md`](../../reports/week2/normalization_assessment.md) · [`reports/week3/tom_tat_tuan3.md`](../../reports/week3/tom_tat_tuan3.md)
+> **Căn cứ:** [`configs/feature_schema.yaml`](../../configs/feature_schema.yaml) · [`docs/feature_engineering/feature_correlation_review.md`](../feature_engineering/feature_correlation_review.md) §7.3, §11 · [`reports/archive/bao_cao_sua_bo_dac_trung.md`](../../reports/archive/bao_cao_sua_bo_dac_trung.md) · [`reports/week2/multicollinearity_check.md`](../../reports/week2/multicollinearity_check.md) · [`reports/week2/normalization_assessment.md`](../../reports/week2/normalization_assessment.md) · [`reports/week3/tom_tat_tuan3.md`](../../reports/week3/tom_tat_tuan3.md)
 > **Phạm vi:** đề xuất, biện luận **và** triển khai toàn bộ Tier A. Tier B/C vẫn chỉ là đề xuất (theo thiết kế không nạp vector).
 > **Vị trí lưu trữ:** `docs/reports/bao_cao_bo_dac_trung_v3.md`
 
@@ -52,7 +52,7 @@ Bộ cuối cùng (24 core) đạt **0 cặp \|ρ\| ≥ 0,85** và **VIF max 7,3
 | `new_source_count`/`new_host_count` | Chỉ tồn tại ở **bản lưu trữ**, không nằm trong pipeline | `scripts/feature_engineering/archive/extract_account_day_matrix_v2.py:213-245` |
 | Chất lượng đa cộng tuyến bộ 16 | Cặp mạnh nhất \|ρ\| = **0,678**; VIF lớn nhất **7,63** (`remote_logon_ratio`) | `reports/week2/multicollinearity_check.md` §3.1–3.2 |
 | Zero-inflation (đo trên 1.055.283 dòng) | `is_single_event` 98,47% · `failure_locked_out_share` 98,86% · `custom_proc_share` 90,33% · `failure_ratio` 87,36% · `interactive_ratio` 87,00% · `rare_logon_type_count` 71,09% | `reports/week2/normalization_assessment.md` Bảng 1 |
-| NULL hợp lệ | `failure_locked_out_share` 85,46% · `delta_t_cv` 2,22% · `interarrival_dt_mean` 1,40% | `docs/reports/bao_cao_sua_bo_dac_trung.md` §10 |
+| NULL hợp lệ | `failure_locked_out_share` 85,46% · `delta_t_cv` 2,22% · `interarrival_dt_mean` 1,40% | `reports/archive/bao_cao_sua_bo_dac_trung.md` §10 |
 
 **Hệ quả trực tiếp:** cả hai bộ đang so sánh đều **tính thiếu chi phí triển khai** — toàn bộ novelty/recency/lag/rolling/peer đều là **code phải viết mới**. Trạng thái dữ liệu tại workspace (đã kiểm lại khi triển khai):
 
@@ -97,7 +97,7 @@ Không đưa vào bất kỳ tầng nào (kể cả thử nghiệm), vì lý do 
 
 | # | Biến | Lý do loại (số đo) | Nguồn |
 |---:|:---|:---|:---|
-| 1 | `bad_password_ratio` | `Status`/`SubStatus` **NULL 100%** ở 4624 và 4625 ⇒ luôn = 0 | `reports/validation_summary.md` |
+| 1 | `bad_password_ratio` | `Status`/`SubStatus` **NULL 100%** ở 4624 và 4625 ⇒ luôn = 0 | `reports/archive/validation_summary.md` |
 | 2 | `user_not_exist_ratio` | cùng lý do trên (đúng 2 cột `wrong_password_count`/`unknown_user_count` đã bị xoá ở v1.0) | `configs/feature_schema.yaml` → `removed` |
 | 3 | `logon_type_10_ratio` | Type 10 = **2.230/17.553.517 (0,013%)**; 96,33% dòng = 0 | review Phụ lục A.1; `rdp_ratio` đã bị bỏ |
 | 4 | `logon_type_4_ratio` | Type 4 = 0,013% sự kiện; 99,57% dòng = 0 | review Phụ lục A.1; `batch_ratio` đã bị bỏ |

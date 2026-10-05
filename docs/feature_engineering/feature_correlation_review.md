@@ -19,7 +19,7 @@ Bản nhận xét này **không** chỉ đọc 3 file CSV. Toàn bộ số liệ
 | `data/features/account_day_matrix.parquet` | 56.731 dòng × 35 cột (3 ngày: day 1–3) | Tái lập Pearson/Spearman, thống kê mô tả, VIF, phân tích theo `entity_type`, chuẩn hoá within-account |
 | `data/interim/event_4624/event_4624_day-16.parquet` | 17.553.517 dòng | Truy vết nguyên nhân dữ liệu của từng tương quan |
 | `data/interim/event_4625/event_4625_day-16.parquet` | 359.897 dòng | Truy vết nguyên nhân dữ liệu của từng tương quan |
-| `reports/validation_summary.md`, `reports/day16_missingness.md` | — | Đối chiếu chéo tỷ lệ null và cấu trúc missingness |
+| `reports/archive/validation_summary.md`, `reports/day16_missingness.md` | — | Đối chiếu chéo tỷ lệ null và cấu trúc missingness |
 | [`tables/distribution_skewness_comparison.csv`](tables/distribution_skewness_comparison.csv), [`figures/distribution_before_after_scaling.png`](figures/distribution_before_after_scaling.png) | 6 đặc trưng volume/fan-out | Đối chiếu chéo mức độ lệch (skewness) và hiệu quả `log1p` — xem §4.3 |
 
 **Kết quả kiểm chứng tính tái lập:**
@@ -52,7 +52,7 @@ Bản nhận xét này **không** chỉ đọc 3 file CSV. Toàn bộ số liệ
 - **Tái lập 100%** (xem §1) — bảng kết quả đủ tin cậy để dùng làm "hợp đồng kỹ thuật" (feature contract) giữa các thành viên nhóm.
 - **Ngưỡng 0,85 hợp lý** cho dữ liệu UEBA, đủ nhạy để bắt các cặp gần trùng mà không báo động giả tràn lan.
 - **Việc in song song Pearson và Spearman là quyết định rất tốt.** Chính phần chênh lệch giữa hai hệ số là nơi chứa thông tin chẩn đoán quan trọng nhất (xem §4.3).
-- **Tự động loại cột đẳng trị** đúng về mặt kỹ thuật: `wrong_password_count` và `unknown_user_count` có `std < 1e-9` vì `Status` null 100% ở cả hai EventID (17.553.517/17.553.517 ở 4624 và 359.897/359.897 ở 4625, đối chiếu `reports/validation_summary.md`).
+- **Tự động loại cột đẳng trị** đúng về mặt kỹ thuật: `wrong_password_count` và `unknown_user_count` có `std < 1e-9` vì `Status` null 100% ở cả hai EventID (17.553.517/17.553.517 ở 4624 và 359.897/359.897 ở 4625, đối chiếu `reports/archive/validation_summary.md`).
 - Việc script khớp đúng **30 cột** trong CSV (so với 32 cột số của parquet) là dấu hiệu bộ lọc hằng số hoạt động như thiết kế.
 
 ### 3.2. Hai điểm mù kỹ thuật cần sửa trong script
@@ -355,7 +355,7 @@ Theo [`docs/plan/lanl_eda_implementation_plan.md`](../plan/lanl_eda_implementati
 | # | Việc | Ưu tiên | Căn cứ |
 |---|---|---|---|
 | 1 | Sửa khoá danh tính thành `DomainName + UserName` (giữ nhãn `unknown` cho 4 + 33 dòng thiếu) | **P0** | §5.5 — hiện đang trộn nhiều danh tính vào cùng tài khoản |
-| 2 | Xóa 2 đặc trưng "chết" (`wrong_password_count`, `unknown_user_count`) khỏi schema + ghi lý do vào `data_dictionary.md`; cân nhắc thay bằng `FailureReason` (4625 có 100% giá trị) | **P0** | §3.1, §5.1 |
+| 2 | Xóa 2 đặc trưng "chết" (`wrong_password_count`, `unknown_user_count`) khỏi schema + ghi lý do vào `docs/data_dictionary.md`; cân nhắc thay bằng `FailureReason` (4625 có 100% giá trị) | **P0** | §3.1, §5.1 |
 | 3 | Đồng bộ tài liệu: `README.md` & `docs/project_structure.md` đang mô tả "16 đặc trưng" với tên khác hẳn bộ 32 đặc trưng code đang sinh (`failed_logons`, `weekend_logons`, `distinct_ips`, `logon_type_2_count`, `max_consecutive_failures`, `activity_span_hours`…) | **P0** | §5 — cần 1 schema canonical trước khi cả nhóm cùng build |
 | 4 | Chốt lại cửa sổ giờ (README 18h–7h vs code 22h–5h) và xử lý vùng trống 21,20% / 25,26% sự kiện | **P1** | §5.2 |
 | 5 | Áp dụng bộ rút gọn 30 → 18 đặc trưng (§7) | **P1** | §7.2 |

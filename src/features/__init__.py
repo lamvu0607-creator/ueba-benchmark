@@ -13,6 +13,7 @@ from src.features.extractor import (
     INTRADAY_V3_REJECTED,
     MATRIX_ORDERED_COLS,
     RAW_ORDERED_COLS,
+    TEMPLATE_V4_FEATURES,
 )
 from src.features.history import (
     HISTORY_V3_FEATURES,
@@ -35,6 +36,7 @@ __all__ = [
     "HISTORY_V3_FEATURES",
     "add_history_features",
     "RAW_ORDERED_COLS",
+    "TEMPLATE_V4_FEATURES",
     "normalize_features",
     "prepare_processed_dataset",
 ]

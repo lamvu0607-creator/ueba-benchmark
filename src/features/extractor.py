@@ -15,6 +15,8 @@ import polars as pl
 import yaml
 
 from src.features.history import HISTORY_V3_FEATURES, add_history_features
+from src.features.template_engine import DayOutput, compute_day, compute_history
+from src.features.templates import candidate_by_name
 
 logger = logging.getLogger("ueba_benchmark.features.extractor")
 
@@ -70,7 +72,36 @@ INTRADAY_V3_REJECTED: List[str] = [
 #: Hợp đồng đầy đủ của **ma trận thô** = đặc trưng TRONG NGÀY + 8 đặc trưng LỊCH SỬ (Tier A).
 #: 8 biến lịch sử không tính được trong ``extract_features_single_day`` (chỉ thấy 1 ngày) nên
 #: được thêm ở ``build_account_day_matrix`` bằng ``src.features.history.add_history_features``.
-MATRIX_ORDERED_COLS: List[str] = list(RAW_ORDERED_COLS) + list(HISTORY_V3_FEATURES)
+#: Schema v4.0 — các biến sinh từ Combinatorial Template ĐÃ QUA PHỄU (vòng 1 lập luận +
+#: 4 cổng số liệu E/B/A/C; xem docs/reports/bao_cao_bo_dac_trung_v4.md). Được tính bằng
+#: ``src.features.template_engine`` — cùng một engine đã dùng để đo trong phễu.
+TEMPLATE_V4_FEATURES: List[str] = [
+    # brute-force / password spraying
+    "delta_mean_share_fail_7d",
+    "delta_mean_distinct_fail_host_7d",
+    "novelty_fail_host_7d",
+    "novelty_fail_failreason_7d",
+    # bùng nổ máy trạm mới (chiếm đoạt tài khoản)
+    "delta_mean_distinct_source_7d",
+    "jaccard_source_7d",
+    "peer_z_distinct_source",
+    # hoạt động ngoài giờ
+    "dist_shift_hour_7d",
+    "jaccard_hour_7d",
+    "peer_z_share_night",
+    # di chuyển ngang
+    "delta_mean_distinct_pair_7d",
+    "novelty_share_pair_7d",
+    # tài khoản ngủ đông thức dậy
+    "delta_mean_count_7d",
+    # đổi loại logon bất thường
+    "dist_shift_logontype_7d",
+    "jaccard_logontype_7d",
+]
+
+MATRIX_ORDERED_COLS: List[str] = (
+    list(RAW_ORDERED_COLS) + list(HISTORY_V3_FEATURES) + list(TEMPLATE_V4_FEATURES)
+)
 
 
 def resolve_feature_config(cfg: Dict[str, Any]) -> Dict[str, Any]:
@@ -231,23 +262,14 @@ def _presence_frames(df_events: pl.DataFrame, day: int, keys: List[str]) -> pl.D
     ]).with_columns(day_expr)
 
 
-def extract_features_single_day(
-    day: int,
-    data_dir: Path,
-    output_daily_dir: Optional[Path] = None,
-    feature_cfg: Optional[Dict[str, Any]] = None,
-    return_presences: bool = False,
-):
+def load_day_events(day: int, data_dir: Path) -> Optional[pl.DataFrame]:
     """
-    Trích xuất vector đặc trưng THÔ cho từng cặp (DomainName, UserName, day).
-    Ưu tiên đọc trực tiếp từ dữ liệu log sạch (data/cleaned/cleaned_day-XX.parquet).
-    Nếu chưa có, tự động fallback sang đọc từ log interim.
+    Đọc toàn bộ sự kiện 4624 + 4625 của một ngày (đã làm sạch cơ bản), CHƯA tổng hợp.
 
-    ``return_presences=True`` trả thêm ``(entities, pairs)`` — vật liệu để tính 8 đặc trưng
-    lịch sử ở :func:`src.features.history.add_history_features` (xem :func:`_presence_frames`).
+    Tách khỏi :func:`features_from_events` để có thể **can thiệp vào luồng sự kiện** trước
+    khi tính đặc trưng — cụ thể là tiêm bất thường tổng hợp (``src/evaluation/injection.py``)
+    rồi chạy đúng cùng một đường tính như dữ liệu thật. Trả về ``None`` nếu thiếu dữ liệu.
     """
-    fcfg = feature_cfg or DEFAULT_FEATURE_CFG
-    
     # 1. Kiểm tra file cleaned trước (Chặng 1)
     cleaned_file = data_dir / f"cleaned_day-{day:02d}.parquet"
     if not cleaned_file.exists() and (data_dir / "cleaned").exists():
@@ -264,7 +286,7 @@ def extract_features_single_day(
 
         if not path_4624.exists() or not path_4625.exists():
             logger.warning(f"Không tìm thấy dữ liệu cho Day {day:02d} trong {data_dir}, bỏ qua.")
-            return pl.DataFrame()
+            return None
 
         cols_24 = [c for c in [
             "Time", "EventID", "UserName", "LogHost", "LogonType", "AuthenticationPackage",
@@ -287,6 +309,43 @@ def extract_features_single_day(
             .otherwise(pl.col("DomainName").str.strip_chars().str.to_lowercase())
             .alias("DomainName")
         )
+    return events.collect()
+
+
+def extract_features_single_day(
+    day: int,
+    data_dir: Path,
+    output_daily_dir: Optional[Path] = None,
+    feature_cfg: Optional[Dict[str, Any]] = None,
+    return_presences: bool = False,
+):
+    """
+    Trích xuất vector đặc trưng THÔ cho từng cặp (DomainName, UserName, day).
+    Ưu tiên đọc trực tiếp từ dữ liệu log sạch (data/cleaned/cleaned_day-XX.parquet).
+    Nếu chưa có, tự động fallback sang đọc từ log interim.
+
+    ``return_presences=True`` trả thêm ``(entities, pairs)`` — vật liệu để tính 8 đặc trưng
+    lịch sử ở :func:`src.features.history.add_history_features` (xem :func:`_presence_frames`).
+    """
+    events = load_day_events(day, data_dir)
+    if events is None:
+        return (pl.DataFrame(), None) if return_presences else pl.DataFrame()
+    return features_from_events(
+        events, day, output_daily_dir=output_daily_dir, feature_cfg=feature_cfg,
+        return_presences=return_presences,
+    )
+
+
+def features_from_events(
+    events: pl.DataFrame,
+    day: int,
+    output_daily_dir: Optional[Path] = None,
+    feature_cfg: Optional[Dict[str, Any]] = None,
+    return_presences: bool = False,
+):
+    """Tổng hợp sự kiện của MỘT ngày thành các đặc trưng trong ngày (``RAW_ORDERED_COLS``)."""
+    fcfg = feature_cfg or DEFAULT_FEATURE_CFG
+    events = events.lazy()
 
     # Giờ trong ngày [0 - 23]
     events = events.with_columns(((pl.col("Time") % 86400) // 3600).cast(pl.Int32).alias("hour"))
@@ -454,16 +513,25 @@ def build_account_day_matrix(
 
     fcfg = resolve_feature_config(config or {})
 
+    v4_specs = [candidate_by_name(n) for n in TEMPLATE_V4_FEATURES]
+
     logger.info(f"Bắt đầu trích xuất đặc trưng từ Day {start_day:02d} đến Day {end_day:02d}...")
     daily_dfs: List[pl.DataFrame] = []
     entity_dfs: List[pl.DataFrame] = []
+    template_days: List[DayOutput] = []
     for d in range(start_day, end_day + 1):
         if d not in days_avail:
             continue
         t0 = time.time()
-        df_d, entities_d = extract_features_single_day(
-            d, data_source, daily_dir, feature_cfg=fcfg, return_presences=True
+        events = load_day_events(d, data_source)
+        if events is None:
+            continue
+        df_d, entities_d = features_from_events(
+            events, d, daily_dir, feature_cfg=fcfg, return_presences=True
         )
+        if v4_specs:
+            template_days.append(compute_day(events, d, v4_specs, fcfg))
+        del events
         if df_d.height > 0:
             daily_dfs.append(df_d)
             entity_dfs.append(entities_d)
@@ -480,10 +548,21 @@ def build_account_day_matrix(
     t_hist = time.time()
     entities_full = pl.concat(entity_dfs, how="vertical") if entity_dfs else None
     df_full = add_history_features(df_full, entities=entities_full)
+    if v4_specs:
+        # Schema v4.0: tầng lịch sử/peer của engine template (chỉ dùng ngày ≤ t−1 / cắt ngang ngày t)
+        intraday = pl.concat([t.intraday for t in template_days])
+        profiles = {
+            k: pl.concat([t.profiles[k] for t in template_days]) for k in template_days[0].profiles
+        }
+        v4 = compute_history(
+            intraday, profiles, v4_specs,
+            entity_type=df_full.select(["DomainName", "UserName", "day", "entity_type"]),
+        ).select(["DomainName", "UserName", "day"] + list(TEMPLATE_V4_FEATURES))
+        df_full = df_full.join(v4, on=["DomainName", "UserName", "day"], how="left")
     df_full = df_full.select(MATRIX_ORDERED_COLS)
     logger.info(
-        "Đã tính %d đặc trưng lịch sử trong %.1fs (ma trận %d cột).",
-        len(HISTORY_V3_FEATURES), time.time() - t_hist, df_full.width,
+        "Đã tính %d đặc trưng lịch sử + %d đặc trưng template v4 trong %.1fs (ma trận %d cột).",
+        len(HISTORY_V3_FEATURES), len(TEMPLATE_V4_FEATURES), time.time() - t_hist, df_full.width,
     )
 
     # Ghi lại các file ngày để bản `daily/` khớp hợp đồng đầy đủ (bản ghi trong
