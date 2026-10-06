@@ -71,6 +71,7 @@ NEW_COLUMNS = [
     "alert_rate_pct",
     "sklearn_version",
     "git_commit",
+    "segment",
 ]
 
 COLUMNS = LEGACY_COLUMNS + NEW_COLUMNS
@@ -89,7 +90,7 @@ LEGACY_MODEL_NAMES: Dict[str, str] = {
 LEGACY_QUANTILE_PROBS: Tuple[float, ...] = (0.0, 0.25, 0.5, 0.75, 0.95, 0.99, 1.0)
 
 #: Khoá chống ghi trùng khi chạy lại cùng một cấu hình.
-_DEDUPE_KEYS = ("model_key", "seed", "split_day", "train_samples", "test_samples", "git_commit")
+_DEDUPE_KEYS = ("model_key", "segment", "seed", "split_day", "train_samples", "test_samples", "git_commit")
 
 
 def _canonical_name(name: str) -> str:
@@ -123,6 +124,7 @@ def build_log_row(
     feature_set: str = "core",
     git_commit: Optional[str] = None,
     timestamp: Optional[str] = None,
+    segment: str = "all",
 ) -> Dict[str, Any]:
     """Dựng một dòng log: 19 cột legacy (tính từ điểm số thật) + các cột truy vết của Tuần 3."""
     scores_arr = np.asarray(scores, dtype=np.float64).ravel()
@@ -162,6 +164,7 @@ def build_log_row(
         "alert_rate_pct": float(summary.get("alert_rate_pct", 0.0)),
         "sklearn_version": summary.get("sklearn_version"),
         "git_commit": git_commit,
+        "segment": segment,
     }
 
 

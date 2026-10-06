@@ -8,15 +8,32 @@ defaults:
   random_state: 42
 
 training:
-  # Ghi đè ngân sách lấy mẫu con khi fit cho MỌI mô hình để so sánh công bằng (Fixed Sample Budget = 50.000).
-  max_train_samples: 50000
+  # null = mỗi mô hình dùng ngân sách mặc định của lớp. Từ khi chuyển sang PyOD (2026-10-05), cả
+  # Isolation Forest, LOF (HNSW) và One-Class SVM (Nystroem + SGD) đều fit TOÀN BỘ tập train
+  # (721.612 dòng ngày 1–42). Đặt một số nguyên để ép mọi mô hình về cùng mẫu con.
+  max_train_samples: null
 
 preprocessing:
   imputer: "median" # median fit trên tập train (KHÔNG fill 0 các NULL hợp lệ như interarrival_dt_mean)
   scaler: "robust" # chỉ áp dụng cho mô hình requires_scaling (IF/LOF/OCSVM); baseline dùng đơn vị gốc
   feature_set: "core" # 39 đặc trưng core trong configs/feature_schema.yaml (v4.0)
 
-isolation_forest:
+# ---------------------------------------------------------------------------
+# Phân khúc (Segmented UEBA Benchmark) — mỗi phân khúc có imputer/scaler/mô hình RIÊNG
+# ---------------------------------------------------------------------------
+# Machine (24/7, Kerberos/Network, khối lượng lớn) và User (giờ hành chính, Interactive/RDP) có phân phối
+# rất khác nhau; fit chung một mô hình làm trộn quần thể (Simpson's paradox). Nhóm thiểu số
+# (Admin/Service/System: < 0,25% dòng, 1–10 tài khoản) không đủ mẫu cho học máy không giám sát
+# (LOF sụp láng giềng k = 20, OCSVM phân cực) ⇒ bị LOẠI khỏi benchmark ML, xử lý bằng rule/whitelist ở tầng khác.
+# Bỏ khối này (hoặc enabled: []) hoặc chạy với --no-segments ⇒ quay về một mô hình chung cho mọi dòng.
+segments:
+  column: "entity_type" # cột phân khúc trong ma trận đặc trưng
+  enabled: ["Machine", "User"] # mỗi giá trị = một phân khúc chạy riêng
+  ignored: ["Admin", "Service", "System", "Other"] # bỏ qua có chủ đích (giá trị lạ cũng bị bỏ, kèm cảnh báo)
+
+# Ba thuật toán chạy qua giao diện PyOD (src/models/detectors.py). decision_function của PyOD đã là
+# CAO = DỊ BIỆT; ngưỡng cảnh báo vẫn do BaseAnomalyModel tính (phân vị 1 − contamination trên tập fit).
+isolation_forest: # pyod.models.iforest.IForest
   n_estimators: 150
   max_samples: "auto"
   contamination: 0.05
@@ -25,24 +42,23 @@ isolation_forest:
   random_state: 42
   n_jobs: -1
 
-local_outlier_factor:
+local_outlier_factor: # HNSWLOF — LOF trên láng giềng xấp xỉ hnswlib (src/models/pyod_detectors.py)
   n_neighbors: 20
-  algorithm: "auto"
-  leaf_size: 30
-  metric: "minkowski"
-  p: 2
+  M: 32 # số cạnh mỗi nút của đồ thị HNSW
+  ef_construction: 200 # độ rộng tìm kiếm khi dựng index
+  ef: 200 # độ rộng tìm kiếm khi truy vấn (tăng nếu Spearman với LOF chính xác < 0,99)
   contamination: 0.05
-  novelty: true # Required for out-of-sample prediction and scoring
-  n_jobs: -1
+  n_jobs: -1 # đặt 1 nếu cần kết quả tất định tuyệt đối (add_items đa luồng đổi thứ tự chèn)
+  dedup: true # index trên dòng DUY NHẤT: tránh k-distance = 0 ⇒ LOF ~1e10 (p100 cũ ≈ 2e10)
+  min_k_distance: 0.0 # sàn k-distance (0 = tắt); chỉ cần khi dedup: false
 
-one_class_svm:
-  kernel: "rbf"
-  degree: 3
-  gamma: "scale"
-  coef0: 0.0
+one_class_svm: # NystroemSGDOCSVM — OCSVM nhân RBF xấp xỉ: Nystroem → SGDOneClassSVM
+  n_components: 300 # số thành phần Nystroem
+  gamma: "scale" # = 1 / (n_features · X.var()) trên dữ liệu đã RobustScaler, tính lúc fit
+  nu: 0.05 # đồng bộ với contamination (ngân sách cảnh báo)
+  max_iter: 1000
   tol: 0.001
-  nu: 0.05 # Upper bound on fraction of training errors, lower bound on support vectors
-  shrinking: true
+  learning_rate: "optimal"
 
 # ---------------------------------------------------------------------------
 # Baseline label-free (Tuần 3) — 3 mốc so sánh KHÔNG cần nhãn

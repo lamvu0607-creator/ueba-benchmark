@@ -172,6 +172,7 @@ def run_pipeline(args):
             stability_seeds=list(stability_seeds),
             experiment_log_path=paths.get("experiment_log", "experiments/logs/experiment_log.csv"),
             system_config_path=args.config,
+            use_segments=not args.no_segments,
         )
 
         logger.info("Số mô hình đã chạy: %d; chia tập: %s", len(result["summary"]), result["split"])
@@ -249,6 +250,12 @@ def main():
         type=float,
         default=None,
         help="Alert budget ratio for budget-based metrics (default: evaluation.budget_ratio)",
+    )
+
+    parser.add_argument(
+        "--no-segments",
+        action="store_true",
+        help="Ignore the 'segments' block of model_params.yaml and fit one model on all rows",
     )
 
     args = parser.parse_args()

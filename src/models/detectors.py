@@ -1,30 +1,36 @@
 """
-Module Detectors - Bọc 3 thuật toán phát hiện dị biệt của scikit-learn theo giao diện chung.
+Module Detectors - Bọc 3 thuật toán phát hiện dị biệt (giao diện PyOD) theo hợp đồng ``BaseAnomalyModel``.
+
+==========================  ======================================================================
+``IsolationForestDetector``  ``pyod.models.iforest.IForest`` (bọc sklearn IsolationForest)
+``LocalOutlierFactorDetector``  ``HNSWLOF`` — LOF trên láng giềng xấp xỉ ``hnswlib``
+``OneClassSVMDetector``      ``NystroemSGDOCSVM`` — OCSVM nhân RBF xấp xỉ (Nystroem + SGD)
+==========================  ======================================================================
 
 Cả 3 lớp đều:
   * kế thừa ``BaseAnomalyModel`` (API ``fit`` / ``score`` / ``predict`` / ``score_rank_pct``),
-  * đổi dấu sklearn để thoả bất biến **CAO = DỊ BIỆT** (``-decision_function``),
+  * dùng NGUYÊN ``decision_function`` của PyOD — vốn đã là **CAO = DỊ BIỆT** — nên KHÔNG đảo dấu thêm,
+  * truyền rõ ``contamination`` (mặc định PyOD là 0.1) và ``n_jobs`` (mặc định PyOD là 1),
   * khai báo ``estimator_class`` để tham số YAML sai key bị chặn ngay khi khởi tạo,
   * đánh dấu ``requires_scaling = True`` (đặc trưng UEBA lệch nặng: ``interarrival_dt_mean``
     max 86.400 giây nằm cạnh các ratio trong [0, 1]).
 
-Ghi chú ngân sách lấy mẫu: LOF và One-Class SVM mặc định fit trên 20.000 dòng để giữ
-thời gian/RAM hợp lý; Isolation Forest fit trên toàn bộ tập train. Cả ``n_fit`` và
-``n_eval`` luôn được log tách bạch để diễn giải kết quả đúng.
+Ngưỡng cảnh báo vẫn do ``BaseAnomalyModel`` tính (phân vị trên tập fit); ``predict``/``threshold_``
+của PyOD không được dùng. Cả 3 mặc định fit trên TOÀN BỘ tập train (``default_max_train_samples = None``).
 """
 
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, Dict
 
 import numpy as np
-from sklearn.base import BaseEstimator
-from sklearn.ensemble import IsolationForest
-from sklearn.neighbors import LocalOutlierFactor
-from sklearn.svm import OneClassSVM
+from pyod import __version__ as PYOD_VERSION
+from pyod.models.base import BaseDetector
+from pyod.models.iforest import IForest
 
 from src.models.base import BaseAnomalyModel
+from src.models.pyod_detectors import HNSWLOF, NystroemSGDOCSVM
 
 logger = logging.getLogger("ueba_benchmark.models.detectors")
 
@@ -32,92 +38,97 @@ __all__ = [
     "IsolationForestDetector",
     "LocalOutlierFactorDetector",
     "OneClassSVMDetector",
+    "PYOD_VERSION",
 ]
 
 
-def negated_decision_function(estimator: BaseEstimator, X: np.ndarray) -> np.ndarray:
+class _PyODDetector(BaseAnomalyModel):
+    """Phần dùng chung: dựng detector PyOD với contamination/random_state/n_jobs tường minh."""
+
+    requires_scaling = True
+    default_max_train_samples = None
+    #: Có truyền ``n_jobs`` cho estimator không (OCSVM xấp xỉ không có tham số này).
+    _uses_n_jobs = True
+
+    def _build_estimator(self) -> BaseDetector:
+        params: Dict[str, Any] = dict(self.native_params)
+        params.setdefault("contamination", self.contamination)
+        params.setdefault("random_state", self.random_state)
+        if self._uses_n_jobs:
+            params.setdefault("n_jobs", -1)
+        return self.estimator_class(**params)
+
+    def _anomaly_score(self, X: np.ndarray) -> np.ndarray:
+        # PyOD: decision_function đã là CAO = DỊ BIỆT ⇒ không đảo dấu.
+        return np.asarray(self.estimator_.decision_function(X), dtype=np.float64)
+
+    def _fit_set_scores(self, X_fit: np.ndarray) -> np.ndarray:
+        """
+        Dùng ``decision_scores_`` của PyOD = điểm của tập fit tính lúc ``fit``.
+
+        Với IForest/OCSVM nó trùng ``score(X_fit)``; với HNSWLOF nó là LOF **bỏ chính điểm đó**
+        khỏi láng giềng (leave-self-out) — chấm lại bằng ``decision_function`` sẽ gặp lại chính
+        điểm ở khoảng cách 0 và làm ngưỡng quá thấp (đo thật: alert rate test 17,9% thay vì ~5%).
+        """
+        scores = np.asarray(self.estimator_.decision_scores_, dtype=np.float64).ravel()
+        if scores.shape[0] != X_fit.shape[0] or not np.all(np.isfinite(scores)):
+            raise ValueError(f"[{self.name}] decision_scores_ của PyOD không hợp lệ cho tập fit.")
+        return scores
+
+    def get_metadata(self) -> Dict[str, Any]:
+        meta = super().get_metadata()
+        meta["pyod_version"] = PYOD_VERSION
+        return meta
+
+
+class IsolationForestDetector(_PyODDetector):
     """
-    Đảo dấu ``decision_function`` của sklearn: điểm cao => dị biệt.
+    Isolation Forest (tree-based) — ``pyod.models.iforest.IForest``.
 
-    sklearn trả giá trị ÂM cho điểm càng bất thường; nếu dùng trực tiếp, bảng xếp hạng sẽ
-    bị đảo. Mọi detector dùng chung hàm này để quy ước chỉ tồn tại ở một chỗ duy nhất.
-    """
-    return -np.asarray(estimator.decision_function(X), dtype=np.float64)
-
-
-class IsolationForestDetector(BaseAnomalyModel):
-    """
-    Isolation Forest (tree-based) — cô lập quan sát bằng cây chia ngẫu nhiên.
-
-    * ``requires_scaling = True``: khoảng chia cây phụ thuộc biên độ đặc trưng.
-    * Không giới hạn ``max_train_samples`` mặc định: chấm điểm/onfit theo batch nên chịu được
-      toàn bộ tập train (721.612 dòng ngày 1-42).
+    PyOD bọc đúng ``sklearn.ensemble.IsolationForest`` và trả ``-decision_function`` của sklearn,
+    nên điểm trùng tuyệt đối với bản sklearn cũ khi cùng dữ liệu fit và cùng ``random_state``.
     """
 
     name = "isolation_forest"
     aliases = ("IsolationForest",)
-    requires_scaling = True
-    estimator_class = IsolationForest
-    default_max_train_samples = None
-
-    def _build_estimator(self) -> BaseEstimator:
-        params: dict[str, Any] = dict(self.native_params)
-        params.setdefault("contamination", self.contamination)
-        params.setdefault("random_state", self.random_state)
-        params.setdefault("n_jobs", -1)
-        return IsolationForest(**params)
-
-    def _anomaly_score(self, X: np.ndarray) -> np.ndarray:
-        return negated_decision_function(self.estimator_, X)
+    estimator_class = IForest
 
 
-class LocalOutlierFactorDetector(BaseAnomalyModel):
+class LocalOutlierFactorDetector(_PyODDetector):
     """
-    Local Outlier Factor (density-based, ``novelty=True``).
+    Local Outlier Factor (density-based) trên láng giềng xấp xỉ HNSW — ``HNSWLOF``.
 
-    ``novelty=True`` là **bắt buộc**: nếu không, sklearn chỉ cho ``fit_predict`` trên tập
-    huấn luyện và không thể chấm điểm tập đánh giá (đúng yêu cầu fit-on-train/score-on-test).
-    Mặc định fit trên mẫu con 20.000 dòng (decision_function của LOF là O(n_fit)).
+    Thay cho ``sklearn.neighbors.LocalOutlierFactor(novelty=True)`` vốn phải lấy mẫu con
+    (truy vấn láng giềng chính xác O(n_fit) mỗi điểm); bản HNSW fit được toàn bộ tập train.
+    Thống kê dòng trùng lặp được ghi vào ``get_metadata()["duplicate_stats"]``; mặc định
+    ``dedup=True`` dựng index trên dòng duy nhất (số điểm ở ``get_metadata()["n_index_points"]``).
     """
 
     name = "local_outlier_factor"
     aliases = ("LocalOutlierFactor",)
-    requires_scaling = True
-    estimator_class = LocalOutlierFactor
-    default_max_train_samples = 20_000
+    estimator_class = HNSWLOF
 
-    def _build_estimator(self) -> BaseEstimator:
-        params: dict[str, Any] = dict(self.native_params)
-        params.setdefault("contamination", self.contamination)
-        params.setdefault("novelty", True)
-        params.setdefault("n_jobs", -1)
-        estimator = LocalOutlierFactor(**params)
-        if not getattr(estimator, "novelty", False):
-            raise ValueError(
-                "LocalOutlierFactor bắt buộc 'novelty=True' để chấm điểm được tập đánh giá "
-                "(thiếu nó thì chỉ dùng được fit_predict trên chính tập fit)."
-            )
-        return estimator
-
-    def _anomaly_score(self, X: np.ndarray) -> np.ndarray:
-        return negated_decision_function(self.estimator_, X)
+    def get_metadata(self) -> Dict[str, Any]:
+        meta = super().get_metadata()
+        if self.estimator_ is not None:
+            meta["duplicate_stats"] = dict(getattr(self.estimator_, "duplicate_stats_", {}))
+            meta["n_index_points"] = getattr(self.estimator_, "n_index_points_", None)
+        return meta
 
 
-class OneClassSVMDetector(BaseAnomalyModel):
+class OneClassSVMDetector(_PyODDetector):
     """
-    One-Class SVM (kernel RBF) — học biên bao quanh dữ liệu bình thường.
+    One-Class SVM nhân RBF **xấp xỉ** — ``NystroemSGDOCSVM`` (Nystroem → SGDOneClassSVM).
 
-    Lưu ý ``nu`` của sklearn chính là **ngân sách cảnh báo**: nếu người dùng truyền ``nu``
-    trong tham số gốc thì nó được dùng làm ``contamination`` để ngưỡng phân vị và alert rate
-    khớp nhau. Không dùng trực tiếp ``estimator.predict`` vì đo thực tế ``nu=0.05`` cho ~8%
-    cảnh báo (ngưỡng offset nội bộ của sklearn khác phân vị mong muốn).
+    Giữ key ``one_class_svm`` / alias ``OneClassSVM`` để registry, CLI và experiment_log không đổi.
+    ``nu`` chính là **ngân sách cảnh báo**: nếu YAML có ``nu`` thì nó được dùng làm
+    ``contamination`` (đồng bộ 2 chiều) để ngưỡng phân vị và alert rate khớp nhau.
     """
 
     name = "one_class_svm"
     aliases = ("OneClassSVM",)
-    requires_scaling = True
-    estimator_class = OneClassSVM
-    default_max_train_samples = 20_000
+    estimator_class = NystroemSGDOCSVM
+    _uses_n_jobs = False
 
     def __init__(
         self,
@@ -126,7 +137,7 @@ class OneClassSVMDetector(BaseAnomalyModel):
         max_train_samples: int | None = None,
         **native_params: Any,
     ):
-        # 'nu' của sklearn tương đương 'contamination' của giao diện chung -> đồng bộ 2 chiều.
+        # 'nu' tương đương 'contamination' của giao diện chung -> đồng bộ 2 chiều.
         if "nu" in native_params:
             contamination = float(native_params["nu"])
         super().__init__(
@@ -137,13 +148,10 @@ class OneClassSVMDetector(BaseAnomalyModel):
         )
         self.native_params.setdefault("nu", self.contamination)
 
-    def _build_estimator(self) -> BaseEstimator:
-        params: dict[str, Any] = dict(self.native_params)
-        params.setdefault("kernel", "rbf")
-        params.setdefault("gamma", "scale")
-        params.setdefault("nu", self.contamination)
-        params.setdefault("tol", 1e-3)
-        return OneClassSVM(**params)
-
-    def _anomaly_score(self, X: np.ndarray) -> np.ndarray:
-        return negated_decision_function(self.estimator_, X)
+    def get_metadata(self) -> Dict[str, Any]:
+        meta = super().get_metadata()
+        if self.estimator_ is not None:
+            meta["gamma_effective"] = float(self.estimator_.gamma_)
+            meta["n_components_effective"] = int(self.estimator_.nystroem_.n_components)
+            meta["chunked_fit"] = bool(self.estimator_.chunked_)
+        return meta
