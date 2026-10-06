@@ -5,7 +5,7 @@ Chạy: ``python scripts/diagnostics/alert_rate_calibration.py``
 
 Bối cảnh thiết kế: ngưỡng cảnh báo được fit trên **tập train**:
 ``threshold_ = quantile(score_train, 1 - contamination)``. Khi tập train quá nhỏ trong không
-gian 16 chiều, các điểm MỚI của tập đánh giá rơi ra ngoài "biên" nhiều hơn mức ngân sách
+gian nhiều chiều (các đặc trưng core), các điểm MỚI của tập đánh giá rơi ra ngoài "biên" nhiều hơn mức ngân sách
 (hiệu ứng novelty trong không gian nhiều chiều), nên alert rate của ``predict()`` cao hơn 5%.
 
 Script in ra 3 kịch bản để định lượng hiện tượng này, và cho thấy:
