@@ -3,7 +3,8 @@ Module Models - Giao diện chung + các mô hình phát hiện dị biệt (UEB
 
 Điểm vào công khai:
   * ``BaseAnomalyModel`` / ``AnomalyPipeline`` — API chung;
-  * ``IsolationForestDetector``, ``LocalOutlierFactorDetector``, ``OneClassSVMDetector`` — 3 thuật toán;
+  * ``IsolationForestDetector``, ``LocalOutlierFactorDetector``, ``OneClassSVMDetector`` — 3 thuật toán
+    qua giao diện PyOD (IForest, LOF trên HNSW, OCSVM xấp xỉ Nystroem + SGD);
   * ``ZScoreBaseline``, ``RuleThresholdBaseline``, ``RandomBaseline`` — 3 baseline label-free
     (baseline ngẫu nhiên là **mốc dưới**: ROC-AUC kỳ vọng 0,5);
   * ``resolve_model`` / ``create_pipeline`` / ``available_models`` — registry & factory;

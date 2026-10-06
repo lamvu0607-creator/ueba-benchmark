@@ -14,6 +14,11 @@ polars>=1.0.0
 # Machine Learning & Scientific Computing (Baseline & Mô hình cốt lõi)
 scipy>=1.10.0
 scikit-learn>=1.3.0
+# Giao diện detector PyOD (IForest, BaseDetector cho HNSWLOF / NystroemSGDOCSVM). Không cần torch.
+pyod>=2.0
+# Láng giềng xấp xỉ HNSW cho LOF trên toàn bộ tập train.
+# Windows/Python 3.14: PyPI không có wheel ⇒ cài bằng `conda install -c conda-forge hnswlib`.
+hnswlib>=0.8.0
 
 # Visualization & EDA (Biểu đồ phân bố 24h, PR-Curve, Phân tích độ nhạy)
 matplotlib>=3.7.0
@@ -26,4 +31,4 @@ pytest>=7.4.0
 # Utilities & Configuration (Tách cấu hình YAML và lưu trữ Model)
 tqdm>=4.65.0
 joblib>=1.3.0
-pyyaml>=6.0
+pyyaml>=6.0

@@ -19,6 +19,7 @@ from src.models.detectors import (
     OneClassSVMDetector,
 )
 from src.models.pipeline import AnomalyPipeline
+from src.models.pyod_detectors import HNSWLOF, NystroemSGDOCSVM
 from src.models.registry import (
     DEFAULT_MODEL_NAMES,
     available_models,
@@ -137,7 +138,7 @@ def test_train_local_outlier_factor():
 
     res = train_and_evaluate_model(
         model_name="local_outlier_factor",
-        params={"n_neighbors": 10, "contamination": 0.05, "novelty": True},
+        params={"n_neighbors": 10, "contamination": 0.05},
         X_train=X_train,
         df_eval=df_eval,
         feature_names=["f1", "f2", "f3", "f4", "f5"],
@@ -217,8 +218,9 @@ def test_max_train_samples_subsampling():
     assert uncapped.n_fit_ == 500
     assert uncapped.subsample_indices_ is None
 
-    assert LocalOutlierFactorDetector.default_max_train_samples == 20_000
-    assert IsolationForestDetector.default_max_train_samples is None
+    # Từ khi chuyển sang PyOD, cả 3 thuật toán mặc định fit TOÀN BỘ tập train.
+    for cls in DETECTOR_CLASSES:
+        assert cls.default_max_train_samples is None
 
 
 def test_input_sanitization():
@@ -422,13 +424,14 @@ def test_isolation_forest_pipeline(temp_artifact_dir):
 
 
 def test_local_outlier_factor_pipeline():
-    """Pipeline LOF: ngân sách fit mặc định 20.000 dòng, điểm CAO = DỊ BIỆT."""
+    """Pipeline LOF (HNSW): fit toàn bộ tập train, điểm CAO = DỊ BIỆT, có thống kê dòng trùng."""
     df = synthetic_feature_frame()
     model = LocalOutlierFactorDetector(contamination=0.05, random_state=42)
-    assert model.max_train_samples == 20_000
+    assert model.max_train_samples is None
 
     pipeline, _ = _pipeline_benchmark(model, df.head(N_TRAIN), df.tail(N_ROWS - N_TRAIN), OUTLIER_POS_IN_TEST)
-    assert pipeline.model.estimator_.novelty is True
+    assert isinstance(pipeline.model.estimator_, HNSWLOF)
+    assert pipeline.model.get_metadata()["duplicate_stats"]["n_rows"] == N_TRAIN
 
 
 def test_one_class_svm_pipeline():
@@ -439,10 +442,12 @@ def test_one_class_svm_pipeline():
 
     pipeline, scores = _pipeline_benchmark(model, df.head(N_TRAIN), df.tail(N_ROWS - N_TRAIN), OUTLIER_POS_IN_TEST)
 
-    # Ngưỡng phải là phân vị trên tập train, không phải ngưỡng offset nội bộ của sklearn.
+    # Ngưỡng phải là phân vị trên tập train, không phải ngưỡng nội bộ của PyOD/sklearn.
     expected = np.quantile(model.fit_scores_, 1.0 - model.contamination)
     assert model.threshold_ == pytest.approx(expected)
     assert int(np.argmax(scores)) == OUTLIER_POS_IN_TEST
+    assert isinstance(pipeline.model.estimator_, NystroemSGDOCSVM)
+    assert isinstance(pipeline.model.get_metadata()["gamma_effective"], float)
 
 
 # --------------------------------------------------------------------------- #
@@ -493,3 +498,145 @@ def test_model_factory():
         create_model("isolation_forest", params=params, contamination=2.0)
 
 
+# --------------------------------------------------------------------------- #
+# Giao diện PyOD (IForest / HNSWLOF / NystroemSGDOCSVM)
+# --------------------------------------------------------------------------- #
+def test_pyod_score_direction_and_fit_alert_rate():
+    """Điểm ngoại lai rõ ràng cao hơn mọi điểm khác; alert rate trên tập fit ≈ contamination."""
+    X = synthetic_matrix(n_samples=2_000, n_features=8, outlier_index=11)
+    for cls in DETECTOR_CLASSES:
+        model = cls(contamination=0.05, random_state=42).fit(X)
+        scores = model.score(X)
+        assert int(np.argmax(scores)) == 11, f"{cls.__name__}: điểm ngoại lai không cao nhất (sai dấu?)"
+        # alert rate trên tập fit = tỷ lệ điểm tập fit (dùng để đặt ngưỡng) vượt threshold_
+        assert abs(float((model.fit_scores_ >= model.threshold_).mean()) - 0.05) <= 0.005, cls.__name__
+
+
+def test_pyod_same_random_state_same_scores():
+    """Cùng random_state ⇒ cùng điểm (LOF đặt n_jobs=1 để thứ tự chèn HNSW tất định)."""
+    X = synthetic_matrix(n_samples=1_000, n_features=8)
+    for cls, extra in (
+        (IsolationForestDetector, {}),
+        (LocalOutlierFactorDetector, {"n_jobs": 1}),
+        (OneClassSVMDetector, {}),
+    ):
+        a = cls(contamination=0.05, random_state=7, **extra).fit(X).score(X)
+        b = cls(contamination=0.05, random_state=7, **extra).fit(X).score(X)
+        assert np.array_equal(a, b), cls.__name__
+
+
+def test_pyod_bad_yaml_keys_are_blocked():
+    """Tham số chỉ bản cũ mới có (LIBSVM / sklearn LOF) phải bị chặn ngay khi khởi tạo."""
+    for name, bad in (
+        ("local_outlier_factor", {"novelty": True}),
+        ("local_outlier_factor", {"algorithm": "auto"}),
+        ("one_class_svm", {"kernel": "rbf"}),
+        ("one_class_svm", {"shrinking": True}),
+        ("isolation_forest", {"sai_key": 1}),
+    ):
+        with pytest.raises(ValueError, match="Tham số không hợp lệ"):
+            create_model(name, params={name: bad})
+
+
+def test_ocsvm_gamma_scale_is_resolved_to_number():
+    """Nystroem không nhận gamma='scale' ⇒ phải được đổi thành 1 / (n_features · X.var()) lúc fit."""
+    X = synthetic_matrix(n_samples=600, n_features=8) * 3.0
+    model = OneClassSVMDetector(contamination=0.05, random_state=42, gamma="scale").fit(X)
+    gamma = model.get_metadata()["gamma_effective"]
+    assert gamma == pytest.approx(1.0 / (X.shape[1] * X.var()))
+    assert model.estimator_.nystroem_.gamma == pytest.approx(gamma)
+
+    fixed = OneClassSVMDetector(contamination=0.05, random_state=42, gamma=0.25).fit(X)
+    assert fixed.get_metadata()["gamma_effective"] == 0.25
+
+
+def test_ocsvm_chunked_fit_keeps_score_direction():
+    """Ma trận biến đổi vượt ngân sách bộ nhớ ⇒ partial_fit theo khối, điểm vẫn CAO = DỊ BIỆT."""
+    X = synthetic_matrix(n_samples=3_000, n_features=8, outlier_index=5)
+    model = OneClassSVMDetector(
+        contamination=0.05, random_state=42, max_dense_bytes=1_000, chunk_size=500, chunked_epochs=3
+    ).fit(X)
+    assert model.get_metadata()["chunked_fit"] is True
+    assert int(np.argmax(model.score(X))) == 5
+
+
+def test_hnswlof_matches_exact_lof():
+    """HNSWLOF phải xếp hạng gần như y hệt sklearn LocalOutlierFactor(novelty=True) cùng k."""
+    from scipy.stats import spearmanr
+    from sklearn.neighbors import LocalOutlierFactor
+
+    rng = np.random.default_rng(0)
+    X_train = np.vstack([rng.normal(0, 1, (1_500, 6)), rng.normal(5, 0.5, (500, 6))])
+    X_test = np.vstack([rng.normal(0, 1, (400, 6)), rng.uniform(-8, 8, (100, 6))])
+    approx = HNSWLOF(n_neighbors=20, n_jobs=1, random_state=42).fit(X_train).decision_function(X_test)
+    exact = -LocalOutlierFactor(n_neighbors=20, novelty=True).fit(X_train).score_samples(X_test)
+    assert spearmanr(approx, exact).statistic >= 0.99
+    assert np.allclose(approx, exact, rtol=1e-3)
+
+
+def test_hnswlof_handles_duplicate_groups_larger_than_k():
+    """dedup=False: nhóm > k bản sao ⇒ k-distance = 0, lrd lớn nhưng HỮU HẠN (epsilon 1e-10)."""
+    rng = np.random.default_rng(1)
+    X = np.vstack([np.zeros((60, 4)), rng.normal(0, 1, (300, 4))])
+    model = LocalOutlierFactorDetector(
+        contamination=0.05, random_state=42, n_neighbors=10, n_jobs=1, dedup=False
+    ).fit(X)
+    stats = model.get_metadata()["duplicate_stats"]
+    assert stats["n_groups_larger_than_k"] == 1 and stats["largest_group"] == 60
+    assert np.all(np.isfinite(model.score(X)))
+
+
+def test_hnswlof_dedup_removes_epsilon_blowup():
+    """
+    dedup=True (mặc định): index trên dòng duy nhất ⇒ không còn LOF ~1e10 do chia epsilon;
+    mọi bản sao cùng điểm và kết quả trùng với LOF fit thẳng trên các dòng duy nhất.
+    """
+    rng = np.random.default_rng(1)
+    X = np.vstack([np.zeros((60, 4)), rng.normal(0, 1, (300, 4)), np.full((5, 4), 0.5)])
+    X_test = np.vstack([np.zeros((3, 4)), rng.normal(0, 1, (50, 4))])
+
+    raw = HNSWLOF(n_neighbors=10, n_jobs=1, dedup=False).fit(X)
+    model = HNSWLOF(n_neighbors=10, n_jobs=1).fit(X)
+    assert raw.decision_scores_.max() > 1e6  # vấn đề gốc
+    assert model.n_index_points_ == 302 and model.decision_scores_.shape == (365,)
+    assert model.decision_scores_.max() < 100 and model.decision_function(X_test).max() < 100
+    assert np.ptp(model.decision_scores_[:60]) == 0 and np.ptp(model.decision_scores_[-5:]) == 0
+
+    uniq = np.unique(X.astype(np.float32), axis=0)
+    ref = HNSWLOF(n_neighbors=10, n_jobs=1, dedup=False).fit(uniq)
+    assert np.allclose(model.decision_function(X_test), ref.decision_function(X_test))
+
+
+def test_hnswlof_min_k_distance_floor():
+    """min_k_distance chặn trên lrd ⇒ dedup=False vẫn không bùng nổ; giá trị âm bị chặn."""
+    rng = np.random.default_rng(1)
+    X = np.vstack([np.zeros((60, 4)), rng.normal(0, 1, (300, 4))])
+    model = HNSWLOF(n_neighbors=10, n_jobs=1, dedup=False, min_k_distance=0.05).fit(X)
+    assert model._k_distance.min() >= 0.05
+    assert model.decision_scores_.max() < 1e3
+    with pytest.raises(ValueError, match="min_k_distance"):
+        HNSWLOF(min_k_distance=-1.0).fit(X)
+
+
+def test_iforest_pyod_matches_sklearn():
+    """IForest của PyOD bọc đúng sklearn: cùng dữ liệu + random_state ⇒ điểm trùng tuyệt đối."""
+    from sklearn.ensemble import IsolationForest
+
+    X = synthetic_matrix(n_samples=800, n_features=8)
+    ours = IsolationForestDetector(contamination=0.05, random_state=42, n_estimators=50).fit(X).score(X)
+    ref = -IsolationForest(n_estimators=50, contamination=0.05, random_state=42).fit(X).decision_function(X)
+    assert np.allclose(ours, ref)
+
+
+def test_lof_threshold_uses_leave_self_out_train_scores():
+    """
+    Ngưỡng LOF phải lấy từ điểm tập fit KHÔNG tính chính điểm đó làm láng giềng; nếu chấm lại
+    tập fit (gặp chính nó ở khoảng cách 0) thì ngưỡng bị kéo thấp và alert rate trên dữ liệu
+    mới cùng phân phối vượt xa ngân sách.
+    """
+    rng = np.random.default_rng(3)
+    X_train, X_new = rng.normal(0, 1, (4_000, 6)), rng.normal(0, 1, (4_000, 6))
+    model = LocalOutlierFactorDetector(contamination=0.05, random_state=42, n_jobs=1).fit(X_train)
+    assert np.allclose(model.fit_scores_, model.estimator_.decision_scores_)
+    assert model.score(X_train).mean() < model.fit_scores_.mean()       # bias khi chấm lại tập fit
+    assert abs(float(model.predict(X_new).mean()) - 0.05) <= 0.015

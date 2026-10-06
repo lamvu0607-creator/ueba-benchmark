@@ -1,18 +1,18 @@
 """
 Module Base Model - Hợp đồng giao diện chung (contract) cho mọi mô hình phát hiện dị biệt UEBA.
 
-Toàn bộ mô hình (3 thuật toán sklearn + 3 baseline label-free) đều kế thừa ``BaseAnomalyModel``
+Toàn bộ mô hình (3 thuật toán qua giao diện PyOD + 3 baseline label-free) đều kế thừa ``BaseAnomalyModel``
 nên dùng chung đúng một API: ``fit`` / ``score`` / ``predict`` / ``score_rank_pct`` /
 ``get_metadata`` / ``save`` / ``load``. Ba bất biến bắt buộc:
 
-1. ``score(X)`` trả điểm dị biệt theo quy ước **CAO = DỊ BIỆT** (sklearn vốn ngược dấu:
-   ``-decision_function``). Quy ước này được khoá bằng test ``test_score_direction`` vì
+1. ``score(X)`` trả điểm dị biệt theo quy ước **CAO = DỊ BIỆT** (PyOD đã theo quy ước này;
+   sklearn thuần thì ngược dấu và phải đảo một lần). Quy ước này được khoá bằng test ``test_score_direction`` vì
    đây từng là nơi phát sinh lỗi đảo thứ hạng (bảng xếp hạng bị đảo).
 2. ``predict(X)`` trả nhãn 0/1 theo ``threshold_`` được fit **trên chính tập huấn luyện**:
    ``threshold_ = quantile(score(X_fit), 1 - contamination)``. Nhờ vậy tỷ lệ cảnh báo (alert rate)
    của mọi mô hình đều xấp xỉ ``contamination`` và so sánh được với nhau, không phụ thuộc
-   ngưỡng offset nội bộ của sklearn (đo thực tế: OneClassSVM ``nu=0.05`` nhưng ``predict()``
-   của sklearn cho 8% cảnh báo).
+   ngưỡng nội bộ của thư viện (đo thực tế trước đây: One-Class SVM ``nu=0.05`` nhưng ``predict()``
+   của thư viện cho 8% cảnh báo).
 3. ``get_metadata()`` trả đủ dấu vết để tái lập: tên mô hình, tham số, ngưỡng, ``n_fit``, phiên bản sklearn.
 """
 
@@ -197,7 +197,7 @@ class BaseAnomalyModel(ABC):
         Fit mô hình trên **tập huấn luyện** (không bao giờ fit trên tập đánh giá).
 
         Nếu số dòng vượt ``max_train_samples`` thì lấy mẫu con ngẫu nhiên **có seed**
-        (LOF/One-Class SVM mặc định 20.000 dòng; Isolation Forest dùng toàn bộ tập train).
+        (mặc định cả 3 thuật toán PyOD đều dùng toàn bộ tập train; ``None`` = không giới hạn).
         Ngưỡng cảnh báo ``threshold_`` được suy ra từ chính tập đã fit.
         """
         X_arr = as_float_matrix(X, context=f"[{self.name}] tập huấn luyện")
@@ -210,7 +210,7 @@ class BaseAnomalyModel(ABC):
         # Bật cờ trước khi chấm điểm: ngưỡng cảnh báo được suy ra từ chính tập đã fit.
         self.is_fitted_ = True
 
-        self.fit_scores_ = self.score(X_fit)
+        self.fit_scores_ = self._fit_set_scores(X_fit)
         self.threshold_ = self._resolve_threshold(self.fit_scores_)
 
         logger.info(
@@ -343,6 +343,16 @@ class BaseAnomalyModel(ABC):
     # ------------------------------------------------------------------ #
     # Phần lớp con cài đặt / override
     # ------------------------------------------------------------------ #
+    def _fit_set_scores(self, X_fit: np.ndarray) -> np.ndarray:
+        """
+        Điểm của CHÍNH tập fit, dùng để suy ra ``threshold_``.
+
+        Mặc định chấm lại ``X_fit`` bằng ``score``. Lớp con override khi chấm lại tập fit bị
+        lệch — ví dụ LOF: mỗi điểm tự tìm thấy chính nó làm láng giềng (khoảng cách 0) nên LOF
+        trên tập fit bị kéo thấp ⇒ ngưỡng quá thấp ⇒ alert rate trên tập đánh giá vượt ngân sách.
+        """
+        return self.score(X_fit)
+
     def _resolve_threshold(self, fit_scores: np.ndarray) -> float:
         """
         Ngưỡng cảnh báo mặc định = phân vị ``(1 - contamination)`` trên **tập fit**.
