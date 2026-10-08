@@ -45,6 +45,14 @@ def run_pipeline(args):
     features_dir = Path(paths.get("features_data_dir", "data/features"))
     processed_dir = Path(paths.get("processed_data_dir", "data/processed"))
 
+    # --events-dir chọn MỘT run tiêm: các stage sau tiêm đọc ma trận/nhãn của run và ghi kết quả vào run,
+    # không đè data/processed hay experiments/ của log gốc.
+    run_layout = None
+    if args.events_dir:
+        from src.injection.layout import RunLayout
+
+        run_layout = RunLayout.from_events_dir(args.events_dir)
+
     logger.info("=== UEBA BENCHMARK PIPELINE ===")
     logger.info(f"Cấu hình hệ thống: {args.config}")
     logger.info(f"Giai đoạn thực thi: {args.stage}")
@@ -78,11 +86,8 @@ def run_pipeline(args):
 
         raw_feature_out = features_dir / "raw"
         processed_out = processed_dir
-        if args.events_dir:
+        if run_layout is not None:
             # Log đã tiêm -> ma trận ghi vào thư mục của run, KHÔNG đè ma trận gốc trong data/.
-            from src.injection.layout import RunLayout
-
-            run_layout = RunLayout.from_events_dir(args.events_dir)
             raw_feature_out, processed_out = run_layout.features_raw_dir, run_layout.processed_dir
             logger.info("--> [Stage 2: Features] Dùng log đè '%s' -> ghi vào run '%s'.", args.events_dir, run_layout.root)
         df_raw = build_account_day_matrix(
@@ -149,6 +154,16 @@ def run_pipeline(args):
         )
         stability_seeds = evaluation_cfg.get("seeds") or [seed]
         labels_path = args.labels if args.labels is not None else evaluation_cfg.get("labels_path")
+        matrix_dir = processed_dir
+        models_out = paths.get("models_dir", "experiments/models")
+        results_out = paths.get("results_dir", "experiments/results")
+        experiment_log = paths.get("experiment_log", "experiments/logs/experiment_log.csv")
+        if run_layout is not None:
+            matrix_dir, models_out, results_out = run_layout.processed_dir, run_layout.models_dir, run_layout.results_dir
+            experiment_log = run_layout.results_dir / "experiment_log.csv"
+            if args.labels is None:
+                labels_path = run_layout.labels_path
+            logger.info("--> [Stage 3: Benchmark] Run '%s' (nhãn: %s).", run_layout.root, labels_path)
 
         logger.info(
             "--> [Stage 3: Benchmark] %d mô hình | train = day <= %s | seed=%s | K=%s | ngân sách=%.1f%%",
@@ -159,20 +174,21 @@ def run_pipeline(args):
             float(budget_ratio) * 100,
         )
 
-        processed_matrix = processed_dir / "feature_matrix_processed.parquet"
+        processed_matrix = Path(matrix_dir) / "feature_matrix_processed.parquet"
         if not processed_matrix.is_file():
             # Hard-fail thay vì cảnh báo rồi thoát: chạy benchmark trên dữ liệu không tồn tại là lỗi.
+            hint = f" --events-dir {args.events_dir}" if run_layout is not None else ""
             raise FileNotFoundError(
                 f"Chưa có ma trận đặc trưng '{processed_matrix}'. Hãy chạy trước: "
-                "python main.py --stage features"
+                f"python main.py --stage features{hint}"
             )
 
         result = run_model_benchmark(
             data_path=processed_matrix,
             model_names=selected_models,
             params_path=args.model_params,
-            output_models_dir=paths.get("models_dir", "experiments/models"),
-            output_results_dir=paths.get("results_dir", "experiments/results"),
+            output_models_dir=models_out,
+            output_results_dir=results_out,
             split_day=None if split_day is not None and int(split_day) < 0 else split_day,
             test_split_ratio=float(split_ratio),
             seed=int(seed),
@@ -180,7 +196,7 @@ def run_pipeline(args):
             budget_ratio=float(budget_ratio),
             contamination=evaluation_cfg.get("default_contamination", 0.05),
             stability_seeds=list(stability_seeds),
-            experiment_log_path=paths.get("experiment_log", "experiments/logs/experiment_log.csv"),
+            experiment_log_path=experiment_log,
             system_config_path=args.config,
             use_segments=not args.no_segments,
             labels_path=labels_path,
@@ -199,16 +215,53 @@ def run_pipeline(args):
         from src.baselines.runner import run_baselines
 
         evaluation_cfg = sys_cfg.get("evaluation", {}) or {}
+        labels_path = args.labels if args.labels is not None else evaluation_cfg.get("labels_path")
+        data_dir, out_dir = processed_dir, None
+        if run_layout is not None:
+            # Log đè: ma trận + nhãn của run, kết quả ghi vào <run>/results/baselines (run sau không đè run trước).
+            data_dir, out_dir = run_layout.processed_dir, run_layout.results_dir / "baselines"
+            if args.labels is None:
+                labels_path = run_layout.labels_path
         result = run_baselines(
             system_config_path=args.config,
             baselines_config_path=args.baselines_config,
             params_path=args.model_params,
-            data_path=processed_dir / "feature_matrix_processed.parquet",
-            labels_path=args.labels if args.labels is not None else evaluation_cfg.get("labels_path"),
+            data_path=Path(data_dir) / "feature_matrix_processed.parquet",
+            labels_path=labels_path,
             injected_events_dir=args.events_dir,
+            output_dir=out_dir,
             use_segments=False if args.no_segments else None,
         )
         logger.info("--> [Stage Baselines] Điểm: %s | ước lượng L: %s", result["scores_path"], result["lockout"])
+
+    # Stage inject (chỉ chạy khi gọi tường minh): tiêm 6 kịch bản vào tầng interim cho MỘT khối dev/test.
+    if args.stage == "inject":
+        from src.injection import run_injection
+
+        result = run_injection(
+            block=args.block,
+            config_path=args.injection_config,
+            system_config_path=args.config,
+            run_id=args.run_id,
+        )
+        logger.info(
+            "--> [Stage Inject] Run '%s': %s sự kiện / %d lần tiêm / ngày %s -> %s",
+            result["run_id"], f"{result['n_injected']:,}", result["n_injections"], result["days"], result["root"],
+        )
+        logger.info("    Nhãn: %s | Manifest: %s", result["labels"], result["manifest"])
+        logger.info(
+            "    Bước tiếp: python main.py --stage features --events-dir %s/events_injected",
+            result["root"],
+        )
+
+    # Stage difficulty (chỉ chạy khi gọi tường minh): oracle độ khó trên ma trận + nhãn của MỘT run.
+    if args.stage == "difficulty":
+        from src.injection import score_difficulty
+
+        if run_layout is None:
+            raise ValueError("Stage 'difficulty' cần --events-dir <run>/events_injected.")
+        dest = score_difficulty(run_layout, oracle=args.oracle)
+        logger.info("--> [Stage Difficulty] Oracle '%s' -> %s", args.oracle or "none", dest)
 
 
 def main():
@@ -228,9 +281,10 @@ def main():
     parser.add_argument(
         "--stage",
         type=str,
-        choices=["all", "clean", "features", "benchmark", "baselines"],
+        choices=["all", "clean", "features", "benchmark", "baselines", "inject", "difficulty"],
         default="all",
-        help="Pipeline stage to execute (all, clean, features, benchmark; 'baselines' runs only when named)",
+        help="Pipeline stage to execute (all, clean, features, benchmark; 'baselines'/'inject'/'difficulty' "
+        "run only when named)",
     )
     parser.add_argument(
         "--models",
@@ -305,7 +359,34 @@ def main():
         type=str,
         default=None,
         help="Overlay events directory (events_injected/ of a run): its days replace the original logs in "
-        "stages 'features' (output goes to the run directory) and 'baselines'",
+        "stage 'features'; stages 'benchmark', 'baselines' and 'difficulty' then read that run's matrix and "
+        "labels and write their outputs inside the run directory",
+    )
+
+    parser.add_argument(
+        "--injection-config",
+        type=str,
+        default="configs/injection.yaml",
+        help="Injection configuration YAML (stage 'inject')",
+    )
+    parser.add_argument(
+        "--block",
+        type=str,
+        choices=["dev", "test"],
+        default="dev",
+        help="Injection block to run (stage 'inject'): dev tunes params, test runs once (default: dev)",
+    )
+    parser.add_argument(
+        "--run-id",
+        type=str,
+        default=None,
+        help="Override the run_id of an injection run (stage 'inject'; default: <prefix>_seed<seed>)",
+    )
+    parser.add_argument(
+        "--oracle",
+        type=str,
+        default=None,
+        help="Difficulty oracle name (stage 'difficulty'; default: 'none', the placeholder that returns NULL)",
     )
 
     args = parser.parse_args()
