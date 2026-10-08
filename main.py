@@ -268,6 +268,23 @@ def run_pipeline(args):
         dest = score_difficulty(run_layout, oracle=args.oracle)
         logger.info("--> [Stage Difficulty] Oracle '%s' -> %s", args.oracle or "none", dest)
 
+    # Figures use existing scores; this stage never extracts features or fits models.
+    if args.stage == "plots":
+        from src.evaluation.plots import plot_benchmark_results
+
+        evaluation_cfg = sys_cfg.get("evaluation", {}) or {}
+        results_dir = run_layout.results_dir if run_layout else Path(paths.get("results_dir", "experiments/results"))
+        labels_path = args.labels if args.labels is not None else (
+            run_layout.labels_path if run_layout else evaluation_cfg.get("labels_path")
+        )
+        result = plot_benchmark_results(
+            [results_dir], labels_paths=[labels_path], output_dir=args.plots_output_dir,
+            formats=args.plot_formats,
+            precision_ks=evaluation_cfg.get("precision_ks") or [10, 50, 100],
+            daily_budgets=evaluation_cfg.get("daily_budgets") or [10, 20, 50, 100],
+        )
+        logger.info("--> [Stage Plots] %d figures -> %s", len(result["figures"]), result["output_dir"])
+
 
 def main():
     parser = argparse.ArgumentParser(description="UEBA Anomaly Detection Benchmark Pipeline")
@@ -286,10 +303,10 @@ def main():
     parser.add_argument(
         "--stage",
         type=str,
-        choices=["all", "clean", "features", "benchmark", "baselines", "inject", "difficulty"],
+        choices=["all", "clean", "features", "benchmark", "baselines", "inject", "difficulty", "plots"],
         default="all",
         help="Pipeline stage to execute (all, clean, features, benchmark; 'baselines'/'inject'/'difficulty' "
-        "run only when named)",
+        "run only when named; 'plots' renders saved evaluation scores)",
     )
     parser.add_argument(
         "--models",
@@ -393,6 +410,8 @@ def main():
         default=None,
         help="Difficulty oracle name (stage 'difficulty'; default: 'none', the placeholder that returns NULL)",
     )
+    parser.add_argument("--plots-output-dir", default=None, help="Stage plots: default <results>/figures/week4")
+    parser.add_argument("--plot-formats", nargs="+", choices=["png", "pdf", "svg"], default=["png", "pdf"])
 
     args = parser.parse_args()
     run_pipeline(args)
