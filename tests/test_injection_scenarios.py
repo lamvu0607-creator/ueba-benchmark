@@ -436,3 +436,34 @@ def test_peer_cap_respected_in_pool_build(temp_artifact_dir, interim, profiles):
     # nạn nhân cơ sở (User1) giữ đầy đủ sự kiện own (5 ngày × 5 = 25 sự kiện 4624)
     own = pool.events.filter((pl.col("_dom") == "dom1") & (pl.col("UserName") == "User1"))
     assert own.height == 25
+
+
+def test_test_block_dormancy_observes_prior_dev_activity(temp_artifact_dir, interim, profiles):
+    from src.injection.inject import InjectionConfig, InjectionRunner
+    profiles.save(temp_artifact_dir / 'profiles')
+    cfg_path = _write_config(temp_artifact_dir, interim, temp_artifact_dir / 'runs')
+    cfg = InjectionConfig.from_files('dev', cfg_path, temp_artifact_dir / 'system.yaml')
+    # Train ends on 5; User1 is active on dev days 6,7 but absent on test day 8.
+    path = interim / 'event_4624' / 'event_4624_day-08.parquet'
+    ev = pl.read_parquet(path)
+    ev.filter(pl.col('UserName') != 'User1').write_parquet(path)
+    cfg.days = [8]
+    runner = InjectionRunner(cfg)
+    candidates = runner._candidates_dormant({'gap_rule': 'fixed', 'min_gap_days': 1})
+    assert 'User1' not in candidates['UserName'].to_list()
+    assert 'User2' in candidates['UserName'].to_list()
+
+
+def test_missing_presence_is_not_inactivity(interim):
+    from src.injection.inject import _read_presence
+    (interim / 'event_4624' / 'event_4624_day-06.parquet').unlink()
+    with pytest.raises(FileNotFoundError, match='cannot infer inactivity'):
+        _read_presence(interim, [6])
+
+
+def test_run_freezes_full_block_days(built):
+    import json
+    from src.injection.layout import load_run_eval_days
+    _, layout, _ = built
+    assert json.loads((layout.root / 'run_config.json').read_text())['eval_days'] == [6, 7, 8]
+    assert load_run_eval_days(layout) == [6, 7, 8]

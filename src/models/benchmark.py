@@ -41,7 +41,7 @@ import argparse
 import json
 import logging
 import warnings
-from dataclasses import dataclass
+from dataclasses import replace, dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
@@ -63,7 +63,7 @@ from src.evaluation.metrics import (
 )
 from src.evaluation.experiment_log import append_experiment_log, build_log_row
 from src.evaluation.manifest import build_manifest, git_state, write_manifest
-from src.evaluation.split import SplitInfo, time_split
+from src.evaluation.split import SplitInfo, time_split, restrict_eval_days
 from src.models.base import SKLEARN_VERSION
 from src.models.registry import (
     DEFAULT_MODEL_NAMES,
@@ -288,26 +288,14 @@ def load_labels(labels_path: Path | str) -> pl.DataFrame:
     """
     Đọc file nhãn (parquet hoặc csv): mỗi dòng là một (tài khoản, ngày) DỊ BIỆT.
 
-    Cột bắt buộc ``DomainName``, ``UserName``, ``day``; ``label`` (0/1) tuỳ chọn — thiếu thì mọi dòng
-    được coi là 1; ``scenario`` tuỳ chọn (loại bất thường, giữ lại để phân tích theo kịch bản).
+    Cột bắt buộc ``DomainName``, ``UserName``, ``day``; đọc ``is_anomaly`` hoặc ``label`` cũ.
+    Danh sách chỉ có khóa vẫn được coi là nhãn dương để tương thích; khóa trùng bị từ chối.
+    Giữ ``eval_exclude``, ``scenario`` và ``campaign_id`` từ bộ đọc nhãn chung.
     """
-    path = Path(labels_path)
-    if not path.is_file():
-        raise FileNotFoundError(f"Không tìm thấy file nhãn '{path}'.")
-    df = pl.read_csv(path) if path.suffix.lower() == ".csv" else pl.read_parquet(path)
-    missing = [c for c in LABEL_KEYS if c not in df.columns]
-    if missing:
-        raise ValueError(f"File nhãn '{path}' thiếu cột {missing}.")
-    if "label" not in df.columns:
-        df = df.with_columns(pl.lit(1).alias("label"))
-    df = df.with_columns(pl.col("day").cast(pl.Int64), pl.col("label").cast(pl.Int8))
-    bad = sorted(set(df["label"].unique().to_list()) - {0, 1})
-    if bad:
-        raise ValueError(f"Cột 'label' của '{path}' chỉ được chứa 0/1, gặp {bad}.")
-    keep = LABEL_KEYS + ["label"] + (["scenario"] if "scenario" in df.columns else [])
-    df = df.select(keep).unique(subset=LABEL_KEYS, keep="first", maintain_order=True)
-    logger.info("Đã nạp nhãn '%s': %s dòng (%s dương).", path, f"{df.height:,}", f"{int(df['label'].sum()):,}")
-    return df
+    from src.evaluation.labeled_eval import load_eval_labels
+
+    # Preserve the legacy key-only positive list, but validate explicit labels with the shared reader.
+    return load_eval_labels(labels_path, allow_implicit_positive=True).rename({"is_anomaly": "label"})
 
 
 def attach_labels(eval_df: pl.DataFrame, labels: pl.DataFrame) -> np.ndarray:
@@ -564,6 +552,7 @@ def run_model_benchmark(
     labels_path: Optional[Path | str] = None,
     precision_ks: Sequence[int] = DEFAULT_PRECISION_KS,
     daily_budgets: Sequence[int] = DEFAULT_DAILY_BUDGETS,
+    eval_days: Optional[Sequence[int]] = None,
 ) -> Dict[str, Any]:
     """
     Chạy benchmark label-free: chia theo thời gian, tách phân khúc, chạy các mô hình, xuất artifact.
@@ -577,6 +566,7 @@ def run_model_benchmark(
 
     ``labels_path`` (tuỳ chọn) bật bộ chỉ số cần nhãn mục 5.4: PR-AUC, ROC-AUC, Precision@``precision_ks``,
     Recall@``budget_ratio`` và Recall@N cảnh báo/ngày (``daily_budgets``).
+    ``eval_days`` giới hạn khối đánh giá sau chia thời gian; ``eval_exclude`` chỉ lọc test, không đổi train.
     """
     params = load_params(params_path)
     names = [str(n) for n in (model_names or available_models())]
@@ -598,6 +588,7 @@ def run_model_benchmark(
     train_df, test_df, split_info = time_split(
         df, day_col="day", split_day=split_day, test_split_ratio=test_split_ratio
     )
+    test_df, split_info = restrict_eval_days(test_df, split_info, eval_days)
     labels_df = load_labels(labels_path) if labels_path else None
     label_stats: Optional[Dict[str, Any]] = None
     if labels_df is not None:
@@ -609,7 +600,8 @@ def run_model_benchmark(
             "n_positive_rows": positives.height,
             "n_positive_in_test": n_in_test,
             "n_positive_in_train": n_in_train,
-            "n_positive_unmatched": positives.height - n_in_test - n_in_train,
+            "n_positive_unmatched": positives.height - int(attach_labels(df, positives).sum()),
+            "n_positive_outside_eval": int(attach_labels(df, positives).sum()) - n_in_test - n_in_train,
         }
         if n_in_train:
             logger.warning(
@@ -622,6 +614,17 @@ def run_model_benchmark(
                 label_stats["n_positive_unmatched"],
             )
         logger.info("Nhãn dương trong tập test: %d / %s dòng.", n_in_test, f"{test_df.height:,}")
+
+    n_excluded = 0
+    if labels_df is not None:
+        from src.evaluation.labeled_eval import align_eval_labels
+
+        aligned = align_eval_labels(test_df, labels_df.rename({"label": "is_anomaly"}))
+        n_excluded = int(aligned["eval_exclude"].sum())
+        test_df = test_df.filter(~aligned["eval_exclude"])
+        if test_df.is_empty():
+            raise ValueError("No evaluation rows remain after eval_exclude.")
+        split_info = replace(split_info, n_eval=test_df.height, n_eval_days=test_df["day"].n_unique())
 
     # Chia thời gian TRƯỚC, tách phân khúc SAU ⇒ mọi phân khúc dùng chung ranh giới ngày.
     segment_stats: Optional[Dict[str, Any]] = None
@@ -722,6 +725,8 @@ def run_model_benchmark(
                     for segment, name in run_keys
                 },
                 "labels": label_stats,
+                "eval_days": list(eval_days) if eval_days is not None else None,
+                "n_excluded": n_excluded,
                 "precision_ks": [int(k) for k in precision_ks] if labels_df is not None else None,
                 "daily_budgets": [int(n) for n in daily_budgets] if labels_df is not None else None,
                 "stability_seeds": list(seeds),

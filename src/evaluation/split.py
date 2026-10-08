@@ -16,14 +16,33 @@ Mặc định ``split_day = 42`` (train ngày 1-42: 721.612 dòng; test ngày 43
 from __future__ import annotations
 
 import logging
-from dataclasses import asdict, dataclass
-from typing import Any, Dict, Optional, Tuple
+from dataclasses import asdict, dataclass, replace
+from typing import Any, Dict, Optional, Sequence, Tuple
 
 import polars as pl
 
 logger = logging.getLogger("ueba_benchmark.evaluation.split")
 
-__all__ = ["SplitInfo", "resolve_split_day", "time_split"]
+
+def restrict_eval_days(
+    evaluation: pl.DataFrame, info: "SplitInfo", eval_days: Optional[Sequence[int]] = None
+) -> Tuple[pl.DataFrame, "SplitInfo"]:
+    """Restrict scoring to a dev/test block without changing training or feature history."""
+    if eval_days is None:
+        return evaluation, info
+    days = sorted(set(int(d) for d in eval_days))
+    if not days or min(days) <= info.split_day:
+        raise ValueError("eval_days must be nonempty and strictly after split_day.")
+    selected = evaluation.filter(pl.col(info.day_col).is_in(days))
+    missing = set(days) - set(selected[info.day_col].to_list())
+    if missing:
+        raise ValueError(f"Missing evaluation days in feature matrix: {sorted(missing)}.")
+    return selected, replace(
+        info, n_eval=selected.height, n_eval_days=selected[info.day_col].n_unique(),
+        max_day=int(selected[info.day_col].max()),
+    )
+
+__all__ = ["SplitInfo", "resolve_split_day", "time_split", "restrict_eval_days"]
 
 
 @dataclass(frozen=True)

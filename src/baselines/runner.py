@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Sequence
 
 import numpy as np
 import polars as pl
@@ -109,8 +109,9 @@ def run_baselines(
     injected_events_dir: Optional[Path | str] = None,
     output_dir: Optional[Path | str] = None,
     use_segments: Optional[bool] = None,
+    eval_days: Optional[Sequence[int]] = None,
 ) -> Dict[str, Any]:
-    from src.evaluation.split import resolve_split_day, time_split
+    from src.evaluation.split import resolve_split_day, time_split, restrict_eval_days
     from src.features.schema import FeatureSchema
     from src.models.benchmark import SegmentConfig, load_feature_matrix, split_segments
     from src.models.registry import load_params
@@ -143,6 +144,7 @@ def run_baselines(
     df = attach_rule_statistics(df, event_stats)
 
     train_all, eval_all, split_info = time_split(df, split_day=int(split_day))
+    eval_all, split_info = restrict_eval_days(eval_all, split_info, eval_days)
 
     ext_cfg = rules_cfg.get("external", {}) or {}
     external = None
@@ -184,6 +186,7 @@ def run_baselines(
     (out_dir / "thresholds.json").write_text(json.dumps({
         "budget_ratio": budget_ratio,
         "split": split_info.to_dict(),
+        "eval_days": list(eval_days) if eval_days is not None else None,
         "lockout_estimate": lockout,
         "external_thresholds": external,
         "thresholds": thresholds,

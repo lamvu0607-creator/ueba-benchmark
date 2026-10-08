@@ -303,3 +303,39 @@ def test_floating_point_noise_is_treated_as_zero_deviation():
         pl.DataFrame({"DomainName": ["d"] * 10, "UserName": ["u"] * 5 + ["v"] * 5, "day": list(range(10)),
                       "x": [0.0, 1e-16, -1e-16, 1e-16, 0.0, 0.0, 1.0, 2.0, 3.0, 4.0]}))
     assert acct.floor_[0] == pytest.approx(MAD_CONSISTENCY * 1.0)  # chỉ MAD thật của v (=1×1.4826)
+
+
+def test_baseline_runner_restricts_block_and_keeps_train_thresholds(temp_artifact_dir, monkeypatch):
+    import json
+    from types import SimpleNamespace
+    import yaml
+    import src.baselines.runner as runner
+    import src.features.schema as schema
+
+    matrix = _matrix()
+    data_path = temp_artifact_dir / 'matrix.parquet'
+    matrix.write_parquet(data_path)
+    sys_path = temp_artifact_dir / 'system.yaml'
+    sys_path.write_text(yaml.safe_dump({'evaluation': {'split_day': 7}}))
+    cfg_path = temp_artifact_dir / 'baselines.yaml'
+    cfg_path.write_text(yaml.safe_dump({**CFG, 'common': {'use_segments': False, 'budget_ratio': 0.05}}))
+    monkeypatch.setattr(schema, 'FeatureSchema', lambda: SimpleNamespace(core_features=['f_a', 'f_b']))
+    # Event statistics are already present in the fixture; isolate runner scope from log I/O.
+    monkeypatch.setattr(runner, 'load_or_compute_event_stats', lambda *a: (pl.DataFrame(), {'lockout_threshold': 5}))
+    monkeypatch.setattr(runner, 'attach_rule_statistics', lambda df, stats: df)
+    labels_path = temp_artifact_dir / 'labels.parquet'
+    pl.DataFrame({'DomainName': ['dom', 'dom'], 'UserName': ['User0', 'User1'], 'day': [8, 8],
+                  'is_anomaly': [1, 1], 'eval_exclude': [False, True]}).write_parquet(labels_path)
+    outputs = []
+    for name, days in [('full', None), ('dev', [8])]:
+        outputs.append(runner.run_baselines(system_config_path=sys_path, baselines_config_path=cfg_path,
+                       data_path=data_path, labels_path=labels_path, output_dir=temp_artifact_dir / name,
+                       eval_days=days))
+    full, scoped = outputs
+    scores = pl.read_parquet(scoped['scores_path'])
+    assert scores.filter(pl.col('split') == 'eval')['day'].unique().to_list() == [8]
+    assert scores.filter(pl.col('split') == 'train')['day'].max() == 7
+    assert scoped['thresholds'] == full['thresholds']
+    assert set(scoped['metrics'].filter(pl.col('method') != 'random_multi_seed_mean')['n_eval']) == {5.0}
+    meta = json.loads((temp_artifact_dir / 'dev' / 'thresholds.json').read_text())
+    assert meta['eval_days'] == [8] and meta['split']['n_eval'] == 6
