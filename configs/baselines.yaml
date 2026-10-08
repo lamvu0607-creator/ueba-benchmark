@@ -1,0 +1,57 @@
+# =============================================================================
+# Ba BASELINE so với IForest / LOF / OCSVM (src/baselines/, chạy: python main.py --stage baselines)
+#
+# Nguyên tắc: KHÔNG có ngưỡng gán tay. Mọi ngưỡng/sàn dưới đây là QUY TẮC tính từ dữ liệu TRAIN
+# (day <= evaluation.split_day của system_config.yaml); không baseline nào đọc nhãn.
+# Ngoại lệ duy nhất là khối rules.external — biến thể "ngưỡng ngoài" để ĐỐI CHIẾU với biến thể ECDF.
+# =============================================================================
+
+common:
+  # Ngân sách cảnh báo chung cho MỌI phương pháp (baseline lẫn ML): ngưỡng = phân vị (1 − budget_ratio)
+  # của CHÍNH điểm số đó trên train; dòng có điểm > ngưỡng bị gắn cờ (0.01 = ~1% số dòng/ngày).
+  budget_ratio: 0.01
+  # NULL hợp lệ (days_since_last_activity, *_7d ...) -> median TRAIN, giống hệt AnomalyPipeline của ML.
+  imputer: "median"
+  # true = fit riêng từng phân khúc theo khối `segments` của model_params.yaml (Machine / User) như ML.
+  use_segments: true
+  output_dir: "experiments/results/baselines"
+
+random:
+  # seeds[0] cho cột điểm chính `random`; cả danh sách dùng để đối chiếu PR-AUC thực nghiệm (nhiều seed)
+  # với PR-AUC kỳ vọng lý thuyết = tỷ lệ dương tính của tập đánh giá.
+  seeds: [42, 7, 2024, 1, 2, 3, 4, 5, 6, 8]
+
+zscore:
+  # Sàn cho MAD = 0 (hằng số 1.4826 là hằng số nhất quán chuẩn, nằm trong code, không phải tham số).
+  #  - toàn cục   : sàn_j = 1.4826 × phân vị `quantile` của các |x_j − median_j| KHÁC 0 trên train;
+  #  - theo tài khoản: sàn_j = phân vị `quantile` của các MAD_j (đã ×1.4826) KHÁC 0 của mọi tài khoản đủ ngày.
+  # Đặc trưng không có độ lệch khác 0 nào trên train (hằng số) -> bị loại khỏi điểm (ghi log).
+  # q = 0.25 (không phải 0.01): với 0.01 sàn quá nhỏ (interactive_ratio ~1.3e-5) -> |z| hàng nghìn, đồng hạng
+  # ở đỉnh làm z-score User chỉ dùng 0,2–0,3% ngân sách 1%. Với 0.25 tỷ lệ cờ train về 0,84–1,00%.
+  mad_floor:
+    quantile: 0.25
+  # Dung sai SỐ HỌC (không phải ngưỡng phát hiện): |độ lệch| <= 1e-9 coi là 0. Các đặc trưng delta_mean_*
+  # có độ lệch ~1e-16 do làm tròn dấu phẩy động; không có dung sai thì sàn MAD ~1e-16 và |z| ~ 1e15.
+  zero_tolerance: 1.0e-9
+  per_account:
+    # Tài khoản có < min_train_days dòng train -> TOÀN BỘ dòng của nó dùng median/MAD toàn cục.
+    min_train_days: 7
+
+rules:
+  # Log sự kiện để tính R2/R4/R6 (không có sẵn trong ma trận). Ngày test có file trong
+  # injected_events_dir (layout events_injected/ của src/injection) thì đọc từ đó, còn lại đọc interim.
+  interim_dir: "data/interim"
+  injected_events_dir: null
+  # Cache thống kê sự kiện (tính lại khi xoá file hoặc chạy với injected_events_dir khác null).
+  event_stats_cache: "data/features/baselines/rule_event_stats.parquet"
+  # Biến thể "ngưỡng ngoài": thành phần R1/R2 = 1 nếu thống kê >= ngưỡng, ngược lại 0; R3–R6 giữ ECDF.
+  external:
+    enabled: true
+    # "auto" = ước lượng L từ log TRAIN: trung vị số lần thất bại đứng trước sự kiện "Account locked out"
+    # đầu tiên của mỗi (tài khoản, ngày) có khoá (bỏ các ca 0 lần — bộ đếm mang sang từ hôm trước).
+    r1_lockout_threshold: "auto"
+    # Ngưỡng password spraying kiểu Splunk: một Source gây thất bại cho >= 30 tài khoản khác nhau.
+    r2_distinct_accounts: 30
+  # KẾT QUẢ GIỮ NGUYÊN ĐỂ BÁO CÁO (2026-10-08): phân khúc User có > 1% dòng train đạt R1 (failure_count >= L = 5)
+  # hoặc R2 -> thành phần nhị phân đồng hạng 1.0 ở đỉnh, ngưỡng train = 1.0 và so sánh chặt (>) cho 0 cờ.
+  # Đây là phát hiện: ngưỡng khoá L = 5 quá thấp để làm luật cảnh báo cho tài khoản người dùng.
