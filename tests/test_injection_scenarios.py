@@ -431,11 +431,16 @@ def test_peer_cap_respected_in_pool_build(temp_artifact_dir, interim, profiles):
 
     runner = InjectionRunner(InjectionConfig.from_files("dev", tmp / "inj.yaml", tmp / "sys.yaml"))
     pool = runner.pool
-    # mỗi nhóm peer còn ≤ cap? kiểm gián tiếp: tổng sự kiện nhỏ hơn nhiều so với toàn log mini train
+    # kho peer trong RAM: mỗi nhóm (entity_type, EventID, LogonType, fail_kind) ≤ cap = 1
     assert pool.events.height > 0
-    # nạn nhân cơ sở (User1) giữ đầy đủ sự kiện own (5 ngày × 5 = 25 sự kiện 4624)
-    own = pool.events.filter((pl.col("_dom") == "dom1") & (pl.col("UserName") == "User1"))
+    grp = ["_entity_type", "EventID", "LogonType", "_fail_kind"]
+    assert pool.events.group_by(grp).len()["len"].max() == 1
+    # nạn nhân cơ sở (User1) giữ đầy đủ sự kiện own (5 ngày × 5 = 25 sự kiện 4624), đọc từ cache đĩa
+    own = pool.candidates(account=runner._account("dom1", "User1"), event_id=4624, entity_type="User")
     assert own.height == 25
+    # dựng lại runner -> dùng lại cache, cùng kết quả
+    again = InjectionRunner(InjectionConfig.from_files("dev", tmp / "inj.yaml", tmp / "sys.yaml")).pool
+    assert again.events.equals(pool.events)
 
 
 def test_test_block_dormancy_observes_prior_dev_activity(temp_artifact_dir, interim, profiles):

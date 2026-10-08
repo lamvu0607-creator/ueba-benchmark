@@ -18,8 +18,12 @@ Chọn nạn nhân (quyết định 2026-10-08)
 
 from __future__ import annotations
 
+import functools
+import hashlib
 import json
 import logging
+import shutil
+import zlib
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Set, Tuple
@@ -106,6 +110,17 @@ class InjectionConfig:
         return cls(block, days, int(blk["seed"]), rid, scen, common, split_day)
 
 
+# --------------------------------------------------------------------------- cache khuôn own trên đĩa
+
+_OWN_CACHE_VERSION = 1
+_OWN_BUCKETS = 64
+
+
+def _own_bucket(domain: str, user: str) -> int:
+    """Bucket ỔN ĐỊNH (không phụ thuộc phiên bản polars) của một tài khoản trong cache khuôn own."""
+    return zlib.crc32(f"{domain}\x00{user}".encode("utf-8")) % _OWN_BUCKETS
+
+
 # --------------------------------------------------------------------------- phân giải loại trừ của luật
 
 def _rule_flagged(common: Dict[str, Any]) -> pl.DataFrame:
@@ -169,71 +184,134 @@ class InjectionRunner:
         self.interim = Path(cfg.common["interim_dir"])
         self._feature_cfg = feature_cfg
         self._pool: Optional[TemplatePool] = None
+        self._own_dir: Optional[Path] = None
+        self._domain_raw_cache: Dict[Tuple[str, str], str] = {}
         self._used_accounts: Set[Tuple[str, str]] = set()      # mỗi tài khoản tối đa một lần / run
         self._flagged = _rule_flagged(cfg.common)
         # Include earlier evaluation days: a test block must not mistake dev activity for dormancy.
         self._presence = _read_presence(self.interim, range(cfg.split_day + 1, max(cfg.days) + 1))
         self._domain_raw = self._build_domain_raw_map()
 
-    # ---- kho khuôn (đọc train MỘT LẦN bằng lazy scan; thu nhỏ để không giữ cả log train trong RAM)
+    # ---- kho khuôn (đọc train MỘT LẦN bằng lazy scan; own để trên đĩa, chỉ peer nằm trong RAM)
     @property
     def pool(self) -> TemplatePool:
         if self._pool is None:
             self._pool = self._build_pool()
-            logger.info("Kho khuôn: %s sự kiện (đã thu nhỏ từ train).", f"{self._pool.events.height:,}")
+            logger.info("Kho khuôn peer: %s sự kiện trong RAM; khuôn own đọc theo tài khoản từ '%s'.",
+                        f"{self._pool.events.height:,}", self._own_dir)
         return self._pool
 
     def _build_pool(self) -> TemplatePool:
         """
-        Dựng kho khuôn bằng lazy scan **từng file** interim train, rồi THU NHỎ để chỉ giữ những khuôn
-        thực sự có thể được dùng — tránh nạp cả chục triệu sự kiện train vào RAM (nguyên nhân chính gây
-        chậm / tràn RAM). Ngữ nghĩa ``pick`` không đổi:
+        Dựng kho khuôn mà KHÔNG nạp sự kiện own của mọi nạn nhân cơ sở vào RAM (trên log thật đó là
+        ~220 triệu dòng ≈ 20 GB — nguyên nhân tràn RAM làm treo/crash máy). Ngữ nghĩa ``pick`` giữ nguyên:
 
-          * khuôn ``own`` (của chính nạn nhân): giữ ĐẦY ĐỦ sự kiện của các tài khoản là **nạn nhân cơ
-            sở** (chỉ User, đủ ngày hoạt động) — tập này nhỏ hơn toàn log rất nhiều, và off_hours/dormant
-            cần nguyên chuỗi/ngày của nạn nhân nên không được cắt;
-          * khuôn ``peer`` (tài khoản khác cùng ``entity_type``): chỉ cần một ít mẫu cho mỗi
-            ``(entity_type, EventID, LogonType, fail_kind)`` — giữ tối đa ``peer_cap`` mẫu/nhóm.
-
-        Hai phần được hợp lại; nhờ vậy mọi truy vấn của ``pool.pick`` vẫn có khuôn, nhưng kích thước kho
-        giảm vài bậc.
+          * khuôn ``own`` (của chính nạn nhân): ghi MỘT LẦN ra cache trên đĩa
+            (``<runs_dir>/_template_cache/<khoá>/b<bucket>/``), chia theo bucket ``crc32(_dom, UserName)``;
+            ``pool.candidates(account=...)`` chỉ đọc bucket của tài khoản đó (có cache LRU). Cache dùng lại
+            giữa các lần chạy dev/test khi khoá (file train, nạn nhân cơ sở, split_day...) không đổi;
+          * khuôn ``peer`` (tài khoản khác cùng ``entity_type``): chỉ giữ tối đa ``peer_cap`` mẫu cho mỗi
+            ``(entity_type, EventID, LogonType, fail_kind)`` — nằm trong RAM.
         """
         from src.features.extractor import DEFAULT_FEATURE_CFG, entity_type_expr
 
         et = entity_type_expr(self._feature_cfg or DEFAULT_FEATURE_CFG)
         peer_cap = int((self.cfg.common.get("template", {}) or {}).get("peer_cap_per_group", 200))
 
-        files = [interim_day_path(self.interim, e, int(d))
+        files = [(int(d), interim_day_path(self.interim, e, int(d)))
                  for d in self.profiles.network["train_days"] for e in EVENT_IDS]
-        files = [p for p in files if p.is_file()]
+        files = [(d, p) for d, p in files if p.is_file()]
         if not files:
             raise FileNotFoundError("Không có file interim train để dựng kho khuôn.")
 
-        base_keys = self._base_victims().select(
-            pl.col("DomainName").alias("_dom"), pl.col("UserName")
-        ).lazy()  # khoá đã chuẩn hoá (accounts của hồ sơ dùng _dom)
-        grp = ["_entity_type", "EventID", "LogonType", "_fail_kind"]
+        base_keys = self._base_victims().select(pl.col("DomainName").alias("_dom"), pl.col("UserName"))
+        base_keys = base_keys.with_columns(
+            pl.Series("_bucket", [_own_bucket(d, u) for d, u in base_keys.iter_rows()], dtype=pl.Int32)
+        )
+        key_src = {
+            "version": _OWN_CACHE_VERSION, "split_day": self.cfg.split_day, "entity_type": str(et),
+            "peer_cap": peer_cap, "n_buckets": _OWN_BUCKETS,
+            "files": [[str(p.resolve()), p.stat().st_size, p.stat().st_mtime_ns] for _, p in files],
+            "base_keys": hashlib.sha1(
+                "\n".join(f"{d}\x00{u}" for d, u in sorted(base_keys.select("_dom", "UserName").iter_rows()))
+                .encode("utf-8")).hexdigest(),
+        }
+        cache_key = hashlib.sha1(json.dumps(key_src, sort_keys=True).encode("utf-8")).hexdigest()[:16]
+        cache = Path(self.cfg.common["runs_dir"]) / "_template_cache" / cache_key
+        self._own_dir = cache
+        if not (cache / "meta.json").is_file():
+            self._write_template_cache(cache, files, base_keys, et, peer_cap, key_src)
+        else:
+            logger.info("Dùng lại cache khuôn '%s'.", cache)
 
-        # TỪNG FILE một: RAM chỉ giữ một ngày. (Một window ``over`` trên scan cả 42 ngày buộc polars nạp toàn
-        # bộ log train.) peer = ``peer_cap`` dòng đầu mỗi nhóm của từng file; ``head`` lần hai trên phần gộp
-        # (file theo thứ tự ngày) cho đúng ``peer_cap`` dòng đầu của cả train.
-        own_parts: List[pl.DataFrame] = []
-        peer_parts: List[pl.DataFrame] = []
-        for path in files:
-            lf = annotate_events_lazy(pl.scan_parquet(path), et)
-            own_parts.append(lf.join(base_keys, on=["_dom", "UserName"], how="semi").collect())
-            peer_parts.append(lf.group_by(grp, maintain_order=True).head(peer_cap).select(lf.collect_schema().names()).collect())
-        peer = pl.concat(peer_parts, how="vertical").group_by(grp, maintain_order=True).head(peer_cap)
-        events = pl.concat([pl.concat(own_parts, how="vertical"), peer.select(own_parts[0].columns)], how="vertical")
+        peer = pl.read_parquet(cache / "peer.parquet")
+        raw = pl.read_parquet(cache / "domain_raw.parquet")
+        self._domain_raw_cache = {(r["_dom"], r["UserName"]): r["raw"] for r in raw.iter_rows(named=True)}
         # sắp theo mọi cột: thứ tự kho tất định -> ``pick`` (rút theo chỉ số) cho cùng khuôn với cùng seed
-        events = events.unique(maintain_order=True).sort(INTERIM_COLUMNS, nulls_last=True, maintain_order=True)
-        return TemplatePool(events, train_end_day=self.cfg.split_day)
+        peer = peer.unique(maintain_order=True).sort(INTERIM_COLUMNS, nulls_last=True, maintain_order=True)
+        columns = peer.columns
+
+        @functools.lru_cache(maxsize=64)
+        def load_own(dom: str, user: str) -> pl.DataFrame:
+            bdir = cache / f"b{_own_bucket(dom, user):03d}"
+            if not any(bdir.glob("*.parquet")):
+                return peer.clear()
+            own = (pl.scan_parquet(bdir / "*.parquet")
+                   .filter((pl.col("_dom") == dom) & (pl.col("UserName") == user)).collect())
+            return (own.select(columns).unique(maintain_order=True)
+                    .sort(INTERIM_COLUMNS, nulls_last=True, maintain_order=True))
+
+        return TemplatePool(peer, train_end_day=self.cfg.split_day,
+                            own_loader=lambda acct: load_own(acct.domain, acct.user))
+
+    def _write_template_cache(self, cache: Path, files: List[Tuple[int, Path]], base_keys: pl.DataFrame,
+                              et: pl.Expr, peer_cap: int, key_src: Dict[str, Any]) -> None:
+        """Đọc TỪNG file train một (RAM chỉ giữ một ngày), ghi own theo bucket + peer + DomainName thô."""
+        tmp = cache.with_name(cache.name + ".tmp")
+        if tmp.exists():
+            shutil.rmtree(tmp)
+        tmp.mkdir(parents=True)
+        grp = ["_entity_type", "EventID", "LogonType", "_fail_kind"]
+        keys_lf = base_keys.lazy()
+        # Phần peer / DomainName thô của từng file được GHI RA ĐĨA ngay, không giữ trong list: khung nhỏ cắt
+        # từ một file (head/agg trên cột String) vẫn tham chiếu toàn bộ buffer chuỗi của file đó, giữ trong
+        # RAM qua 84 file sẽ phình hàng chục GB.
+        (tmp / "_peer").mkdir()
+        (tmp / "_raw").mkdir()
+        n_own = 0
+        for i, (_, path) in enumerate(files, 1):
+            lf = annotate_events_lazy(pl.scan_parquet(path), et)
+            own = lf.join(keys_lf, on=["_dom", "UserName"], how="inner").collect()
+            n_own += own.height
+            own.group_by(["_dom", "UserName"]).agg(
+                pl.col("Time").min().alias("_t"), pl.col("DomainName").sort_by("Time").first().alias("raw")
+            ).write_parquet(tmp / "_raw" / f"{i:03d}.parquet")
+            for (b,), part in own.partition_by("_bucket", as_dict=True).items():
+                bdir = tmp / f"b{int(b):03d}"
+                bdir.mkdir(exist_ok=True)
+                part.drop("_bucket").write_parquet(bdir / f"{path.stem}.parquet")
+            del own
+            (lf.group_by(grp, maintain_order=True).head(peer_cap).select(lf.collect_schema().names())
+             .collect().write_parquet(tmp / "_peer" / f"{i:03d}.parquet"))
+            logger.info("Cache khuôn: %d/%d file (%s), own luỹ kế %s dòng.", i, len(files), path.name, f"{n_own:,}")
+        # file đặt tên theo thứ tự đọc (ngày tăng dần) -> ``head`` lần hai = ``peer_cap`` dòng đầu của cả train
+        peer = (pl.scan_parquet(tmp / "_peer" / "*.parquet").collect()
+                .group_by(grp, maintain_order=True).head(peer_cap))
+        peer.select(pl.read_parquet_schema(tmp / "_peer" / "001.parquet").names()).write_parquet(tmp / "peer.parquet")
+        raw = (pl.scan_parquet(tmp / "_raw" / "*.parquet").collect().sort("_t", maintain_order=True)
+               .group_by(["_dom", "UserName"], maintain_order=True).agg(pl.col("raw").first()))
+        raw.write_parquet(tmp / "domain_raw.parquet")
+        shutil.rmtree(tmp / "_peer")
+        shutil.rmtree(tmp / "_raw")
+        (tmp / "meta.json").write_text(json.dumps({**key_src, "n_own_events": n_own}, indent=2), encoding="utf-8")
+        if cache.exists():
+            shutil.rmtree(cache)
+        tmp.rename(cache)
 
     def _build_domain_raw_map(self) -> Dict[Tuple[str, str], str]:
         """Khoá chuẩn hoá -> một DomainName THÔ mẫu, để sự kiện tiêm ghi domain thô đúng của tài khoản."""
-        ev = self.pool.events
-        raw = ev.group_by(["_dom", "UserName"]).agg(pl.col("DomainName").first().alias("raw"))
-        return {(r["_dom"], r["UserName"]): r["raw"] for r in raw.iter_rows(named=True)}
+        _ = self.pool
+        return self._domain_raw_cache
 
     def _account(self, domain: str, user: str) -> Account:
         return Account(domain=domain, user=user, domain_raw=self._domain_raw.get((domain, user), domain),
@@ -497,8 +575,8 @@ class InjectionRunner:
         inj_day = injected.with_columns(injected_day_expr())
         for day in ov:
             added = sum(
-                pl.read_parquet(layout.events_file(e, day)).height
-                - pl.read_parquet(interim_day_path(self.interim, e, day)).height
+                pl.scan_parquet(layout.events_file(e, day)).select(pl.len()).collect().item()
+                - pl.scan_parquet(interim_day_path(self.interim, e, day)).select(pl.len()).collect().item()
                 for e in EVENT_IDS
             )
             want = inj_day.filter(pl.col("day") == day).height
@@ -507,7 +585,7 @@ class InjectionRunner:
         # schema file đè khớp interim
         for day in ov:
             for e in EVENT_IDS:
-                got = pl.read_parquet(layout.events_file(e, day)).schema
+                got = pl.read_parquet_schema(layout.events_file(e, day))
                 if list(got.keys()) != INTERIM_COLUMNS:
                     raise ValueError(f"File đè {e}/{day} sai cột interim.")
         # mỗi tài khoản tối đa một lần (labels_from_manifest cũng chặn, nhưng báo sớm ở đây)

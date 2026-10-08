@@ -337,5 +337,5 @@ def test_baseline_runner_restricts_block_and_keeps_train_thresholds(temp_artifac
     assert scores.filter(pl.col('split') == 'train')['day'].max() == 7
     assert scoped['thresholds'] == full['thresholds']
     assert set(scoped['metrics'].filter(pl.col('method') != 'random_multi_seed_mean')['n_eval']) == {5.0}
-    meta = json.loads((temp_artifact_dir / 'dev' / 'thresholds.json').read_text())
+    meta = json.loads((temp_artifact_dir / 'dev' / 'thresholds.json').read_text(encoding='utf-8'))
     assert meta['eval_days'] == [8] and meta['split']['n_eval'] == 6
