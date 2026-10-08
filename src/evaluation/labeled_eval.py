@@ -35,7 +35,7 @@ __all__ = ["LABEL_KEYS", "load_eval_labels", "align_eval_labels", "evaluate_dete
 LABEL_KEYS = ["DomainName", "UserName", "day"]
 
 
-def load_eval_labels(path: Path | str) -> pl.DataFrame:
+def load_eval_labels(path: Path | str, *, allow_implicit_positive: bool = False) -> pl.DataFrame:
     """Đọc và chuẩn hoá file nhãn về đúng 7 cột; trùng khoá -> lỗi (nhãn phải duy nhất theo dòng)."""
     source = Path(path)
     if not source.is_file():
@@ -46,8 +46,11 @@ def load_eval_labels(path: Path | str) -> pl.DataFrame:
         raise ValueError(f"File nhãn '{source}' thiếu cột {missing}.")
     if "is_anomaly" not in df.columns:
         if "label" not in df.columns:
-            raise ValueError(f"File nhãn '{source}' cần cột 'is_anomaly' (hoặc 'label').")
-        df = df.rename({"label": "is_anomaly"})
+            if not allow_implicit_positive:
+                raise ValueError(f"File nhãn '{source}' cần cột 'is_anomaly' (hoặc 'label').")
+            df = df.with_columns(pl.lit(1, pl.Int8).alias("is_anomaly"))
+        else:
+            df = df.rename({"label": "is_anomaly"})
     defaults = {"eval_exclude": pl.lit(False), "scenario": pl.lit(None, pl.String), "campaign_id": pl.lit(None, pl.String)}
     df = df.with_columns([expr.alias(c) for c, expr in defaults.items() if c not in df.columns])
     df = df.select(

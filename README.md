@@ -194,6 +194,10 @@ python main.py --stage benchmark  --events-dir $RUN/events_injected       # -> $
 python main.py --stage difficulty --events-dir $RUN/events_injected       # -> $RUN/difficulty.parquet (oracle "none")
 ```
 
+`run_config.json` của run cố định ngày đánh giá: dev 43–51, test 52–60. Features vẫn tính
+đầy đủ lịch sử, còn benchmark và baseline chỉ đánh giá khối đã chọn (kể cả ngày không được tiêm).
+Run cũ dùng `split` trong manifest và cấu hình injection để xác định khối.
+
 Khối `test` (`--block test`) chỉ chạy **một lần** ở cuối, sau khi đã chốt tham số trên `dev`.
 
 ---

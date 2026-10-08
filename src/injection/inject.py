@@ -143,8 +143,7 @@ def _read_presence(interim: Path, days: Sequence[int]) -> pl.DataFrame:
     for d in days:
         files = [interim_day_path(interim, e, d) for e in EVENT_IDS]
         if not all(p.is_file() for p in files):
-            logger.warning("Thiếu file interim ngày %d — coi như không có dữ liệu.", d)
-            continue
+            raise FileNotFoundError(f"Missing interim day {d}: cannot infer inactivity from missing logs.")
         lf = pl.concat([pl.scan_parquet(p).select(["UserName", "DomainName"]) for p in files])
         parts.append(
             lf.filter(pl.col("UserName").is_not_null() & (pl.col("UserName").str.strip_chars() != "")
@@ -172,7 +171,8 @@ class InjectionRunner:
         self._pool: Optional[TemplatePool] = None
         self._used_accounts: Set[Tuple[str, str]] = set()      # mỗi tài khoản tối đa một lần / run
         self._flagged = _rule_flagged(cfg.common)
-        self._presence = _read_presence(self.interim, cfg.days)
+        # Include earlier evaluation days: a test block must not mistake dev activity for dormancy.
+        self._presence = _read_presence(self.interim, range(cfg.split_day + 1, max(cfg.days) + 1))
         self._domain_raw = self._build_domain_raw_map()
 
     # ---- kho khuôn (đọc train MỘT LẦN bằng lazy scan; thu nhỏ để không giữ cả log train trong RAM)
@@ -458,6 +458,10 @@ class InjectionRunner:
         manifest_df.write_csv(layout.manifest_path)
         self._check_run(layout, injected, manifest_df)
         labels_path = write_run_labels(layout)
+        (layout.root / "run_config.json").write_text(json.dumps({
+            "run_id": self.cfg.run_id, "block": self.cfg.block, "seed": self.cfg.seed,
+            "split_day": self.cfg.split_day, "eval_days": self.cfg.days,
+        }, indent=2), encoding="utf-8")
 
         logger.info("Run '%s': %s sự kiện tiêm, %d lần tiêm, %d ngày đè.",
                     self.cfg.run_id, f"{injected.height:,}", manifest_df.height, len(base_days))

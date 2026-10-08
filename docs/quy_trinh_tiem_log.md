@@ -2,7 +2,7 @@
 
 Tài liệu mô tả **luồng dữ liệu và các hợp đồng** của một run tiêm: đầu vào, đầu ra từng bước, lệnh chạy,
 và kiểm tra bắt buộc. Cách dựng sự kiện của từng kịch bản thuộc module bộ tiêm (`operations.py`,
-`scenarios.py`, `inject.py`) — **hiện chưa có**, xem `kiem_tra_trang_thai_bo_tiem.md`. Các bước khác đã chạy được.
+`scenarios.py`, `inject.py`) đã được triển khai; xem `kiem_tra_trang_thai_bo_tiem.md` cho các giới hạn còn lại.
 
 ```
 data/interim (60 ngày, log gốc)
@@ -11,7 +11,7 @@ data/interim (60 ngày, log gốc)
    │
    ├─(2) Danh sách tài khoản-ngày bị loại (luật ECDF) ◄─ experiments/results/baselines/
    │
-   ├─(3) Bộ tiêm [CHƯA CÓ] ─► runs/<run_id>/events_injected/ + injected_events.parquet + injection_manifest.csv
+   ├─(3) Bộ tiêm ─► runs/<run_id>/events_injected/ + injected_events.parquet + injection_manifest.csv
    │
    ├─(4) Kiểm tra run
    ├─(5) Nhãn ──────────────────────────────────────► runs/<run_id>/labels.parquet
@@ -85,7 +85,7 @@ interim của các ngày trong khối. Một lần chạy = một khối = một
 | Không vượt nửa đêm | với mỗi `inj_id`: `assert_events_within_day(events_of_inj, day)` |
 | Bảng phụ khớp log | số dòng `injected_events.parquet` = (số dòng log đè − số dòng log gốc) cộng theo ngày |
 | Schema | tên + dtype cột file đè = file interim cùng ngày |
-| Mỗi tài khoản một lần | `labels_from_manifest` báo lỗi nếu khoá trùng |
+| Mỗi tài khoản một lần | `_check_run` chặn tài khoản trùng trong run; `labels_from_manifest` chặn khóa tài khoản-ngày trùng |
 
 ## 5. Sinh nhãn
 
@@ -111,9 +111,16 @@ python main.py --stage features --events-dir <runs_dir>/<run_id>/events_injected
 python main.py --stage baselines --events-dir <run>/events_injected --labels <run>/labels.parquet
 ```
 - Ba baseline (random, z-score, luật ECDF/ngưỡng ngoài), ngưỡng = phân vị train budget 1%.
-- **Lưu ý:** đổi `common.output_dir` trong `configs/baselines.yaml` theo run, nếu không run sau đè run trước.
-- Stage benchmark ML **chưa** nhận ma trận của run (đọc cứng `data/processed/...`) — cần bổ sung trước khi
-  so ML với baseline trên cùng run.
+- Baseline tự ghi vào `<run>/results/baselines/`; không cần sửa `common.output_dir`.
+- ML chạy bằng `python main.py --stage benchmark --events-dir <run>/events_injected`, đọc cùng ma trận
+  và nhãn, ghi vào `<run>/results/` và `<run>/models/`.
+- `run_config.json` cố định ngày đánh giá: dev 43–51, test 52–60. Ngày không có sự kiện tiêm vẫn thuộc
+  khối đánh giá. Run cũ chưa có file này dùng cột `split` của manifest và `configs/injection.yaml`;
+  phải giữ cấu hình ngày của run cũ khi dùng đường tương thích này.
+- Features vẫn tính toàn dải để giữ lịch sử; ML và baseline chỉ chấm khối đã chọn. Nhãn `is_anomaly`
+  (hoặc `label` cũ) được đọc chung; ML loại `eval_exclude` trước chấm điểm và baseline loại trước tính chỉ số.
+- Tìm khoảng ngủ đông đọc sự hiện diện từ ngày 43 đến ngày tiêm, kể cả ngày thuộc khối trước;
+  thiếu file log sẽ báo lỗi, không được xem là ngày im lặng.
 
 ## 8. Oracle độ khó (tùy chọn)
 

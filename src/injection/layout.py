@@ -16,7 +16,8 @@ Một run nằm trong ``<injection_runs_dir>/<run_id>/``::
     events_injected/event_4625/event_4625_day-NN.parquet   chỉ các ngày test (ngày train đọc từ gốc)
     injected_events.parquet      bảng phụ: mỗi sự kiện tiêm -> inj_id (log chính không có cột đánh dấu)
     injection_manifest.csv       mỗi lần tiêm một dòng
-    labels.parquet               nhãn (DomainName, UserName, day, label, scenario) sinh từ manifest
+    labels.parquet               nhãn chuẩn is_anomaly / eval_exclude sinh từ manifest
+    run_config.json              block, seed, split_day, đầy đủ eval_days của run
     features/raw/, processed/    ma trận đặc trưng tính lại trên log đã tiêm
     results/, models/            kết quả benchmark của run
 """
@@ -24,12 +25,42 @@ Một run nằm trong ``<injection_runs_dir>/<run_id>/``::
 from __future__ import annotations
 
 from dataclasses import dataclass
+import json
 from pathlib import Path
 from typing import Iterable, List, Tuple
 
 import polars as pl
+import yaml
+
+
+def load_run_eval_days(layout: "RunLayout", config_path: Path | str = "configs/injection.yaml") -> List[int]:
+    """Use frozen run days; older runs fall back to their manifest block, never overlay days alone."""
+    metadata = layout.root / "run_config.json"
+    manifest = pl.read_csv(layout.manifest_path)
+    if manifest.is_empty():
+        raise InjectionLayoutError("Injection manifest is empty.")
+    if metadata.is_file():
+        payload = json.loads(metadata.read_text(encoding="utf-8"))
+        days = payload["eval_days"]
+        split_day = int(payload["split_day"])
+    else:
+        if "split" not in manifest.columns or manifest["split"].null_count():
+            raise InjectionLayoutError("Older run needs a manifest with a dev/test split column.")
+        blocks = manifest["split"].unique().to_list()
+        if len(blocks) != 1:
+            raise InjectionLayoutError("Manifest must belong to exactly one dev/test block.")
+        cfg = yaml.safe_load(Path(config_path).read_text(encoding="utf-8"))
+        days = cfg["blocks"][blocks[0]]["days"]
+        split_day = cfg["common"].get("split_day")
+    days = sorted(set(int(d) for d in days))
+    if not days or (split_day is not None and min(days) <= int(split_day)):
+        raise InjectionLayoutError("Run evaluation days must be nonempty and after training.")
+    if not set(manifest["day"].to_list()).issubset(days):
+        raise InjectionLayoutError("Manifest contains injections outside the run evaluation block.")
+    return days
 
 __all__ = [
+    "load_run_eval_days",
     "SECONDS_PER_DAY",
     "EVENT_IDS",
     "InjectionLayoutError",

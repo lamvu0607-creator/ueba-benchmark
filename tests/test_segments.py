@@ -224,3 +224,35 @@ def test_benchmark_without_labels_has_no_labeled_columns(temp_artifact_dir):
     assert "pr_auc" not in result["summary"].columns
     assert "alerts_per_day_mean" in result["summary"].columns
     assert "label" not in result["scores"].columns
+
+
+def test_eval_block_and_exclusions_do_not_change_training(temp_artifact_dir):
+    """Dev scores only dev days; explicit negatives/exclusions survive the shared label reader."""
+    labels_path = temp_artifact_dir / 'labels.parquet'
+    pl.DataFrame({
+        'DomainName': ['DOM'] * 3, 'UserName': ['User0', 'User1', 'User2'],
+        'day': [8, 8, 8], 'is_anomaly': [0, 1, 1], 'eval_exclude': [False, False, True],
+    }).write_parquet(labels_path)
+    assert load_labels(labels_path)['label'].to_list() == [0, 1, 1]
+    scoped = run(temp_artifact_dir / 'scoped', eval_days=[8], labels_path=labels_path,
+                 precision_ks=(10,), daily_budgets=(1,))
+    full = run(temp_artifact_dir / 'full')
+    assert scoped['scores']['day'].unique().to_list() == [8]
+    user_scores = scoped['scores'].filter(pl.col('segment') == 'User')
+    assert 'User2' not in user_scores['UserName'].to_list()
+    assert user_scores.filter(pl.col('UserName') == 'User0')['label'].to_list() == [0]
+    assert int(user_scores['label'].sum()) == 1
+    assert scoped['manifest']['extra']['n_excluded'] == 1
+    assert scoped['manifest']['extra']['eval_days'] == [8]
+    assert scoped['split']['n_train'] == full['split']['n_train']
+    a = scoped['summary'].set_index(['segment', 'model'])
+    b = full['summary'].set_index(['segment', 'model'])
+    assert np.array_equal(a['threshold'].to_numpy(), b['threshold'].to_numpy())
+
+
+def test_ml_rejects_duplicate_labels(temp_artifact_dir):
+    path = temp_artifact_dir / 'duplicate.parquet'
+    pl.DataFrame({'DomainName': ['d', 'd'], 'UserName': ['u', 'u'], 'day': [8, 8],
+                  'is_anomaly': [0, 1]}).write_parquet(path)
+    with pytest.raises(ValueError, match='bị lặp'):
+        load_labels(path)

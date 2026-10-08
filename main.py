@@ -48,10 +48,13 @@ def run_pipeline(args):
     # --events-dir chọn MỘT run tiêm: các stage sau tiêm đọc ma trận/nhãn của run và ghi kết quả vào run,
     # không đè data/processed hay experiments/ của log gốc.
     run_layout = None
+    run_eval_days = None
     if args.events_dir:
-        from src.injection.layout import RunLayout
+        from src.injection.layout import RunLayout, load_run_eval_days
 
         run_layout = RunLayout.from_events_dir(args.events_dir)
+        if args.stage in ["all", "benchmark", "baselines"]:
+            run_eval_days = load_run_eval_days(run_layout, args.injection_config)
 
     logger.info("=== UEBA BENCHMARK PIPELINE ===")
     logger.info(f"Cấu hình hệ thống: {args.config}")
@@ -202,6 +205,7 @@ def run_pipeline(args):
             labels_path=labels_path,
             precision_ks=evaluation_cfg.get("precision_ks") or [10, 50, 100],
             daily_budgets=evaluation_cfg.get("daily_budgets") or [10, 50, 100],
+            eval_days=run_eval_days,
         )
 
         logger.info("Số mô hình đã chạy: %d; chia tập: %s", len(result["summary"]), result["split"])
@@ -230,6 +234,7 @@ def run_pipeline(args):
             labels_path=labels_path,
             injected_events_dir=args.events_dir,
             output_dir=out_dir,
+            eval_days=run_eval_days,
             use_segments=False if args.no_segments else None,
         )
         logger.info("--> [Stage Baselines] Điểm: %s | ước lượng L: %s", result["scores_path"], result["lockout"])
