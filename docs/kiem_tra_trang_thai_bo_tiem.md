@@ -4,8 +4,7 @@ Mục đích: liệt kê khâu nào của bộ tiêm đã có, khâu nào còn t
 một run thật. Đối chiếu với đặc tả gốc (6 kịch bản, nhân bản sự kiện thật, chỉ tiêm test, hồ sơ chỉ từ train,
 config dev/test, hook oracle) và các quyết định đã chốt (xem mục 5).
 
-Trạng thái kiểm thử tại thời điểm viết: `python -m pytest tests -q` → **122 passed** (gồm 19 test
-`test_injection_infra.py` và 18 test `test_injection_profiles.py`).
+Trạng thái kiểm thử (cập nhật 2026-10-08, sau mục 3.5 và 3.6): `python -m pytest tests -q` → **203 passed**.
 
 ---
 
@@ -21,11 +20,12 @@ Trạng thái kiểm thử tại thời điểm viết: `python -m pytest tests 
 | Stage features đọc log đè (`--events-dir`) | `src/features/extractor.py`, `main.py` | **Có** | Có (`resolve_day_source`) |
 | Stage baselines đọc log đè | `src/baselines/rule_stats.py`, `runner.py` | **Có** (từ trước) | Có |
 | Thao tác cơ bản + nhân bản khuôn + sinh thời gian | `src/injection/operations.py` | **Có** (2026-10-08) | Có (`test_injection_operations.py`) |
-| 6 kịch bản | `src/injection/scenarios.py` | **THIẾU** | THIẾU |
-| Điều phối: đọc config, chọn nạn nhân, ghi đầu ra | `src/injection/inject.py` | **THIẾU** | THIẾU |
+| 6 kịch bản | `src/injection/scenarios.py` | **Có** (2026-10-08) | Có (`test_injection_scenarios.py`) |
+| Điều phối: đọc config, chọn nạn nhân, ghi đầu ra | `src/injection/inject.py` | **Có** (2026-10-08) | Có (`test_injection_scenarios.py`) |
 | Config tham số kịch bản, khối `dev` / `test` | `configs/injection.yaml` | **Có** (2026-10-08) | Có (`test_configs.py`) |
 | Đếm ứng viên kịch bản 5, 6 + khảo sát trường | `scripts/injection_candidates.py` | **Có** — chờ chạy trên dữ liệu thật | — |
-| Stage benchmark ML đọc ma trận của run | `main.py --stage benchmark` | **THIẾU** (đọc cứng `data/processed/...`) | — |
+| Stage benchmark ML đọc ma trận của run | `main.py --stage benchmark --events-dir` | **Có** (2026-10-08) | — |
+| Stage `inject` / `difficulty` | `main.py` | **Có** (2026-10-08) | — |
 
 ---
 
@@ -105,12 +105,36 @@ Cần hai khối tách biệt `dev` (ngày 43–51) và `test` (ngày 52–60), 
 dẫn hồ sơ (`data/features/train_profiles/`) và thư mục runs. Nên thêm kiểm tra vào `tests/test_configs.py`
 (hai khối không chồng ngày, mọi ngày > `split_day`, seed khác nhau).
 
-### 3.5 Hạ tầng phụ còn thiếu
-- **Stage benchmark ML** chưa nhận đường dẫn ma trận của run → chưa so được ML với baseline trên log đè.
-- **Lệnh chạy** cho bước tiêm và bước oracle chưa có trong `main.py` (chưa có stage `inject` / `difficulty`).
-- **`.gitignore`** chưa có thư mục runs (mỗi run ghi lại ~200 MB/ngày đè; 9 ngày ≈ 2 GB). Nên đặt runs dưới
-  một thư mục đã bị ignore hoặc thêm dòng ignore.
-- **Tài liệu:** `README.md` và `docs/project_structure.md` chưa nhắc tới `src/injection/`.
+### 3.5 Hạ tầng phụ *(đã xong 2026-10-08)*
+- **Stage benchmark / baselines theo run:** `--events-dir <run>/events_injected` giờ chọn một run cho mọi stage
+  sau tiêm. `benchmark` đọc `<run>/processed/`, nhãn mặc định `<run>/labels.parquet`, ghi `<run>/results/`,
+  `<run>/models/`, `<run>/results/experiment_log.csv`; `baselines` ghi `<run>/results/baselines/` — run sau không
+  còn đè run trước, và không đụng `experiments/` của log gốc (giải quyết luôn lưu ý ở 2.5).
+- **Lệnh chạy:** stage `inject` (`--block dev|test`, `--run-id`) và stage `difficulty` (`--oracle`, mặc định `none`).
+- **`.gitignore`:** thêm `data/injection_runs/`. (Trước đó comment trong `configs/injection.yaml` nói "data/ đã
+  ignore" là **sai** — `.gitignore` chỉ ignore từng thư mục con của `data/`, nên run tiêm có thể bị commit nhầm.)
+- **Tài liệu:** `README.md` (cây thư mục + mục "Chạy một run tiêm log") và `docs/project_structure.md` (mục E,
+  danh sách stage) đã nhắc tới `src/injection/`.
+
+### 3.6 Rà soát bộ tiêm (2026-10-08) — lỗi đã sửa
+| Vấn đề | Hậu quả | Sửa |
+|---|---|---|
+| `_own_success_chain` lấy chuỗi 4624 vắt qua nhiều ngày train | chuỗi dài ≥ 86400s không bao giờ vừa `hour_window [0,6]` → off_hours bỏ nạn nhân | chuỗi lấy trong **một** ngày train có ≥ n sự kiện (đúng quyết định ở mục 5) |
+| Nạn nhân dựng hỏng bị bỏ, không lấy người kế | run có thể thiếu nạn nhân dù còn ứng viên | `_run_simple` duyệt ứng viên đã xáo tới khi đủ `n_victims` |
+| Ứng viên xáo trộn từ thứ tự dòng của join/unique/group_by polars (không cố định) | **cùng seed ra run khác** | sắp ứng viên trước khi xáo |
+| Kho khuôn `.unique()` không giữ thứ tự, `pick` rút theo chỉ số | **cùng seed ra sự kiện khác** | sắp kho theo mọi cột |
+| Kho khuôn dùng window `over` trên scan cả 42 ngày train | polars nạp toàn bộ log train → tràn RAM | xử lý **từng file**, `group_by(...).head(peer_cap)` (kết quả tương đương) |
+| Source chiến dịch spraying chỉ kiểm "lạ" với nạn nhân đầu | nạn nhân khác có thể đã quen máy đó → không còn là "máy mới" | Source phải lạ với mọi nạn nhân chiến dịch |
+| Chiến dịch spraying hỏng không trả lại suất tài khoản | tài khoản bị khoá oan cho các kịch bản sau | trả lại suất |
+
+Test mới: `test_same_seed_gives_identical_run`, `test_spraying_source_is_new_for_every_campaign_victim`.
+
+**Còn lưu ý (chưa sửa, không phải lỗi):**
+- off_hours replay giữ nguyên khoảng cách sự kiện nên chuỗi train trải > 6 giờ không vừa cửa sổ `[0, 6]` → kịch
+  bản ưu tiên ngầm các chuỗi ngắn. Cần xem tỉ lệ bỏ trong log khi chạy `dev` thật.
+- `_check_run` đọc lại toàn bộ file đè + file gốc mỗi ngày (≈ 2 lần I/O ghi) — chậm nhưng đúng.
+- Môi trường: numpy conda-forge + `mkl 2026.1.0` làm Python sập (`0xc06d007f`) ở mọi phép BLAS; đã đổi sang
+  OpenBLAS: `conda install -n ueba-benchmark -c conda-forge "libblas=*=*openblas"`.
 
 ---
 

@@ -36,6 +36,13 @@ ueba-benchmark/
 │   │   ├── template_engine.py      # Bộ sinh đặc trưng template tự động theo lô
 │   │   └── preprocessor.py         # Chuẩn hóa log1p, xử lý NULL có kiểm soát
 │   ├── models/                     # Tầng mô hình bất thường (Phase 3: IF, LOF, OCSVM, Baselines)
+│   ├── injection/                  # Bộ tiêm log: 6 kịch bản nhân bản sự kiện thật vào ngày test (tầng interim)
+│   │   ├── profiles.py             # Hồ sơ TỪ TRAIN (tài khoản, máy, ngưỡng khoá L)
+│   │   ├── operations.py           # Kho khuôn, nhân bản sự kiện, sinh thời gian theo profile
+│   │   ├── scenarios.py            # 6 kịch bản (brute-force, spraying, ngoài giờ, máy lạ, ngủ đông, đổi LogonType)
+│   │   ├── inject.py               # Điều phối một khối dev/test: chọn nạn nhân, ghi log đè + manifest + nhãn
+│   │   ├── layout.py / labels.py   # Bố cục thư mục run, nhãn từ manifest
+│   │   └── difficulty.py           # Hook oracle độ khó (hiện chỉ có oracle "none")
 │   └── evaluation/                 # Tầng đánh giá time-split, metrics, tiêm tấn công & manifest
 │       ├── injection.py            # Khung tiêm bất thường tổng hợp (Synthetic Injection)
 │       ├── split.py                # Time-based train/test partition (Day 42)
@@ -170,6 +177,24 @@ python main.py --stage benchmark --models isolation_forest local_outlier_factor 
 # Hoặc chạy toàn bộ 6 mô hình mặc định:
 python main.py --stage benchmark
 ```
+
+### Chạy một run tiêm log (`configs/injection.yaml`)
+
+Mỗi run ghi vào `data/injection_runs/<run_id>/` (đã ignore). Sau bước `inject`, mọi stage nhận
+`--events-dir <run>/events_injected` sẽ đọc ma trận + nhãn **của run** và ghi kết quả vào chính thư mục run,
+không đè `data/processed/` hay `experiments/` của log gốc. Cần có hồ sơ train trước
+(`python scripts/injection_profiles_summary.py`) và kết quả baselines trên log gốc (để bỏ tài khoản-ngày luật đã cờ).
+
+```bash
+python main.py --stage inject --block dev                                  # -> data/injection_runs/dev_seed<seed>/
+RUN=data/injection_runs/dev_seed<seed>
+python main.py --stage features   --events-dir $RUN/events_injected       # -> $RUN/features/raw, $RUN/processed
+python main.py --stage baselines  --events-dir $RUN/events_injected       # -> $RUN/results/baselines (nhãn $RUN/labels.parquet)
+python main.py --stage benchmark  --events-dir $RUN/events_injected       # -> $RUN/results, $RUN/models
+python main.py --stage difficulty --events-dir $RUN/events_injected       # -> $RUN/difficulty.parquet (oracle "none")
+```
+
+Khối `test` (`--block test`) chỉ chạy **một lần** ở cuối, sau khi đã chốt tham số trên `dev`.
 
 ---
 
