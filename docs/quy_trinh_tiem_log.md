@@ -111,9 +111,12 @@ python main.py --stage features --events-dir <runs_dir>/<run_id>/events_injected
 python main.py --stage baselines --events-dir <run>/events_injected --labels <run>/labels.parquet
 ```
 - Ba baseline (random, z-score, luật ECDF/ngưỡng ngoài), ngưỡng = phân vị train budget 1%.
-- Baseline tự ghi vào `<run>/results/baselines/`; không cần sửa `common.output_dir`.
+- Kết quả **không nằm trong `data/`**: mọi kết quả của run ghi vào `experiments/injection_runs/<run_id>/`
+  (`paths.injection_results_dir` trong `configs/system_config.yaml`), kèm bản sao `labels.parquet` và
+  `run_config.json`. Thư mục `results/` được commit, `models/` (.joblib) thì không.
+- Baseline tự ghi vào `experiments/injection_runs/<run_id>/results/baselines/`; không cần sửa `common.output_dir`.
 - ML chạy bằng `python main.py --stage benchmark --events-dir <run>/events_injected`, đọc cùng ma trận
-  và nhãn, ghi vào `<run>/results/` và `<run>/models/`.
+  và nhãn, ghi vào `experiments/injection_runs/<run_id>/results/` và `.../models/`.
 - `run_config.json` cố định ngày đánh giá: dev 43–51, test 52–60. Ngày không có sự kiện tiêm vẫn thuộc
   khối đánh giá. Run cũ chưa có file này dùng cột `split` của manifest và `configs/injection.yaml`;
   phải giữ cấu hình ngày của run cũ khi dùng đường tương thích này.

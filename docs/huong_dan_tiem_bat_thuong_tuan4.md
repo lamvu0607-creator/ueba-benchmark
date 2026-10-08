@@ -138,8 +138,14 @@ Ví dụ dùng `run_id = dev_w4_01`:
 | `labels.parquet` | Nhãn tài khoản-ngày từ manifest; dùng khi đánh giá. |
 | `run_config.json` | `run_id`, block, seed tiêm, split day và toàn bộ `eval_days`. Không lưu toàn bộ YAML tham số. |
 | `features/raw/`, `processed/` | Ma trận tính lại từ interim + bản log của run. |
-| `results/`, `models/` | Kết quả và mô hình khi chạy benchmark với `--events-dir` của run. |
+
+Kết quả benchmark **không** nằm trong `data/injection_runs/<run_id>/` mà ở `experiments/injection_runs/<run_id>/`:
+
+| Thành phần | Ý nghĩa |
+|---|---|
+| `results/`, `models/` | Kết quả (được commit) và mô hình .joblib (không commit) khi chạy benchmark với `--events-dir` của run. |
 | `results/baselines/` | Kết quả baseline trên chính dữ liệu của run. |
+| `labels.parquet`, `run_config.json` | Bản sao từ run để thư mục kết quả tự đủ khi vẽ hình. |
 
 Không tái dùng `run_id` để thử cấu hình khác: code chưa có cơ chế đóng băng run hoặc từ chối ghi đè đầy đủ, có nguy cơ giữ lại file ngày cũ. Mỗi phiên bản tiêm dùng tên mới; khi lỗi giữa chừng, không coi thư mục đã xuất hiện là run hoàn chỉnh.
 

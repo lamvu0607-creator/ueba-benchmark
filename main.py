@@ -52,7 +52,9 @@ def run_pipeline(args):
     if args.events_dir:
         from src.injection.layout import RunLayout, load_run_eval_days
 
-        run_layout = RunLayout.from_events_dir(args.events_dir)
+        run_layout = RunLayout.from_events_dir(
+            args.events_dir, paths.get("injection_results_dir", "experiments/injection_runs")
+        )
         if args.stage in ["all", "benchmark", "baselines"]:
             run_eval_days = load_run_eval_days(run_layout, args.injection_config)
 
@@ -164,6 +166,7 @@ def run_pipeline(args):
         if run_layout is not None:
             matrix_dir, models_out, results_out = run_layout.processed_dir, run_layout.models_dir, run_layout.results_dir
             experiment_log = run_layout.results_dir / "experiment_log.csv"
+            run_layout.export_run_metadata()
             if args.labels is None:
                 labels_path = run_layout.labels_path
             logger.info("--> [Stage 3: Benchmark] Run '%s' (nhãn: %s).", run_layout.root, labels_path)
@@ -222,8 +225,9 @@ def run_pipeline(args):
         labels_path = args.labels if args.labels is not None else evaluation_cfg.get("labels_path")
         data_dir, out_dir = processed_dir, None
         if run_layout is not None:
-            # Log đè: ma trận + nhãn của run, kết quả ghi vào <run>/results/baselines (run sau không đè run trước).
+            # Log đè: ma trận + nhãn của run, kết quả ghi vào experiments/injection_runs/<run_id>/results/baselines (run sau không đè run trước).
             data_dir, out_dir = run_layout.processed_dir, run_layout.results_dir / "baselines"
+            run_layout.export_run_metadata()
             if args.labels is None:
                 labels_path = run_layout.labels_path
         result = run_baselines(

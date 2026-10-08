@@ -11,6 +11,8 @@ paths:
   experiment_log: "experiments/logs/experiment_log.csv"
   models_dir: "experiments/models"
   results_dir: "experiments/results"
+  # Kết quả benchmark/baselines của run tiêm (--events-dir): <đây>/<run_id>/{results,models}, không nằm trong data/
+  injection_results_dir: "experiments/injection_runs"
   figures_dir: "experiments/figures"
 
 preprocessing:

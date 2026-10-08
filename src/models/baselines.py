@@ -51,12 +51,16 @@ class ZScoreBaseline(BaseAnomalyModel):
     Tham số (đọc từ ``configs/model_params.yaml`` -> ``zscore_baseline``):
       * ``method``: ``"robust"`` (median/MAD*1.4826 — mặc định, chống outlier) hoặc ``"classic"`` (mean/std),
       * ``agg``: ``"max"`` (mặc định, "có bất kỳ đặc trưng nào lệch mạnh") | ``"mean"`` | ``"p95"``,
-      * ``z_threshold`` + ``threshold_mode: "fixed"`` nếu muốn ngưỡng tuyệt đối cổ điển (|z| >= 3).
+      * ``z_threshold`` + ``threshold_mode: "fixed"`` nếu muốn ngưỡng tuyệt đối cổ điển (|z| >= 3),
+      * ``scale_fallback`` (khi ``method="robust"``) — độ tán xạ thay thế cho đặc trưng có MAD = 0:
 
-    Độ tán xạ khi ``method="robust"`` dùng chuỗi fallback ``MAD -> IQR/1.349 -> std -> 1.0``: trên dữ liệu
-    thật 7/16 đặc trưng có MAD = 0 (hơn nửa số dòng bằng đúng median, ví dụ các ratio vốn bằng 0),
-    nên nếu cứ đặt scale = 1 thì đơn vị thô của một vài đặc trưng sẽ lấn át toàn bộ điểm.
-    Số đặc trưng phải fallback luôn được ghi log để người đọc biết kết quả dựa trên gì.
+        - ``"mad_floor"`` (mặc định): **z-score toàn cục** đúng như ``zscore_global`` của stage baselines
+          (``src/baselines/zscore_baseline.py``): sàn = 1.4826 × phân vị ``mad_floor_quantile`` của các độ
+          lệch KHÁC 0 trên tập fit (dung sai ``zero_tolerance``); đặc trưng hằng số đóng góp 0;
+        - ``"iqr_std"``: chuỗi cũ ``MAD -> IQR/1.349 -> std -> 1.0`` (giữ để tái lập kết quả trước 2026-10-09).
+
+    MAD = 0 xảy ra khi hơn nửa số dòng bằng đúng median (các ratio vốn bằng 0); đặt scale = 1 thì đơn vị
+    thô của vài đặc trưng sẽ lấn át toàn bộ điểm. Số đặc trưng phải fallback luôn được ghi log.
 
     Không cần scale vì điểm tự chuẩn hoá theo từng đặc trưng (``requires_scaling = False``).
     """
@@ -69,7 +73,19 @@ class ZScoreBaseline(BaseAnomalyModel):
 
     def _fit_estimator(self, X: np.ndarray) -> None:
         method = str(self.native_params.get("method", "robust"))
-        if method == "robust":
+        fallback = str(self.native_params.get("scale_fallback", "mad_floor"))
+        if method == "robust" and fallback == "mad_floor":
+            from src.baselines.zscore_baseline import DEFAULT_ZERO_TOLERANCE, robust_location_scale
+
+            q = float(self.native_params.get("mad_floor_quantile", 0.25))
+            tol = float(self.native_params.get("zero_tolerance", DEFAULT_ZERO_TOLERANCE))
+            self.location_, mad, scale = robust_location_scale(X, q, tol)
+            logger.info(
+                "[%s] z-score toàn cục: %d/%d đặc trưng MAD = 0 dùng sàn (q=%.3g); %d hằng số (đóng góp 0).",
+                self.name, int(((mad <= 0) & np.isfinite(scale)).sum()), X.shape[1], q,
+                int((~np.isfinite(scale)).sum()),
+            )
+        elif method == "robust" and fallback == "iqr_std":
             self.location_ = np.median(X, axis=0)
             # Chuỗi fallback cho độ tán xạ (đo trên dữ liệu thật: 7/16 đặc trưng có MAD = 0 vì
             # hơn nửa số dòng bằng đúng median — nếu đặt scale = 1 thì đơn vị thô (ví dụ
@@ -93,6 +109,10 @@ class ZScoreBaseline(BaseAnomalyModel):
                     n_degenerate,
                 )
             scale = np.where(scale > 0, scale, 1.0)
+        elif method == "robust":
+            raise ValueError(
+                f"scale_fallback không hợp lệ cho ZScoreBaseline: {fallback!r}. Chỉ hỗ trợ 'mad_floor' hoặc 'iqr_std'."
+            )
         elif method == "classic":
             self.location_ = X.mean(axis=0)
             std = X.std(axis=0)

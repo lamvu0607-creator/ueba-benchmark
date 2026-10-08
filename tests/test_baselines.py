@@ -123,6 +123,23 @@ def test_global_zscore_mad_zero_uses_floor_and_constant_excluded():
     assert model.score(pl.DataFrame({"x": [0.0], "c": [50.0]}))[0] == 0.0
 
 
+def test_registry_zscore_baseline_is_global_zscore():
+    """zscore_baseline của benchmark (mặc định scale_fallback=mad_floor) = zscore_global của stage baselines."""
+    from src.models.baselines import ZScoreBaseline
+
+    rng = np.random.default_rng(0)
+    train = pl.DataFrame({"a": rng.normal(size=400), "b": np.r_[np.zeros(300), rng.exponential(size=100)],
+                          "c": np.full(400, 2.0)})
+    test = pl.DataFrame({"a": rng.normal(size=50) * 3, "b": rng.exponential(size=50) * 4, "c": np.full(50, 9.0)})
+    ref = GlobalRobustZScore(["a", "b", "c"], mad_floor_quantile=0.25).fit(train)
+    reg = ZScoreBaseline(contamination=0.05, mad_floor_quantile=0.25).fit(train.to_numpy())
+    assert np.allclose(reg.score(test.to_numpy()), ref.score(test))
+    legacy = ZScoreBaseline(contamination=0.05, scale_fallback="iqr_std").fit(train.to_numpy())
+    assert not np.allclose(legacy.score(test.to_numpy()), ref.score(test))
+    with pytest.raises(ValueError, match="scale_fallback"):
+        ZScoreBaseline(contamination=0.05, scale_fallback="nope").fit(train.to_numpy())
+
+
 def test_global_zscore_imputes_null_with_train_median():
     train = pl.DataFrame({"x": [1.0, 2.0, None, 4.0, 5.0]})
     model = GlobalRobustZScore(["x"]).fit(train)

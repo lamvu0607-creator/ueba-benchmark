@@ -19,7 +19,13 @@ Một run nằm trong ``<injection_runs_dir>/<run_id>/``::
     labels.parquet               nhãn chuẩn is_anomaly / eval_exclude sinh từ manifest
     run_config.json              block, seed, split_day, đầy đủ eval_days của run
     features/raw/, processed/    ma trận đặc trưng tính lại trên log đã tiêm
-    results/, models/            kết quả benchmark của run
+
+Kết quả benchmark KHÔNG nằm trong ``data/`` mà ở ``<experiments_dir>/<run_id>/`` (mặc định
+``experiments/injection_runs``, khoá ``paths.injection_results_dir`` của system_config.yaml)::
+
+    results/        benchmark_summary.csv, anomaly_scores.parquet, run_manifest.json... (+ baselines/)
+    models/         mô hình .joblib (không commit)
+    labels.parquet, run_config.json   bản sao từ run để thư mục kết quả tự đủ (vẽ hình, đối chiếu)
 """
 
 from __future__ import annotations
@@ -27,7 +33,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 import json
 from pathlib import Path
-from typing import Iterable, List, Tuple
+from typing import Iterable, List, Optional, Tuple
 
 import polars as pl
 import yaml
@@ -61,6 +67,7 @@ def load_run_eval_days(layout: "RunLayout", config_path: Path | str = "configs/i
 
 __all__ = [
     "load_run_eval_days",
+    "DEFAULT_EXPERIMENTS_DIR",
     "SECONDS_PER_DAY",
     "EVENT_IDS",
     "InjectionLayoutError",
@@ -74,6 +81,8 @@ __all__ = [
 ]
 
 SECONDS_PER_DAY = 86400
+#: Gốc mặc định của kết quả benchmark trên run tiêm (system_config.yaml → paths.injection_results_dir).
+DEFAULT_EXPERIMENTS_DIR = Path("experiments/injection_runs")
 EVENT_IDS: Tuple[int, ...] = (4624, 4625)
 
 
@@ -136,17 +145,20 @@ class RunLayout:
     """Đường dẫn của mọi artifact trong một run tiêm (gắn với ``run_id``)."""
 
     root: Path
+    experiments_dir: Path = DEFAULT_EXPERIMENTS_DIR
 
     @classmethod
-    def for_run(cls, runs_dir: Path | str, run_id: str) -> "RunLayout":
+    def for_run(cls, runs_dir: Path | str, run_id: str,
+                experiments_dir: Optional[Path | str] = None) -> "RunLayout":
         if not run_id or any(ch in run_id for ch in r"\/:"):
             raise ValueError(f"run_id không hợp lệ: {run_id!r}.")
-        return cls(Path(runs_dir) / run_id)
+        return cls(Path(runs_dir) / run_id, Path(experiments_dir or DEFAULT_EXPERIMENTS_DIR))
 
     @classmethod
-    def from_events_dir(cls, events_dir: Path | str) -> "RunLayout":
+    def from_events_dir(cls, events_dir: Path | str,
+                        experiments_dir: Optional[Path | str] = None) -> "RunLayout":
         """Suy ra run từ thư mục ``events_injected`` (thư mục cha của nó là gốc run)."""
-        return cls(Path(events_dir).resolve().parent)
+        return cls(Path(events_dir).resolve().parent, Path(experiments_dir or DEFAULT_EXPERIMENTS_DIR))
 
     @property
     def run_id(self) -> str:
@@ -181,12 +193,28 @@ class RunLayout:
         return self.root / "processed"
 
     @property
+    def experiment_root(self) -> Path:
+        """Thư mục kết quả benchmark của run (ngoài ``data/``)."""
+        return self.experiments_dir / self.run_id
+
+    @property
     def results_dir(self) -> Path:
-        return self.root / "results"
+        return self.experiment_root / "results"
 
     @property
     def models_dir(self) -> Path:
-        return self.root / "models"
+        return self.experiment_root / "models"
+
+    def export_run_metadata(self) -> List[Path]:
+        """Chép nhãn + cấu hình run sang thư mục kết quả để nó tự đủ (``<results>/../labels.parquet``)."""
+        import shutil
+
+        self.experiment_root.mkdir(parents=True, exist_ok=True)
+        copied = []
+        for src in (self.labels_path, self.root / "run_config.json"):
+            if src.is_file():
+                copied.append(Path(shutil.copy2(src, self.experiment_root / src.name)))
+        return copied
 
     def events_file(self, event_id: int, day: int) -> Path:
         return interim_day_path(self.events_dir, event_id, day)
