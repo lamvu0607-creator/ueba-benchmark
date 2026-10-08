@@ -78,3 +78,8 @@ evaluation:
   k_metric: 20 # Top-K cho Precision@K và top-K overlap
   budget_ratio: 0.05 # ngân sách cảnh báo cho Precision@budget / Recall@budget
   seeds: [42, 7, 2024] # đa seed cho kiểm tra ổn định của mô hình có lấy mẫu con
+  # Bộ chỉ số mục 5.4 (cần nhãn): bật khi labels_path trỏ tới file nhãn (parquet/csv có DomainName,
+  # UserName, day[, label, scenario] — vd. nhãn của bất thường tiêm mục 5.2). null = chạy label-free.
+  labels_path: null
+  precision_ks: [10, 50, 100] # Precision@k
+  daily_budgets: [10, 50, 100] # Recall tại ngân sách: số cảnh báo analyst xử lý được MỖI NGÀY

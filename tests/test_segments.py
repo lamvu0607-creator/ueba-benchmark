@@ -12,7 +12,7 @@ import polars as pl
 import pytest
 import yaml
 
-from src.models.benchmark import ALL_SEGMENT, SegmentConfig, run_model_benchmark, split_segments
+from src.models.benchmark import ALL_SEGMENT, SegmentConfig, load_labels, run_model_benchmark, split_segments
 from src.models.pipeline import AnomalyPipeline
 
 PARAMS_PATH = Path(__file__).resolve().parents[1] / "configs" / "model_params.yaml"
@@ -180,3 +180,47 @@ def test_benchmark_without_segments_keeps_single_population(temp_artifact_dir):
 
     forced = run(temp_artifact_dir / "forced", use_segments=False)
     assert forced["segments"] is None and set(forced["summary"]["segment"]) == {ALL_SEGMENT}
+
+
+def test_benchmark_with_labels_reports_section_5_4_metrics(temp_artifact_dir):
+    """File nhãn ⇒ benchmark_summary có PR-AUC/ROC-AUC/P@k/Recall tại ngân sách, tính trong từng phân khúc."""
+    temp_artifact_dir.mkdir(parents=True, exist_ok=True)
+    # 3 dòng User ở tập test (day > 7) là dị biệt; Machine không có nhãn dương ⇒ NaN; 1 dòng train bị cảnh báo.
+    labels_path = temp_artifact_dir / "labels.csv"
+    pd.DataFrame(
+        {
+            "DomainName": ["DOM"] * 4,
+            "UserName": ["User1", "User2", "User3", "User1"],
+            "day": [8, 9, 10, 3],
+            "scenario": ["brute_force", "off_hours", "lateral_fanout", "brute_force"],
+        }
+    ).to_csv(labels_path, index=False)
+    assert load_labels(labels_path)["label"].to_list() == [1, 1, 1, 1]
+
+    result = run(temp_artifact_dir, labels_path=labels_path, precision_ks=(10, 50), daily_budgets=(1, 5))
+    summary = result["summary"].set_index(["segment", "model"])
+    for col in ("pr_auc", "roc_auc", "precision_at_10", "precision_at_50", "recall_at_budget",
+                "recall_at_1_per_day", "recall_at_5_per_day", "alerts_per_day_mean"):
+        assert col in summary.columns
+
+    user = summary.loc[("User", "isolation_forest")]
+    assert user["n_positive"] == 3
+    assert 0.0 <= user["pr_auc"] <= 1.0 and 0.0 <= user["roc_auc"] <= 1.0
+    assert user["recall_at_5_per_day"] >= user["recall_at_1_per_day"]
+    assert np.isnan(summary.loc[("Machine", "isolation_forest"), "pr_auc"])
+    assert summary.loc[("Machine", "isolation_forest"), "n_positive"] == 0
+
+    assert int(result["scores"]["label"].sum()) == 3
+    stats = result["manifest"]["extra"]["labels"]
+    assert stats["n_positive_in_test"] == 3 and stats["n_positive_in_train"] == 1
+    assert stats["n_positive_unmatched"] == 0
+
+    on_disk = pd.read_csv(temp_artifact_dir / "results" / "benchmark_summary.csv")
+    assert "pr_auc" in on_disk.columns
+
+
+def test_benchmark_without_labels_has_no_labeled_columns(temp_artifact_dir):
+    result = run(temp_artifact_dir)
+    assert "pr_auc" not in result["summary"].columns
+    assert "alerts_per_day_mean" in result["summary"].columns
+    assert "label" not in result["scores"].columns

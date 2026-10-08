@@ -19,10 +19,14 @@ from src.evaluation.metrics import (
     average_precision,
     budget_flags,
     budget_size,
+    daily_budget_flags,
+    labeled_metric_columns,
+    labeled_metrics,
     pairwise_stability,
     precision_at_k,
     rank_correlation,
     recall_at_budget,
+    recall_at_daily_budget,
     roc_auc,
     score_quantiles,
     timed,
@@ -120,7 +124,7 @@ def test_evaluation_metrics():
     assert quantiles["p00"] == 0.1
     assert quantiles["p100"] == 0.9
 
-    # Chỉ số cần nhãn (dùng chính thức từ Tuần 4) đã đúng trên nhãn tổng hợp.
+    # Chỉ số cần nhãn (bộ chỉ số mục 5.4) đúng trên nhãn tổng hợp.
     assert precision_at_k(labels, scores, 2) == 1.0
     assert recall_at_budget(labels, scores, 0.4) == 1.0
     assert roc_auc(labels, scores) == 1.0
@@ -149,6 +153,54 @@ def test_evaluation_metrics():
         recall_at_budget(np.zeros(5, dtype=int), scores, 0.4)
     with pytest.raises(ValueError, match="ít nhất 2"):
         pairwise_stability([scores], k=2)
+
+
+def test_daily_budget_recall():
+    """Recall tại ngân sách ngày: mỗi ngày chỉ N dòng điểm cao nhất được cảnh báo."""
+    days = np.array([1, 1, 1, 2, 2, 2])
+    scores = np.array([0.9, 0.8, 0.1, 0.2, 0.7, 0.6])
+    labels = np.array([0, 1, 0, 1, 0, 0])
+
+    assert daily_budget_flags(scores, days, 1).tolist() == [1, 0, 0, 0, 1, 0]
+    assert daily_budget_flags(scores, days, 2).tolist() == [1, 1, 0, 0, 1, 1]
+    assert daily_budget_flags(scores, days, 10).tolist() == [1] * 6  # ngày ít dòng hơn N ⇒ bật hết
+    # Thứ tự dòng không theo ngày vẫn đúng.
+    perm = np.array([5, 0, 3, 1, 4, 2])
+    assert daily_budget_flags(scores[perm], days[perm], 1).tolist() == [0, 1, 0, 0, 1, 0]
+
+    assert recall_at_daily_budget(labels, scores, days, 1) == 0.0
+    assert recall_at_daily_budget(labels, scores, days, 2) == 0.5
+    assert recall_at_daily_budget(labels, scores, days, 3) == 1.0
+    with pytest.raises(ValueError, match="alerts_per_day"):
+        daily_budget_flags(scores, days, 0)
+
+
+def test_labeled_metrics_suite():
+    """Bộ chỉ số mục 5.4 gom thành một dict; trường hợp không xác định ⇒ NaN thay vì lỗi."""
+    rng = np.random.default_rng(0)
+    n = 200
+    labels = np.zeros(n, dtype=int)
+    labels[:20] = 1
+    scores = rng.normal(size=n) + 3 * labels  # dương tính điểm cao hơn
+    days = np.repeat(np.arange(10), 20)
+
+    out = labeled_metrics(labels, scores, days=days, ks=(10, 50, 500), budget_ratio=0.1, daily_budgets=(2, 5))
+    assert list(out) == labeled_metric_columns((10, 50, 500), (2, 5))
+    assert out["n_positive"] == 20 and out["positive_rate_pct"] == pytest.approx(10.0)
+    assert out["pr_auc"] == pytest.approx(average_precision(labels, scores))
+    assert out["roc_auc"] == pytest.approx(roc_auc(labels, scores))
+    assert out["precision_at_10"] == pytest.approx(precision_at_k(labels, scores, 10))
+    assert np.isnan(out["precision_at_500"])  # k > số dòng
+    assert out["recall_at_budget"] == pytest.approx(recall_at_budget(labels, scores, 0.1))
+    assert out["recall_at_2_per_day"] == pytest.approx(recall_at_daily_budget(labels, scores, days, 2))
+    assert out["pr_auc"] > 0.5 and out["roc_auc"] > 0.9
+
+    no_days = labeled_metrics(labels, scores, ks=(10,), daily_budgets=(2,))
+    assert np.isnan(no_days["recall_at_2_per_day"]) and not np.isnan(no_days["pr_auc"])
+
+    empty = labeled_metrics(np.zeros(n, dtype=int), scores, days=days)
+    assert empty["n_positive"] == 0
+    assert all(np.isnan(v) for k, v in empty.items() if k not in ("n_positive", "positive_rate_pct"))
 
 
 def test_score_rank_pct_matches_score_order():

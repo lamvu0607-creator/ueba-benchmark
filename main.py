@@ -77,17 +77,26 @@ def run_pipeline(args):
         )
 
         raw_feature_out = features_dir / "raw"
+        processed_out = processed_dir
+        if args.events_dir:
+            # Log đã tiêm -> ma trận ghi vào thư mục của run, KHÔNG đè ma trận gốc trong data/.
+            from src.injection.layout import RunLayout
+
+            run_layout = RunLayout.from_events_dir(args.events_dir)
+            raw_feature_out, processed_out = run_layout.features_raw_dir, run_layout.processed_dir
+            logger.info("--> [Stage 2: Features] Dùng log đè '%s' -> ghi vào run '%s'.", args.events_dir, run_layout.root)
         df_raw = build_account_day_matrix(
             start_day=args.start_day,
             end_day=args.end_day,
             interim_dir=interim_dir,
             output_dir=raw_feature_out,
             config=sys_cfg,
+            events_dir=args.events_dir,
         )
 
         if df_raw.height > 0:
             # Tiền xử lý / chuẩn hóa sang Tier 4 (Processed)
-            processed_file = processed_dir / "feature_matrix_processed.parquet"
+            processed_file = processed_out / "feature_matrix_processed.parquet"
             raw_matrix_file = raw_feature_out / "feature_matrix_raw.parquet"
             df_processed = prepare_processed_dataset(
                 raw_feature_path=raw_matrix_file,
@@ -139,6 +148,7 @@ def run_pipeline(args):
             args.budget_ratio if args.budget_ratio is not None else evaluation_cfg.get("budget_ratio", 0.05)
         )
         stability_seeds = evaluation_cfg.get("seeds") or [seed]
+        labels_path = args.labels if args.labels is not None else evaluation_cfg.get("labels_path")
 
         logger.info(
             "--> [Stage 3: Benchmark] %d mô hình | train = day <= %s | seed=%s | K=%s | ngân sách=%.1f%%",
@@ -173,6 +183,9 @@ def run_pipeline(args):
             experiment_log_path=paths.get("experiment_log", "experiments/logs/experiment_log.csv"),
             system_config_path=args.config,
             use_segments=not args.no_segments,
+            labels_path=labels_path,
+            precision_ks=evaluation_cfg.get("precision_ks") or [10, 50, 100],
+            daily_budgets=evaluation_cfg.get("daily_budgets") or [10, 50, 100],
         )
 
         logger.info("Số mô hình đã chạy: %d; chia tập: %s", len(result["summary"]), result["split"])
@@ -180,6 +193,22 @@ def run_pipeline(args):
         for name, path in result["artifacts"].items():
             logger.info("  - %s: %s", name, path)
         logger.info("--> [Stage 3: Benchmark] Hoàn tất huấn luyện, chấm điểm và xuất bảng xếp hạng.")
+
+    # Stage baselines (chỉ chạy khi gọi tường minh): random / z-score robust / luật ECDF, ngưỡng từ train.
+    if args.stage == "baselines":
+        from src.baselines.runner import run_baselines
+
+        evaluation_cfg = sys_cfg.get("evaluation", {}) or {}
+        result = run_baselines(
+            system_config_path=args.config,
+            baselines_config_path=args.baselines_config,
+            params_path=args.model_params,
+            data_path=processed_dir / "feature_matrix_processed.parquet",
+            labels_path=args.labels if args.labels is not None else evaluation_cfg.get("labels_path"),
+            injected_events_dir=args.events_dir,
+            use_segments=False if args.no_segments else None,
+        )
+        logger.info("--> [Stage Baselines] Điểm: %s | ước lượng L: %s", result["scores_path"], result["lockout"])
 
 
 def main():
@@ -199,9 +228,9 @@ def main():
     parser.add_argument(
         "--stage",
         type=str,
-        choices=["all", "clean", "features", "benchmark"],
+        choices=["all", "clean", "features", "benchmark", "baselines"],
         default="all",
-        help="Pipeline stage to execute (all, clean, features, benchmark)",
+        help="Pipeline stage to execute (all, clean, features, benchmark; 'baselines' runs only when named)",
     )
     parser.add_argument(
         "--models",
@@ -256,6 +285,27 @@ def main():
         "--no-segments",
         action="store_true",
         help="Ignore the 'segments' block of model_params.yaml and fit one model on all rows",
+    )
+    parser.add_argument(
+        "--labels",
+        type=str,
+        default=None,
+        help="Label file (DomainName, UserName, day[, label, scenario]) enabling the section 5.4 metrics "
+        "(default: evaluation.labels_path)",
+    )
+
+    parser.add_argument(
+        "--baselines-config",
+        type=str,
+        default="configs/baselines.yaml",
+        help="Baseline configuration YAML (stage 'baselines')",
+    )
+    parser.add_argument(
+        "--events-dir",
+        type=str,
+        default=None,
+        help="Overlay events directory (events_injected/ of a run): its days replace the original logs in "
+        "stages 'features' (output goes to the run directory) and 'baselines'",
     )
 
     args = parser.parse_args()
