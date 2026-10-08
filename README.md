@@ -1,4 +1,4 @@
-# UEBA Benchmark: Windows Security Event Log (4624 / 4625)
+# UEBA Benchmark: Windows Security Event Log (4624 / 4625) bu cac
 
 Hệ thống pipeline benchmark các mô hình phát hiện bất thường (Anomaly Detection) cho bài toán **Phân tích hành vi người dùng (UEBA)**, khai thác các sự kiện đăng nhập thành công (`EventID 4624`) và thất bại (`EventID 4625`) trên hệ điều hành Windows.
 
@@ -326,4 +326,4 @@ Tài liệu tham khảo:
 * **Báo cáo bộ đặc trưng v3.0 (24 core)**: [`docs/reports/bao_cao_bo_dac_trung_v3.md`](docs/reports/bao_cao_bo_dac_trung_v3.md)
 * **Báo cáo tóm tắt Tuần 3**: [`reports/week3/tom_tat_tuan3.md`](reports/week3/tom_tat_tuan3.md)
 * **Phân tích chi tiết & bằng chứng label-free**: [`reports/week3/label_free_benchmark.md`](reports/week3/label_free_benchmark.md)
-* **Từ điển dữ liệu 21 trường log LANL**: [`docs/data_dictionary.md`](docs/data_dictionary.md)
+* **Từ điển dữ liệu 21 trường log LANL**: [`docs/data_dictionary.md`](docs/data_dictionary.md)
