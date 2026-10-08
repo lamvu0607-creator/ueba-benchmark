@@ -63,37 +63,81 @@ ueba-benchmark/
 
 ## 2. Thiết lập môi trường
 
-Bạn có thể sử dụng môi trường ảo tiêu chuẩn (`venv`) hoặc Conda:
-
-### Lựa chọn 1: Sử dụng Conda
-Nếu sử dụng Conda, tên môi trường quy ước là `ueba-benchmark`:
+### 2.1 Lấy mã nguồn
 
 ```bash
-# Kích hoạt môi trường conda
+git clone https://github.com/lamvu0607-creator/ueba-benchmark.git
+cd ueba-benchmark
+# Khi nhánh chưa được merge vào main:
+git checkout feature/segmented-benchmark
+```
+
+Đã clone từ trước thì chỉ cần `git fetch origin && git checkout feature/segmented-benchmark && git pull`.
+
+> **Lưu ý về `hnswlib`:** thư viện này là bắt buộc. `src/models/__init__.py` → `detectors` →
+> `pyod_detectors` có `import hnswlib`, nên thiếu nó thì stage `baselines`, `benchmark` và phần lớn test
+> lỗi ngay khi import. Bản `hnswlib` trên PyPI phải biên dịch C++. Trên Windows nên cài qua conda-forge
+> hoặc dùng `chroma-hnswlib` (wheel dựng sẵn, vẫn `import hnswlib`).
+
+### 2.2 Lựa chọn 1: Conda
+
+```bash
+conda create -n ueba-benchmark python=3.11 -y
 conda activate ueba-benchmark
-
-# Cài đặt thư viện phụ thuộc
+conda install -c conda-forge hnswlib -y   # Windows/Python 3.14: PyPI không có wheel
 pip install -r requirements.txt
-
-# Cài đặt src dưới dạng editable package (tránh lỗi import)
-pip install -e .
+pip install -e .                          # cài src dưới dạng editable package (tránh lỗi import)
 ```
 
-### Lựa chọn 2: Sử dụng Python Virtualenv tiêu chuẩn (Không dùng Conda)
-```bash
-# Tạo và kích hoạt môi trường ảo
-python -m venv .venv
+### 2.3 Lựa chọn 2: venv (không dùng Conda)
 
-# Kích hoạt môi trường:
-# - Trên Windows:
+**Windows (PowerShell):**
+
+```powershell
+py -3.12 -m venv .venv            # nên dùng 3.11/3.12, tránh 3.14
 .venv\Scripts\activate
-# - Trên Linux / macOS:
-source .venv/bin/activate
+python -m pip install --upgrade pip
+pip install chroma-hnswlib        # hnswlib dựng sẵn, không cần trình biên dịch
+pip install -r requirements.txt
+pip install -e .
+python -c "import hnswlib; print('ok')"
+```
 
-# Cài đặt dependencies và editable package
+- Nếu `pip install -r requirements.txt` cố biên dịch `hnswlib` và báo
+  *"Microsoft Visual C++ 14.0 or greater is required"*, tạm bỏ dòng `hnswlib>=0.8.0` trong
+  `requirements.txt` rồi cài lại (đã có `chroma-hnswlib` thay thế).
+- Nếu `chroma-hnswlib` không có wheel cho phiên bản Python đang dùng, chọn một trong hai:
+  - đổi sang Python 3.11 hoặc 3.12;
+  - cài **Visual Studio Build Tools** (workload "Desktop development with C++"), rồi `pip install hnswlib`.
+
+**Linux / macOS** (thường đã có sẵn gcc/clang để biên dịch `hnswlib`):
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
 pip install -e .
 ```
+
+### 2.4 Dữ liệu và các artifact không nằm trong Git
+
+`data/` và phần lớn `experiments/results/` bị `.gitignore`, nên sau khi clone cần làm thêm hai việc:
+
+1. **Tải dữ liệu interim** (khoảng 22 GB, xem mục 6). Giải nén sao cho có
+   `data/interim/event_4624/event_4624_day-01.parquet … day-60`, và tương tự với `event_4625`.
+2. **Tạo lại các artifact**, đúng thứ tự (`baselines` đọc `data/processed/` nên phải chạy sau `features`):
+
+```bash
+python -m pytest tests -q                      # kỳ vọng: toàn bộ passed
+python main.py --stage features                # -> data/features/raw/, data/processed/
+python scripts/injection_profiles_summary.py   # -> data/features/train_profiles/ (chỉ đọc ngày 1..42)
+python main.py --stage baselines               # -> experiments/results/baselines/ (trên log gốc)
+python main.py --stage benchmark               # tuỳ chọn: chạy lại các mô hình ML
+```
+
+Hai con số để đối chiếu với máy khác:
+- bản tóm tắt hồ sơ train ra **29.830 tài khoản, 15.946 máy, L = 5**;
+- `experiments/results/baselines/rule_event_stats.json` có `"injected_events_dir": null`.
 
 ---
 
