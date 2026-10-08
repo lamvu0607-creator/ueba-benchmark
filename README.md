@@ -2,6 +2,8 @@
 
 Hệ thống pipeline benchmark các mô hình phát hiện bất thường (Anomaly Detection) cho bài toán **Phân tích hành vi người dùng (UEBA)**, khai thác các sự kiện đăng nhập thành công (`EventID 4624`) và thất bại (`EventID 4625`) trên hệ điều hành Windows.
 
+**Tuần 4:** xem [Hướng dẫn tiêm bất thường và kiểm tra tiến độ](docs/huong_dan_tiem_bat_thuong_tuan4.md) để hiểu 6 kịch bản, chạy từng bước, kiểm tra nhãn/tỷ lệ tiêm và đối chiếu các đầu ra cần nghiệm thu.
+
 ---
 
 ## 1. Cấu trúc thư mục dự án
