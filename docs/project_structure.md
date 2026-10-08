@@ -40,6 +40,8 @@ ueba-benchmark/
 │   │   ├── history.py              # Trích xuất đặc trưng lịch sử 7 ngày (Novelty / Rolling)
 │   │   └── preprocessor.py         # Chuẩn hóa log1p, xử lý NULL có kiểm soát
 │   ├── models/                     # Tầng mô hình học máy (Phase 3: IF, LOF, OCSVM, Baselines)
+│   ├── baselines/                  # Baseline label-free chỉ fit train (random, z-score robust, luật ECDF)
+│   ├── injection/                  # Bộ tiêm log vào ngày test (hồ sơ train, 6 kịch bản, điều phối run)
 │   └── evaluation/                 # Tầng đánh giá time-split, metrics, manifest & logging
 ├── scripts/                        # Scripts phân tích & công cụ bổ trợ
 │   ├── convert_raw_to_interim.py
@@ -113,10 +115,21 @@ ueba-benchmark/
 - **[metrics.py](file:///d:/Github%20Repo/ueba-benchmark/src/evaluation/metrics.py)**: chỉ số label-free (`alert_rate`, ngân sách cảnh báo, Top-K có tie-break ổn định, trùng nhau Top-K, Spearman, phân vị điểm, độ ổn định đa seed, đo thời gian) và chỉ số cần nhãn dùng từ Tuần 4 (`precision_at_k`, `recall_at_budget`, `roc_auc`, `average_precision`).
 - **[experiment_log.py](file:///d:/Github%20Repo/ueba-benchmark/src/evaluation/experiment_log.py)**: ghi `experiments/logs/experiment_log.csv` tương thích **18 cột cũ** (tên + thứ tự) rồi tới cột truy vết mới, có chống ghi trùng theo `(model, seed, split_day, n_fit, n_eval, commit)`.
 - **[manifest.py](file:///d:/Github%20Repo/ueba-benchmark/src/evaluation/manifest.py)**: `run_manifest.json` — commit/branch/dirty, `sha256` của parquet, cấu hình run, phiên bản Python + sklearn/scipy/polars/numpy/pandas/joblib.
-- `injector.py` (kịch bản tiêm bất thường) **chưa có** — thuộc phạm vi Tuần 4, cùng với nhãn tấn công thật `redteam.txt`.
+#### E. `src/injection/` (Bộ tiêm log — chi tiết ở `docs/quy_trinh_tiem_log.md`)
+- **profiles.py**: hồ sơ CHỈ TỪ TRAIN (ngày 1..42) — tài khoản, máy, LogonType, ngưỡng khoá `L`.
+- **operations.py**: kho khuôn (đọc train bằng lazy scan rồi thu nhỏ: đủ sự kiện của nạn nhân cơ sở + tối đa
+  `peer_cap_per_group` khuôn/nhóm cho tài khoản khác), nhân bản sự kiện thật, sinh thời gian theo `TimeProfile`.
+- **scenarios.py**: 6 kịch bản (brute-force, password spraying, ngoài giờ, bùng nổ máy trạm mới, ngủ đông, đổi LogonType).
+- **inject.py**: điều phối một khối `dev`/`test` của `configs/injection.yaml` — chọn nạn nhân (mỗi tài khoản tối đa một
+  lần/run, bỏ tài khoản-ngày luật ECDF đã cờ), ghi `events_injected/`, `injected_events.parquet`,
+  `injection_manifest.csv`, `labels.parquet` và chạy các kiểm tra trước khi ghi nhãn.
+- **layout.py / labels.py / difficulty.py**: bố cục thư mục run, nhãn từ manifest, hook oracle độ khó.
 
 ### 2.5. File điều phối - [main.py](file:///d:/Github%20Repo/ueba-benchmark/main.py)
-- CLI Entrypoint duy nhất điều phối toàn bộ pipeline qua tham số `--stage [all|clean|features|benchmark]`.
+- CLI Entrypoint duy nhất điều phối toàn bộ pipeline qua tham số
+  `--stage [all|clean|features|benchmark|baselines|inject|difficulty]`.
+- `--events-dir <run>/events_injected` chọn một run tiêm: `features` dựng ma trận từ log đè, còn `benchmark`,
+  `baselines`, `difficulty` đọc ma trận + nhãn của run và ghi kết quả vào thư mục run.
 - Hỗ trợ truyền tham số dải ngày (`--start-day`, `--end-day`) và danh sách mô hình (`--models`).
 
 ### 2.6. Thư mục `experiments/`, `scripts/` & `tests/`

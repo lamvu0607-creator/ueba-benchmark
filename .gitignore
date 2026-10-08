@@ -62,6 +62,8 @@ data/features/*
 !data/features/**/.gitkeep
 data/processed/*
 !data/processed/.gitkeep
+# Run tiêm (configs/injection.yaml: common.runs_dir) — log đè ~200 MB/ngày, tái tạo được từ config + seed
+data/injection_runs/
 
 # Archives & Large Binaries
 *.zip
