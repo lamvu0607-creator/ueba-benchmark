@@ -41,6 +41,18 @@ common:
 
   oracle: "none"                   # hook độ khó (src/injection/difficulty.py) — hiện chỉ có placeholder
 
+  # Tỉ lệ nhãn dương MỤC TIÊU (mục 5.2 đề tài: tiêm ≈ 0,5–1% số bản ghi của tập kiểm thử; chốt 1%, 2026-10-08).
+  # Mẫu số = số dòng (tài khoản, ngày) `entity_type` của khối trên log GỐC (= dòng phân khúc User của ma trận).
+  # Bật -> BỎ QUA n_victims / n_campaigns của từng kịch bản: tổng N = ⌈rate·D/(1−rate)⌉ chia theo `weights`
+  # (thiếu = 1); kịch bản hết ứng viên thì phần thiếu được chia lại cho kịch bản khác. Kết quả ghi ở
+  # run_config.json (target_rate: denominator, n_target, quotas, achieved, rate_achieved).
+  target_rate:
+    enabled: true
+    rate: 0.01
+    entity_type: "User"
+    weights: {brute_force: 1, password_spraying: 1, off_hours: 1, new_workstation_burst: 1,
+              dormant_wakeup: 1, logon_type_switch: 1}
+
 # -----------------------------------------------------------------------------
 # Tham số 6 kịch bản. time_profile là "profile thời gian" trừu tượng của operations.TimeProfile:
 #   mode         : burst (dồn trong một cửa sổ ngắn) | spread (rải đều trong hour_window)

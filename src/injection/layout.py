@@ -36,7 +36,7 @@ import yaml
 def load_run_eval_days(layout: "RunLayout", config_path: Path | str = "configs/injection.yaml") -> List[int]:
     """Use frozen run days; older runs fall back to their manifest block, never overlay days alone."""
     metadata = layout.root / "run_config.json"
-    manifest = pl.read_csv(layout.manifest_path)
+    manifest = pl.read_csv(layout.manifest_path, infer_schema_length=None, schema_overrides={"campaign_id": pl.String})
     if manifest.is_empty():
         raise InjectionLayoutError("Injection manifest is empty.")
     if metadata.is_file():

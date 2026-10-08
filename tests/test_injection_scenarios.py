@@ -472,3 +472,40 @@ def test_run_freezes_full_block_days(built):
     _, layout, _ = built
     assert json.loads((layout.root / 'run_config.json').read_text())['eval_days'] == [6, 7, 8]
     assert load_run_eval_days(layout) == [6, 7, 8]
+
+
+def test_target_rate_sets_total_injections_from_user_account_days(temp_artifact_dir, interim, profiles):
+    """target_rate: tổng lần tiêm = ⌈rate·D/(1−rate)⌉ trên dòng User của khối, chia đều; ghi run_config.json."""
+    import json
+    import math
+
+    import yaml
+    from src.injection.inject import InjectionConfig, InjectionRunner
+
+    profiles.save(temp_artifact_dir / "profiles")
+    cfg_path = _write_config(temp_artifact_dir, interim, temp_artifact_dir / "runs")
+    raw = yaml.safe_load(cfg_path.read_text(encoding="utf-8"))
+    raw["common"]["target_rate"] = {"enabled": True, "rate": 0.3, "entity_type": "User",
+                                    "weights": {"brute_force": 1, "new_workstation_burst": 1}}
+    keep = {"brute_force", "new_workstation_burst"}
+    raw["blocks"]["dev"]["scenarios"] = {k: v for k, v in raw["scenarios"].items() if k in keep}
+    cfg_path.write_text(yaml.safe_dump(raw, allow_unicode=True), encoding="utf-8")
+
+    runner = InjectionRunner(InjectionConfig.from_files("dev", cfg_path, temp_artifact_dir / "system.yaml"))
+    denom = runner._denominator("User")
+    want = math.ceil(0.3 * denom / 0.7)
+    result = runner.build()
+
+    meta = json.loads((Path(result["root"]) / "run_config.json").read_text(encoding="utf-8"))["target_rate"]
+    assert meta["denominator"] == denom and meta["n_target"] == want
+    assert sum(meta["quotas"].values()) == want
+    assert abs(meta["quotas"]["brute_force"] - meta["quotas"]["new_workstation_burst"]) <= 1
+    assert meta["n_injected"] == result["n_injections"] == sum(meta["achieved"].values())
+
+
+def test_target_rate_disabled_keeps_fixed_victim_counts(built):
+    """Không có target_rate -> giữ n_victims cố định như cũ; run_config.json ghi target_rate = null."""
+    import json
+
+    _, layout, _ = built
+    assert json.loads((layout.root / "run_config.json").read_text(encoding="utf-8"))["target_rate"] is None
