@@ -10,7 +10,7 @@ import logging
 import math
 from pathlib import Path
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Iterable, List, Optional
 import polars as pl
 import yaml
 
@@ -475,28 +475,62 @@ def available_days(data_dir: Path) -> List[int]:
     return sorted(list(days))
 
 
+def resolve_day_source(day: int, base_dir: Path, events_dir: Optional[Path], overlay: Iterable[int]) -> Path:
+    """Thư mục đọc log của ngày ``day``: ``events_dir`` nếu ngày đó có trong ``overlay``, ngược lại ``base_dir``."""
+    if events_dir is not None and int(day) in set(int(d) for d in overlay):
+        for eid in (4624, 4625):
+            p = Path(events_dir) / f"event_{eid}" / f"event_{eid}_day-{int(day):02d}.parquet"
+            if not p.is_file():
+                raise FileNotFoundError(f"Ngày {day} trong '{events_dir}' phải có đủ file 4624 và 4625 (thiếu '{p}').")
+        return Path(events_dir)
+    return Path(base_dir)
+
+
 def build_account_day_matrix(
     start_day: int = 1,
     end_day: Optional[int] = None,
     interim_dir: Optional[Path | str] = None,
     output_dir: Optional[Path | str] = None,
     config: Optional[Dict[str, Any]] = None,
+    events_dir: Optional[Path | str] = None,
 ) -> pl.DataFrame:
     """
     Điều phối trích xuất ma trận đặc trưng cho dải ngày [start_day, end_day].
     Ghi kết quả ra thư mục output_dir/ (data/features/raw/).
+
+    ``events_dir`` (layout ``event_462x/event_462x_day-NN.parquet`` như ``data/interim``): các ngày có
+    file trong thư mục này được đọc TỪ ĐÓ thay cho log gốc, các ngày còn lại đọc log gốc. Khi dùng
+    ``events_dir`` nguồn gốc BẮT BUỘC là interim — tầng cleaned đã trừ 3600s (DST) cho ngày >= 42 nên
+    cửa sổ ngày lệch với log đè (xem ``src/injection/layout.py``).
     """
     paths_cfg = (config or {}).get("paths", {})
     cleaned_dir = Path(paths_cfg.get("cleaned_data_dir", "data/cleaned"))
     interim_default = Path(paths_cfg.get("interim_data_dir", "data/interim"))
-    
-    # Ưu tiên kho log sạch (data/cleaned), fallback sang log interim
-    if cleaned_dir.is_dir() and any(cleaned_dir.glob("cleaned_day-*.parquet")):
+
+    has_cleaned = cleaned_dir.is_dir() and any(cleaned_dir.glob("cleaned_day-*.parquet"))
+    if events_dir is not None:
+        # Log đè luôn ở tầng interim -> nguồn gốc phải cùng tầng, bỏ qua kho cleaned.
+        data_source = Path(interim_dir) if interim_dir else interim_default
+        if has_cleaned:
+            logger.info("Có events_dir -> bỏ qua kho log sạch '%s', đọc interim '%s'.", cleaned_dir, data_source)
+        else:
+            logger.info(f"Nguồn dữ liệu trích xuất: Kho log interim '{data_source}'.")
+    elif has_cleaned:
+        # Ưu tiên kho log sạch (data/cleaned), fallback sang log interim
         data_source = cleaned_dir
         logger.info(f"Nguồn dữ liệu trích xuất: Kho log sạch '{data_source}'.")
     else:
         data_source = Path(interim_dir) if interim_dir else interim_default
         logger.info(f"Nguồn dữ liệu trích xuất: Kho log interim '{data_source}'.")
+
+    overlay: List[int] = []
+    if events_dir is not None:
+        from src.injection.layout import overlay_days
+
+        overlay = overlay_days(events_dir)
+        if not overlay:
+            raise ValueError(f"events_dir '{events_dir}' không chứa file ngày nào.")
+        logger.info("Log đè từ '%s' cho %d ngày: %s", events_dir, len(overlay), overlay)
 
     days_avail = available_days(data_source)
     if not days_avail:
@@ -523,7 +557,9 @@ def build_account_day_matrix(
         if d not in days_avail:
             continue
         t0 = time.time()
-        events = load_day_events(d, data_source)
+        events = load_day_events(
+            d, resolve_day_source(d, data_source, Path(events_dir) if events_dir else None, overlay)
+        )
         if events is None:
             continue
         df_d, entities_d = features_from_events(
