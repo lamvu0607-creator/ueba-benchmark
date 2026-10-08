@@ -92,3 +92,28 @@ def test_feature_schema_contract():
         c = candidate_by_name(name)
         t = defs[name]["template"]
         assert (t["measure"], t["object"], t["entity"], t["window"]) == (c.measure, c.obj, c.entity, c.window)
+
+
+def test_injection_config_blocks_are_disjoint_test_only_and_seeded():
+    """configs/injection.yaml: hai khối dev/test tách ngày, chỉ ngày test (> split_day), khác seed."""
+    from src.injection.operations import TimeProfile
+
+    with open("configs/system_config.yaml", "r", encoding="utf-8") as f:
+        split_day = int(yaml.safe_load(f)["evaluation"]["split_day"])
+    with open("configs/injection.yaml", "r", encoding="utf-8") as f:
+        cfg = yaml.safe_load(f)
+
+    blocks = cfg["blocks"]
+    assert set(blocks) == {"dev", "test"}
+    dev, test = blocks["dev"], blocks["test"]
+    assert set(dev["days"]).isdisjoint(test["days"])
+    assert min(dev["days"] + test["days"]) > split_day, "không được tiêm vào train"
+    assert dev["seed"] != test["seed"]
+
+    expected = {"brute_force", "password_spraying", "off_hours", "new_workstation_burst",
+                "dormant_wakeup", "logon_type_switch"}
+    for blk in (dev, test):
+        assert set(blk["scenarios"]) == expected
+        for name, sc in blk["scenarios"].items():
+            tp = TimeProfile.from_config(sc["time_profile"])
+            assert tp.n_days == 1, f"{name}: hiện chỉ tiêm 1 ngày"

@@ -1,0 +1,121 @@
+# =============================================================================
+# BỘ TIÊM TẤN CÔNG TỔNG HỢP vào tầng log interim (src/injection/)
+#
+# Một lần chạy = MỘT khối (dev hoặc test) = một run_id. Tham số kịch bản dùng chung cho hai khối qua
+# anchor YAML (&scenarios / *scenarios) để khối test chạy ĐÚNG bộ tham số đã chốt trên dev; hai khối
+# chỉ khác ngày và seed. Muốn tách hẳn thì thay `*scenarios` bằng một bản sao đầy đủ.
+#
+# Kỷ luật: chỉnh tham số trên `dev` (ngày 43–51). Chạy `test` (52–60) MỘT lần ở cuối.
+#
+# Quy ước khoảng: một tham số dạng [a, b] = số nguyên rút đều trong [a, b] (cả hai đầu) cho MỖI lần
+# tiêm bằng RNG có seed; dạng một số = cố định. Giá trị thực tế được ghi vào injection_manifest.csv.
+# =============================================================================
+
+common:
+  interim_dir: "data/interim"                       # nguồn log gốc (KHÔNG dùng data/cleaned — lệch DST)
+  profiles_dir: "data/features/train_profiles"      # hồ sơ TỪ TRAIN (scripts/injection_profiles_summary.py)
+  runs_dir: "data/injection_runs"                   # đã ignore trong .gitignore (log đè rất lớn)
+  split_day: null                                   # null = lấy evaluation.split_day của system_config.yaml
+
+  victim:
+    entity_type: "User"            # chỉ tài khoản người; tài khoản máy (*$) bị loại theo entity_type_expr
+    min_train_active_days: 7       # "đủ 7 ngày lịch sử" = ≥ 7 ngày CÓ hoạt động trong train (quyết định 2026-10-08)
+    one_injection_per_account: true
+
+  # Bỏ (tài khoản, ngày) mà baseline luật ECDF đã cảnh báo sẵn trên log GỐC (ngưỡng train budget 1%).
+  rule_exclusion:
+    enabled: true
+    baseline_scores: "experiments/results/baselines/baseline_scores.parquet"
+    thresholds: "experiments/results/baselines/thresholds.json"
+    event_stats_meta: "data/features/baselines/rule_event_stats.json"   # phải có injected_events_dir: null
+    method: "rule_ecdf"
+    segment: "User"
+
+  template:
+    prefer_own_account: true       # khuôn ưu tiên sự kiện thật CỦA CHÍNH nạn nhân, thiếu thì lấy tài khoản cùng loại
+    allow_peer_fallback: true
+    # Để không nạp cả log train vào RAM: kho khuôn giữ ĐẦY ĐỦ sự kiện của nạn nhân cơ sở (own), còn khuôn
+    # "mượn" của tài khoản khác cùng loại (peer) chỉ giữ tối đa ngần này mẫu cho mỗi nhóm
+    # (entity_type, EventID, LogonType, fail_kind). Tăng nếu một kịch bản cần nhiều khuôn peer khác nhau.
+    peer_cap_per_group: 200
+
+  oracle: "none"                   # hook độ khó (src/injection/difficulty.py) — hiện chỉ có placeholder
+
+# -----------------------------------------------------------------------------
+# Tham số 6 kịch bản. time_profile là "profile thời gian" trừu tượng của operations.TimeProfile:
+#   mode         : burst (dồn trong một cửa sổ ngắn) | spread (rải đều trong hour_window)
+#                  | replay (giữ nguyên khoảng cách giữa các sự kiện nguồn)
+#   n_days       : số ngày trải (HIỆN TẠI = 1; >1 là chế độ nhiều ngày, đã có trong lõi nhưng chưa bật)
+#   hour_window  : [giờ_bắt_đầu, giờ_kết_thúc) trong ngày; bắt đầu > kết thúc = hai đoạn [bđ,24) ∪ [0,kt)
+#                  của CÙNG một ngày lịch (không bao giờ vượt nửa đêm)
+#   burst_duration_s : [min, max] độ dài cửa sổ burst (giây)
+# -----------------------------------------------------------------------------
+scenarios: &scenarios
+
+  brute_force:                     # T1110.001
+    enabled: true
+    n_victims: 15
+    n_failures: [8, 25]            # số lần 4625 "bad password" thêm vào
+    logon_type: 3
+    source_mode: "unseen"          # unseen = máy THẬT nạn nhân chưa từng dùng làm Source | known = máy quen
+    source_popularity_quantile: [0.0, 0.9]   # lọc máy theo n_user_accounts (hồ sơ hosts) — loại máy "ai cũng dùng"
+    lockout:
+      enabled: true
+      L: "auto"                    # auto = network.lockout.L của hồ sơ train (hiện = 5)
+      after_lockout: "locked_out"  # các lần thử sau khi đạt L ghi FailureReason "locked out" (khuôn thật) | stop
+    time_profile: {mode: "burst", n_days: 1, hour_window: [0, 24], burst_duration_s: [300, 1800]}
+
+  password_spraying:               # T1110.003
+    enabled: true
+    n_campaigns: 3
+    victims_per_campaign: [5, 10]
+    attempts_per_victim: [1, 3]    # luôn < L để không kích hoạt khoá (dấu hiệu spray)
+    logon_type: 3
+    source_mode: "unseen"
+    source_popularity_quantile: [0.0, 0.9]
+    target_loghost: "victim_known" # mỗi nạn nhân bị thử trên một LogHost quen của chính nó
+    time_profile: {mode: "burst", n_days: 1, hour_window: [0, 24], burst_duration_s: [1800, 5400]}
+
+  off_hours:                       # T1078
+    enabled: true
+    n_victims: 15
+    n_events: [10, 40]             # độ dài chuỗi 4624 thật (liên tiếp) lấy từ một ngày train của nạn nhân
+    max_train_off_hours_ratio: 0.2 # chỉ chọn người thường làm ban ngày (off_hours_ratio train)
+    time_profile: {mode: "replay", n_days: 1, hour_window: [0, 6]}
+
+  new_workstation_burst:           # T1078 / T1021
+    enabled: true
+    n_victims: 15
+    n_new_sources: [4, 10]
+    events_per_source: [1, 3]
+    source_popularity_quantile: [0.0, 0.9]
+    time_profile: {mode: "burst", n_days: 1, hour_window: [8, 18], burst_duration_s: [1800, 7200]}
+
+  dormant_wakeup:                  # T1078
+    enabled: true
+    n_victims: 10
+    gap_rule: "account_max"        # account_max = khoảng trống > khoảng trống nội bộ dài nhất của TK trong train
+                                   # fixed = khoảng trống ≥ min_gap_days
+    min_gap_days: 7                # sàn cho cả hai luật (xem số ứng viên in bởi scripts/injection_candidates.py)
+    source_day: "closest_to_median"  # ngày train nào của nạn nhân được cấy: gần median_daily_events nhất
+    time_profile: {mode: "replay", n_days: 1, hour_window: [0, 24]}   # giữ nguyên giờ trong ngày
+
+  logon_type_switch:               # T1021
+    enabled: true
+    n_victims: 15
+    target_logon_types: [10, 2]    # chỉ chọn type nạn nhân CHƯA dùng trong train; thứ tự = ưu tiên
+    min_dominant_share: 0.8        # LogonType chiếm ưu thế của nạn nhân phải ≥ ngưỡng này
+    n_events: [3, 10]
+    time_profile: {mode: "spread", n_days: 1, hour_window: [8, 18]}
+
+blocks:
+  dev:
+    days: [43, 44, 45, 46, 47, 48, 49, 50, 51]
+    seed: 20261043
+    run_id_prefix: "dev"
+    scenarios: *scenarios
+  test:
+    days: [52, 53, 54, 55, 56, 57, 58, 59, 60]
+    seed: 20261052
+    run_id_prefix: "test"
+    scenarios: *scenarios

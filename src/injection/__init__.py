@@ -10,9 +10,22 @@ from src.injection.layout import (
     events_outside_day,
     overlay_days,
 )
+from src.injection.inject import InjectionConfig, InjectionRunner, run_injection
+from src.injection.scenarios import SCENARIOS, ScenarioResult, VictimContext
+from src.injection.operations import Account, TemplatePool, TimeProfile, schedule
 from src.injection.profiles import ProfileConfig, TrainProfiles, build_train_profiles
 
 __all__ = [
+    "run_injection",
+    "InjectionConfig",
+    "InjectionRunner",
+    "SCENARIOS",
+    "ScenarioResult",
+    "VictimContext",
+    "Account",
+    "TemplatePool",
+    "TimeProfile",
+    "schedule",
     "ProfileConfig",
     "TrainProfiles",
     "build_train_profiles",
