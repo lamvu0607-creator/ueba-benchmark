@@ -25,7 +25,7 @@ trước khi trả về). Bật nhiều ngày = đổi ``n_days`` trong config; 
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, Iterable, List, Mapping, Optional, Sequence, Set, Tuple
+from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Sequence, Set, Tuple
 
 import numpy as np
 import polars as pl
@@ -217,22 +217,31 @@ class TemplatePool:
     Kho sự kiện thật của TRAIN dùng làm khuôn (đầu vào = :func:`annotate_events` của các ngày train).
 
     Khởi tạo kiểm tra cứng: mọi ``Time`` phải < ``train_end_day · 86400`` — khuôn không bao giờ lấy từ test.
+
+    ``own_loader`` (tuỳ chọn): hàm trả sự kiện train của MỘT tài khoản (đã ``annotate_events``). Khi có,
+    truy vấn kèm ``account`` đọc từ hàm này thay vì ``events`` — để không phải giữ sự kiện own của mọi
+    nạn nhân cơ sở trong RAM (hàng trăm triệu dòng); ``events`` khi đó chỉ là kho peer đã thu nhỏ.
     """
 
     events: pl.DataFrame
     train_end_day: int
+    own_loader: Optional[Callable[[Account], pl.DataFrame]] = None
 
     def __post_init__(self) -> None:
+        self._check(self.events)
+
+    def _check(self, events: pl.DataFrame) -> pl.DataFrame:
         need = INTERIM_COLUMNS + ["_dom", "_entity_type", "_fail_kind"]
-        missing = [c for c in need if c not in self.events.columns]
+        missing = [c for c in need if c not in events.columns]
         if missing:
             raise InjectionLayoutError(f"Kho khuôn thiếu cột {missing} — dựng bằng annotate_events().")
         _, end = day_window(self.train_end_day)
-        leak = self.events.filter(pl.col("Time").is_null() | (pl.col("Time") >= end))
+        leak = events.filter(pl.col("Time").is_null() | (pl.col("Time") >= end))
         if leak.height:
             raise InjectionLayoutError(
                 f"Kho khuôn có {leak.height:,} sự kiện ngoài train (Time ≥ {end}) — khuôn chỉ được lấy từ train."
             )
+        return events
 
     def candidates(
         self,
@@ -254,11 +263,14 @@ class TemplatePool:
             cond = cond & (pl.col("_entity_type") == entity_type)
         if fail_kind is not None:
             cond = cond & (pl.col("_fail_kind") == fail_kind)
+        source = self.events
         if account is not None:
             cond = cond & (pl.col("_dom") == account.domain) & (pl.col("UserName") == account.user)
+            if self.own_loader is not None:
+                source = self._check(self.own_loader(account))
         if extra is not None:
             cond = cond & extra
-        return self.events.filter(cond)
+        return source.filter(cond)
 
     def pick(
         self,
