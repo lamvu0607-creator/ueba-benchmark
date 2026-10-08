@@ -831,7 +831,8 @@ def _run_population(
 
         scores_frame = scores_frame.with_columns(
             [
-                pl.Series(name=f"{name}_score", values=np.round(result["scores"], 6)),
+                # Preserve ranking/ties so plots reproduce the exact label-aware metrics.
+                pl.Series(name=f"{name}_score", values=result["scores"]),
                 pl.Series(name=f"{name}_pct", values=np.round(result["rank_pct"], 6)),
                 pl.Series(name=f"{name}_anomaly", values=result["labels"].astype(np.int8)),
             ]

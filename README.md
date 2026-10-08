@@ -200,6 +200,19 @@ Run cũ dùng `split` trong manifest và cấu hình injection để xác địn
 
 Khối `test` (`--block test`) chỉ chạy **một lần** ở cuối, sau khi đã chốt tham số trên `dev`.
 
+### Biểu đồ kết quả tuần 4
+
+Sau benchmark có nhãn, vẽ từ điểm đã lưu (không huấn luyện lại):
+
+```bash
+python main.py --stage plots --events-dir $RUN/events_injected
+```
+
+PNG/PDF được ghi vào `$RUN/results/figures/week4/`, tách theo phân khúc: PR, AP,
+Precision@k, Recall theo ngân sách ngày, thời gian chạy và heatmap kịch bản nếu có nhãn kịch bản.
+Có CSV số liệu và manifest truy vết; hỗ trợ tổng hợp nhiều lần benchmark đầy đủ qua CLI riêng.
+Xem [hướng dẫn vẽ biểu đồ tuần 4](docs/week4_result_plots.md).
+
 ---
 
 ## 4. Danh sách 39 Đặc trưng hành vi cốt lõi (Feature Schema v4.0)
