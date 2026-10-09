@@ -252,6 +252,7 @@ def run_pipeline(args):
             config_path=args.injection_config,
             system_config_path=args.config,
             run_id=args.run_id,
+            seed=args.injection_seed,
         )
         logger.info(
             "--> [Stage Inject] Run '%s': %s sự kiện / %d lần tiêm / ngày %s -> %s",
@@ -407,6 +408,12 @@ def main():
         type=str,
         default=None,
         help="Override the run_id of an injection run (stage 'inject'; default: <prefix>_seed<seed>)",
+    )
+    parser.add_argument(
+        "--injection-seed",
+        type=int,
+        default=None,
+        help="Override the block's injection seed (stage 'inject'); run_id becomes <prefix>_seed<SEED>",
     )
     parser.add_argument(
         "--oracle",

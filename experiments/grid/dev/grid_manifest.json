@@ -1,0 +1,204 @@
+{
+  "format": "ueba-grid-manifest/1",
+  "created_at": "2026-10-09T01:48:53.274534+00:00",
+  "git": {
+    "commit": "77a7624f1a7576c2136a495f7b5975d04c58c942",
+    "branch": "feature/target-rate-1pct",
+    "is_dirty": true
+  },
+  "libraries": {
+    "python": "3.14.6",
+    "scikit-learn": "1.9.1",
+    "scipy": "1.18.1",
+    "polars": "1.44.2",
+    "numpy": "2.5.3",
+    "pandas": "3.0.5",
+    "joblib": "1.6.0",
+    "pyarrow": "24.0.0"
+  },
+  "config_path": "configs/benchmark_grid.yaml",
+  "config": {
+    "block": "dev",
+    "segment": "User",
+    "output_dir": "experiments/grid/dev",
+    "runs": [
+      "data/injection_runs/dev_seed20261043",
+      "data/injection_runs/dev_seed20261044",
+      "data/injection_runs/dev_seed20261045",
+      "data/injection_runs/dev_seed20261046",
+      "data/injection_runs/dev_seed20261047"
+    ],
+    "model_seeds": [
+      42,
+      7,
+      2024,
+      1,
+      2
+    ],
+    "contamination": 0.05,
+    "precision_ks": [
+      10,
+      50,
+      100
+    ],
+    "daily_budgets": [
+      10,
+      50,
+      100
+    ],
+    "models": {
+      "isolation_forest": [
+        {
+          "id": "if_default",
+          "scaler": "robust",
+          "params": {}
+        },
+        {
+          "id": "if_n300_ms1024",
+          "scaler": "robust",
+          "params": {
+            "n_estimators": 300,
+            "max_samples": 1024
+          }
+        },
+        {
+          "id": "if_maxfeat05",
+          "scaler": "robust",
+          "params": {
+            "max_features": 0.5
+          }
+        }
+      ],
+      "local_outlier_factor": [
+        {
+          "id": "lof_k20_robust",
+          "scaler": "robust",
+          "params": {}
+        },
+        {
+          "id": "lof_k20_standard",
+          "scaler": "standard",
+          "params": {}
+        },
+        {
+          "id": "lof_k20_quantile",
+          "scaler": "quantile",
+          "params": {}
+        },
+        {
+          "id": "lof_k100_standard",
+          "scaler": "standard",
+          "params": {
+            "n_neighbors": 100
+          }
+        }
+      ],
+      "one_class_svm": [
+        {
+          "id": "ocsvm_robust",
+          "scaler": "robust",
+          "params": {}
+        },
+        {
+          "id": "ocsvm_standard",
+          "scaler": "standard",
+          "params": {}
+        },
+        {
+          "id": "ocsvm_quantile",
+          "scaler": "quantile",
+          "params": {}
+        },
+        {
+          "id": "ocsvm_standard_nc1000",
+          "scaler": "standard",
+          "params": {
+            "n_components": 1000
+          }
+        }
+      ]
+    },
+    "baselines": [
+      "zscore_baseline",
+      "rule_threshold_baseline",
+      "random_baseline"
+    ],
+    "contamination_sweep": [
+      0.01,
+      0.02,
+      0.05,
+      0.1,
+      0.2
+    ]
+  },
+  "params_path": "configs/model_params.yaml",
+  "split_day": 42,
+  "segment": "User",
+  "inputs": [
+    {
+      "run": "data/injection_runs/dev_seed20261043",
+      "injection_seed": 20261043,
+      "model_seed": 42,
+      "n_eval": 72998,
+      "n_positive": 736,
+      "matrix_sha256": "1d263041765e93f836abd5c2e0e58e3d7ec9cffa300a4051461f0910a7cb2a07"
+    },
+    {
+      "run": "data/injection_runs/dev_seed20261044",
+      "injection_seed": 20261044,
+      "model_seed": 7,
+      "n_eval": 72992,
+      "n_positive": 736,
+      "matrix_sha256": "bdd7d5ef66a9bfce1eac137f23cbd3875c7f0de89e7691b260606cd414e87cfa"
+    },
+    {
+      "run": "data/injection_runs/dev_seed20261045",
+      "injection_seed": 20261045,
+      "model_seed": 2024,
+      "n_eval": 72998,
+      "n_positive": 736,
+      "matrix_sha256": "789140af2bc17c253d58a6e2a7d59cc4dc2cc9518b4940887c0ace498b250e44"
+    },
+    {
+      "run": "data/injection_runs/dev_seed20261046",
+      "injection_seed": 20261046,
+      "model_seed": 1,
+      "n_eval": 73008,
+      "n_positive": 736,
+      "matrix_sha256": "a81fd7373f3bb6867ba8446108599d554f5d1542538182f96b35c049e7f4b2a2"
+    },
+    {
+      "run": "data/injection_runs/dev_seed20261047",
+      "injection_seed": 20261047,
+      "model_seed": 2,
+      "n_eval": 72997,
+      "n_positive": 736,
+      "matrix_sha256": "992f3be99659f673f3e99ebb7b07ef3de4a998650c4c73320fb3ea1dff5d96f3"
+    }
+  ],
+  "selection_rule": "best config per ML model = highest mean pr_auc over seeds on this block",
+  "best_configs": {
+    "isolation_forest": "if_n300_ms1024",
+    "local_outlier_factor": "lof_k20_standard",
+    "one_class_svm": "ocsvm_standard"
+  },
+  "artifacts": {
+    "grid_runs": "experiments\\grid\\dev\\grid_runs.csv",
+    "grid_summary": "experiments\\grid\\dev\\grid_summary.csv",
+    "grid_scenarios": "experiments\\grid\\dev\\grid_scenarios.csv",
+    "grid_scenarios_summary": "experiments\\grid\\dev\\grid_scenarios_summary.csv",
+    "contamination_runs": "experiments\\grid\\dev\\contamination_runs.csv",
+    "contamination_summary": "experiments\\grid\\dev\\contamination_summary.csv",
+    "pr_curves": "experiments\\grid\\dev\\pr_curves.csv"
+  },
+  "figures": [
+    "experiments\\grid\\dev\\figures\\grid_pr_auc.png",
+    "experiments\\grid\\dev\\figures\\grid_pr_auc.pdf",
+    "experiments\\grid\\dev\\figures\\pr_curves.png",
+    "experiments\\grid\\dev\\figures\\pr_curves.pdf",
+    "experiments\\grid\\dev\\figures\\contamination_sensitivity.png",
+    "experiments\\grid\\dev\\figures\\contamination_sensitivity.pdf",
+    "experiments\\grid\\dev\\figures\\scenario_roc_auc.png",
+    "experiments\\grid\\dev\\figures\\scenario_roc_auc.pdf"
+  ]
+}

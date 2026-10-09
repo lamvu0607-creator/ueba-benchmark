@@ -94,7 +94,9 @@ class InjectionConfig:
         config_path: Path | str = "configs/injection.yaml",
         system_config_path: Path | str = "configs/system_config.yaml",
         run_id: Optional[str] = None,
+        seed: Optional[int] = None,
     ) -> "InjectionConfig":
+        """``seed`` (tuỳ chọn) thay seed của khối — để lặp thí nghiệm trên nhiều bộ dữ liệu tiêm."""
         cfg = yaml.safe_load(Path(config_path).read_text(encoding="utf-8"))
         sys_cfg = yaml.safe_load(Path(system_config_path).read_text(encoding="utf-8"))
         if block not in cfg["blocks"]:
@@ -105,9 +107,10 @@ class InjectionConfig:
         days = [int(d) for d in blk["days"]]
         if min(days) <= split_day:
             raise ValueError(f"Khối '{block}' có ngày ≤ split_day ({split_day}) — chỉ được tiêm test.")
-        rid = run_id or f"{blk.get('run_id_prefix', block)}_seed{blk['seed']}"
+        seed = int(blk["seed"] if seed is None else seed)
+        rid = run_id or f"{blk.get('run_id_prefix', block)}_seed{seed}"
         scen = {k: v for k, v in blk["scenarios"].items() if v.get("enabled", True)}
-        return cls(block, days, int(blk["seed"]), rid, scen, common, split_day)
+        return cls(block, days, seed, rid, scen, common, split_day)
 
 
 # --------------------------------------------------------------------------- cache khuôn own trên đĩa
@@ -724,7 +727,8 @@ def run_injection(
     system_config_path: Path | str = "configs/system_config.yaml",
     run_id: Optional[str] = None,
     feature_cfg: Optional[Dict[str, Any]] = None,
+    seed: Optional[int] = None,
 ) -> Dict[str, Any]:
-    """Điểm vào: dựng và ghi một run cho ``block`` ('dev' hoặc 'test')."""
-    cfg = InjectionConfig.from_files(block, config_path, system_config_path, run_id)
+    """Điểm vào: dựng và ghi một run cho ``block`` ('dev' hoặc 'test'); ``seed`` thay seed của khối."""
+    cfg = InjectionConfig.from_files(block, config_path, system_config_path, run_id, seed)
     return InjectionRunner(cfg, feature_cfg=feature_cfg).build()
