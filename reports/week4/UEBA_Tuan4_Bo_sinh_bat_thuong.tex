@@ -564,9 +564,9 @@ Ngoài giờ & \textbf{0,906} & 0,877 & 0,730 & 0,510\\
 \end{columns}
 \end{frame}
 
-\begin{frame}{22. Vì sao One-Class SVM tốt hơn Isolation Forest?}{}
+\begin{frame}{22. Vì sao One-Class SVM đưa tấn công lên đầu danh sách tốt hơn IF?}{}
 \small
-\textbf{Hai mô hình xếp hạng gần như ngang nhau trên toàn bộ dữ liệu, nhưng khác hẳn ở đầu danh sách cảnh báo:}
+\textbf{ROC-AUC chênh nhẹ, nhưng đầu danh sách cảnh báo khác hẳn:}
 \par\vspace{.3em}
 \begin{center}\footnotesize
 \begin{tabular}{@{}lccc@{}}
@@ -578,21 +578,21 @@ Isolation Forest & 0,886 & 0,064 & 0,10\\
 \vspace{.2em}
 \begin{columns}[T,onlytextwidth]
 \begin{column}{.49\textwidth}
-\begin{soccard}{Tấn công tiêm = giá trị \emph{chưa từng thấy} trong train}
-Đếm số đặc trưng mà dòng vượt ra ngoài 99,9\% giá trị train:
+\begin{soccard}{Tấn công thường vượt phạm vi train}
+Số đặc trưng vượt 99,9\% giá trị train:
 \begin{itemize}\setlength\itemsep{1pt}
-\item \textbf{36\%} dòng tấn công vượt $\geq$ 1 đặc trưng, so với \textbf{2\%} dòng bình thường.
-\item Vượt $\geq$ 3 đặc trưng: 41\% là tấn công (152/372 dòng).
-\item Máy mới, LogonType mới, khoá từ nguồn lạ đẩy các đặc trưng \texttt{novelty\_*}, \texttt{delta\_*} ra ngoài phạm vi train.
+\item $\geq$ 1 đặc trưng: \textbf{36\%} dòng tấn công, chỉ \textbf{2\%} dòng bình thường.
+\item $\geq$ 3 đặc trưng: 41\% là tấn công (152/372).
+\item Nguồn: máy mới, LogonType mới, khoá từ nguồn lạ.
 \end{itemize}
 \end{soccard}
 \end{column}
 \begin{column}{.49\textwidth}
-\begin{soccard}{Cơ chế của hai mô hình}
+\begin{soccard}{Cùng đo ``khác thường'', khác cách chấm}
 \begin{itemize}\setlength\itemsep{1pt}
-\item \textbf{IF} cắt tại ngưỡng nằm \emph{trong} khoảng min--max của mẫu train: mọi giá trị vượt max rơi chung lá với điểm train lớn nhất $\Rightarrow$ ``vượt xa'' và ``ở rìa train'' có điểm như nhau.
-\item IF chỉ đo \emph{độ hiếm}: tài khoản thật có lưu lượng lớn hay bị khoá (đuôi dài của train) cũng bị cô lập nhanh.
-\item \textbf{OCSVM (RBF)}: điểm tăng liên tục theo khoảng cách tới vùng train trên mọi đặc trưng cùng lúc $\Rightarrow$ càng ra ngoài train càng bất thường.
+\item \textbf{IF bão hoà}: ngưỡng cắt nằm trong min--max train $\Rightarrow$ ``vượt xa'' và ``ở rìa train'' có điểm như nhau.
+\item \textbf{IF pha loãng}: mỗi lần cắt chọn ngẫu nhiên 1/39 đặc trưng, trong khi tín hiệu chỉ nằm ở vài đặc trưng.
+\item \textbf{OCSVM}: điểm tăng theo khoảng cách tới vùng train $\Rightarrow$ càng xa, càng bất thường.
 \end{itemize}
 \end{soccard}
 \end{column}
@@ -603,7 +603,7 @@ Isolation Forest & 0,886 & 0,064 & 0,10\\
 \footnotesize
 \begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}Xcc|cc@{}}
 \toprule\rowcolor{socblue!10}\textbf{Số đặc trưng vượt 99,9\% train} & \textbf{Số dòng} & \textbf{Dòng tấn công} & \textbf{IF: chỗ top 1\% (đúng)} & \textbf{OCSVM: chỗ top 1\% (đúng)}\\\midrule
-0 (nằm trong phạm vi train) & 149.845 & 981 & \textcolor{socred}{\textbf{928}} (51) & 356 (165)\\
+0 (trong phạm vi train) & 149.845 & 981 & \textcolor{socred}{\textbf{928}} (51) & 356 (165)\\
 1 & 2.782 & 278 & 419 (60) & 771 (95)\\
 2 & 568 & 132 & 71 (19) & 134 (69)\\
 $\geq$ 3 & 372 & 152 & 118 (26) & \textbf{275 (142)}\\\bottomrule
@@ -624,13 +624,12 @@ Spraying & \textbf{20\%} & 16\%\\\bottomrule
 \end{column}
 \begin{column}{.47\textwidth}
 \begin{itemize}\setlength\itemsep{3pt}\scriptsize
-\item \textbf{60\% top 1\% của IF} (928 chỗ) là dòng nằm trong phạm vi train, chỉ 5\% đúng. Đặc trưng nổi nhất của các dòng này: \texttt{failure\_locked\_out\_share}, \texttt{log\_total\_logons}, \texttt{failure\_ratio} $\Rightarrow$ tài khoản thật hay bị khoá hoặc đăng nhập rất nhiều.
-\item OCSVM dồn top 1\% vào dòng vượt train, nơi tấn công tập trung.
-\item IF chỉ hơn ở spraying và ngoài giờ, hai kịch bản gần như không vượt train (0,19 và 0 đặc trưng/dòng). Với ngoài giờ, OCSVM vẫn có ROC-AUC cao hơn (0,91 so với 0,88) nhưng không đưa được nạn nhân vào top 1\%.
+\item \textbf{IF}: 60\% top 1\% là dòng trong phạm vi train, chỉ 5\% đúng. Đây chủ yếu là tài khoản thật hay bị khoá hoặc đăng nhập nhiều (\texttt{failure\_locked\_out\_share}, \texttt{log\_total\_logons}).
+\item \textbf{OCSVM}: 77\% top 1\% là dòng vượt train, 26\% đúng.
+\item IF chỉ hơn ở spraying và ngoài giờ, hai kịch bản gần như không vượt train $\Rightarrow$ lợi thế của OCSVM gắn với tấn công tạo giá trị cực trị.
 \end{itemize}
 \end{column}
 \end{columns}
-\nhanxet{IF trả lời ``dòng này có hiếm không?'', OCSVM trả lời ``dòng này có nằm ngoài vùng hành vi đã học không?''. Tấn công tiêm là hành vi \emph{mới} so với train, nên câu hỏi thứ hai đúng hơn.}
 \end{frame}
 
 \begin{frame}{24. Đối chiếu đề cương và giới hạn}
@@ -661,29 +660,6 @@ Spraying & \textbf{20\%} & 16\%\\\bottomrule
 \end{columns}
 \end{frame}
 
-\begin{frame}{25. Kết luận và kế hoạch tuần 5}
-\begin{columns}[T,onlytextwidth]
-\begin{column}{.48\textwidth}
-\begin{block}{Kết luận}
-\begin{itemize}\setlength\itemsep{6pt}\small
-\item OCSVM tốt nhất: PR-AUC \textbf{0,182}, ROC-AUC \textbf{0,917} trên test.
-\item Cả 3 mô hình ML đều vượt ngẫu nhiên, luật và z-score.
-\item Lựa chọn scaler ảnh hưởng mạnh hơn tham số mô hình.
-\item Luật thất bại vẫn cần cho spraying.
-\end{itemize}
-\end{block}
-\end{column}
-\begin{column}{.48\textwidth}
-\begin{exampleblock}{Tuần 5}
-\begin{enumerate}\setlength\itemsep{6pt}\small
-\item Đặc trưng fan-out cho spraying; phân tích theo loại bất thường.
-\item Review thủ công top 50 cảnh báo mỗi mô hình.
-\item Ablation theo nhóm đặc trưng.
-\item Một lệnh chạy toàn bộ chuỗi, tái lập sai lệch $\leq$ 1\%.
-\end{enumerate}
-\end{exampleblock}
-\end{column}
-\end{columns}
-\end{frame}
+
 
 \end{document}
