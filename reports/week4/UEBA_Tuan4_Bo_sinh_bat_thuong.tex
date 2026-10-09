@@ -1,0 +1,689 @@
+\documentclass[aspectratio=169, 10pt]{beamer}
+
+% =============================================================================
+% CẤU HÌNH BIÊN DỊCH & GÓI LỆNH (TƯƠNG THÍCH HOÀN HẢO OVERLEAF / TEXLIVE)
+% =============================================================================
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[utf8]{vietnam}
+\else
+  \usepackage{fontspec}
+  \setsansfont{DejaVu Sans}
+  \setmonofont{DejaVu Sans Mono}
+\fi
+
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{colortbl}
+\usepackage{tabularx}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{positioning,arrows.meta}
+\usepackage{tcolorbox}
+\tcbuselibrary{skins}
+\usepackage{hyperref}
+
+% Đường dẫn tìm ảnh linh hoạt (hỗ trợ cả chạy từ thư mục gốc, thư mục slides/, hoặc drive)
+\graphicspath{{./}{slides/}{../}{../slides/}{drive-download-20260925T212557Z-1-001/}{../drive-download-20260925T212557Z-1-001/}}
+
+% =============================================================================
+% ĐỊNH NGHĨA HỆ MÀU SẮC CHUYÊN NGHIỆP (VINSOC THEME)
+% =============================================================================
+\definecolor{socblue}{RGB}{18, 48, 92}
+\definecolor{socteal}{RGB}{14, 116, 144}
+\definecolor{socsky}{RGB}{2, 132, 199}
+\definecolor{socdark}{RGB}{30, 41, 59}
+\definecolor{socbg}{RGB}{248, 250, 252}
+\definecolor{socborder}{RGB}{226, 232, 240}
+\definecolor{socgreen}{RGB}{22, 101, 52}
+\definecolor{socorange}{RGB}{194, 65, 12}
+\definecolor{socred}{RGB}{185, 28, 28}
+
+% =============================================================================
+% CẤU HÌNH GIAO DIỆN BEAMER & LỀ TRANG
+% =============================================================================
+\usetheme{default}
+\usefonttheme{professionalfonts}
+\setbeamertemplate{navigation symbols}{}
+\setbeamersize{text margin left=6mm, text margin right=6mm}
+
+% Màu sắc các phần tử chính của Beamer
+\setbeamercolor{structure}{fg=socblue}
+\setbeamercolor{palette primary}{bg=socblue,fg=white}
+\setbeamercolor{palette secondary}{bg=socteal,fg=white}
+\setbeamercolor{palette tertiary}{bg=socdark,fg=white}
+\setbeamercolor{item}{fg=socblue}
+\setbeamercolor{subitem}{fg=socteal}
+\setbeamercolor{block title}{bg=socblue, fg=white}
+\setbeamercolor{block body}{bg=socbg, fg=socdark}
+\setbeamercolor{block title example}{bg=socteal, fg=white}
+\setbeamercolor{block body example}{bg=socbg, fg=socdark}
+
+% Tiêu đề Slide (Frametitle) - Thanh ngang 1 dòng thanh thoát, tinh gọn
+\makeatletter
+\setbeamerfont{frametitle}{size=\normalsize, series=\bfseries}
+\setbeamercolor{frametitle}{bg=socblue, fg=white}
+\setbeamertemplate{frametitle}{%
+  \nointerlineskip%
+  \begin{beamercolorbox}[wd=\paperwidth,ht=3.2ex,dp=1.2ex,left]{frametitle}%
+    \hspace*{2.5ex}\usebeamerfont{frametitle}\insertframetitle%
+    \ifx\insertframesubtitle\@empty%
+    \else%
+      \hskip 2em plus 1fill{\footnotesize\color{socsky!45!white}\textmd{\insertframesubtitle}}\hspace*{2.5ex}%
+    \fi%
+  \end{beamercolorbox}%
+  \vspace{-1pt}%
+  {\color{socsky}\hrule height 1.2pt}%
+}
+\makeatother
+
+% Chân trang Slide (Footline) - Rõ ràng, dễ đọc, cân đối hài hòa
+\setbeamercolor{footline}{bg=socdark, fg=white}
+\setbeamertemplate{footline}{%
+  {\color{socsky!60!black}\hrule height 0.8pt}%
+  \leavevmode%
+  \hbox{%
+    \begin{beamercolorbox}[wd=.33\paperwidth,ht=3.2ex,dp=1.2ex,left]{footline}%
+      \hspace*{2.5ex}\fontsize{6}{7}\selectfont\textbf{\color{socsky}VinSOC} \textcolor{white!35}{|} \textmd{\color{white!85}Security Operations Center}
+    \end{beamercolorbox}%
+    \begin{beamercolorbox}[wd=.44\paperwidth,ht=3.2ex,dp=1.2ex,center]{footline}%
+      \footnotesize\color{white!90}Tuần 4: Bộ sinh bất thường \& benchmark
+    \end{beamercolorbox}%
+    \begin{beamercolorbox}[wd=.23\paperwidth,ht=3.2ex,dp=1.2ex,right]{footline}%
+      \footnotesize\color{white!80}Trang \;\textbf{\color{white}\insertframenumber} / \inserttotalframenumber\hspace*{2.5ex}
+    \end{beamercolorbox}%
+  }%
+  \vskip0pt%
+}
+
+% =============================================================================
+% MACRO & THÀNH PHẦN HỘP TINH GỌN (CHỐNG TRÀN VERTICAL TUYỆT ĐỐI)
+% =============================================================================
+% Hộp Nhận xét nghiệp vụ ngắn gọn
+\newcommand{\nhanxet}[1]{%
+  \vspace{0.12em}%
+  \begin{tcolorbox}[
+    enhanced,
+    colback=socsky!6,
+    colframe=socsky,
+    boxrule=0pt,
+    leftrule=3pt,
+    arc=1mm,
+    left=6pt, right=6pt, top=3pt, bottom=3pt,
+    fontupper=\scriptsize
+  ]
+    \textbf{\color{socsky!90!black}Nhận xét nghiệp vụ:} #1
+  \end{tcolorbox}%
+}
+
+% Hộp Chú thích biểu đồ tinh gọn
+\newcommand{\chuthichbieudo}[1]{%
+  \vspace{0.12em}%
+  \begin{tcolorbox}[
+    enhanced,
+    colback=socbg,
+    colframe=socborder,
+    boxrule=0.6pt,
+    leftrule=3pt,
+    borderline west={3pt}{0pt}{socteal},
+    arc=1mm,
+    left=6pt, right=6pt, top=3pt, bottom=3pt,
+    fontupper=\scriptsize
+  ]
+    \textbf{\color{socteal}Ý nghĩa:} #1
+  \end{tcolorbox}%
+}
+
+% Hộp thẻ card nội dung gọn nhẹ (thay thế beamer block to cồng kềnh)
+\newtcolorbox{soccard}[2][]{%
+  enhanced,
+  colback=socbg,
+  colframe=socborder,
+  boxrule=0.6pt,
+  leftrule=2.5pt,
+  borderline west={2.5pt}{0pt}{socblue},
+  arc=1mm,
+  left=5pt, right=5pt, top=3.5pt, bottom=3.5pt,
+  fontupper=\scriptsize,
+  title={\textbf{\color{socblue}#2}},
+  coltitle=socblue,
+  attach title to upper={\par\vspace{1.5pt}},
+  #1
+}
+
+% Lệnh chèn ảnh an toàn hỗ trợ đa đường dẫn
+\newcommand{\chenanh}[2][width=\linewidth]{%
+  \IfFileExists{#2}{%
+    \includegraphics[#1]{#2}%
+  }{%
+    \IfFileExists{slides/#2}{%
+      \includegraphics[#1]{slides/#2}%
+    }{%
+      \IfFileExists{drive-download-20260925T212557Z-1-001/#2}{%
+        \includegraphics[#1]{drive-download-20260925T212557Z-1-001/#2}%
+      }{%
+        \IfFileExists{../drive-download-20260925T212557Z-1-001/#2}{%
+          \includegraphics[#1]{../drive-download-20260925T212557Z-1-001/#2}%
+        }{%
+          \centering\fbox{\textit{\color{gray}[Tệp hình ảnh: #2]}}\par%
+        }%
+      }%
+    }%
+  }%
+}
+
+% Cấu hình bảng biểu tinh gọn
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.18}
+
+% =============================================================================
+% THÔNG TIN BÁO CÁO
+% =============================================================================
+\title{BỘ SINH BẤT THƯỜNG TỔNG HỢP VÀ BENCHMARK}
+\subtitle{Tuần 4: Tiêm nhãn, đánh giá và tinh chỉnh UEBA}
+\author{\textbf{VinSOC Security Operations Center}}
+\institute{Trung Tâm Vận Hành An Ninh Mạng VinSOC}
+\date{Tháng 10/2026}
+
+% =============================================================================
+% BẮT ĐẦU TÀI LIỆU SLIDE
+% =============================================================================
+% Biên dịch: XeLaTeX (khuyến nghị) hoặc pdfLaTeX, chạy hai lần.
+% Nội dung nguồn: reports/week4/tom_tat_tuan4.md (bản chạy lại commit ff3cf9c)
+% Số liệu: experiments/grid/dev/ (ngày 36--42, 5 run dev_seed20261036..40)
+%          experiments/grid/test/ (ngày 43--60, 5 run test_seed20261061..65)
+% Hình: reports/week4/hinh/ (chép từ experiments/grid/{dev,test}/figures/)
+\newcommand{\duongdan}[1]{{\scriptsize\texttt{\detokenize{#1}}}}
+\setbeamerfont{block title}{size=\normalsize,series=\bfseries}
+\setbeamerfont{block body}{size=\small}
+\hypersetup{pdftitle={UEBA Tuần 4 - Bộ sinh bất thường và benchmark},pdfauthor={VinSOC Security Operations Center}}
+\begin{document}
+
+\begin{frame}[plain]
+\begin{tikzpicture}[remember picture,overlay]
+\fill[socblue] (current page.north west) rectangle ([yshift=-24pt]current page.north east);
+\fill[socsky] ([yshift=-24pt]current page.north west) rectangle ([yshift=-27pt]current page.north east);
+\end{tikzpicture}
+\begin{center}
+{\LARGE\bfseries\color{socblue}KHUNG BENCHMARK UEBA}\\[.6em]
+{\large\bfseries\color{socteal}Tuần 4: Bộ sinh bất thường tổng hợp và benchmark}\\[.7em]
+{\normalsize Tiêm nhãn vào dữ liệu đánh giá, so sánh mô hình với baseline}\\[1em]
+{\small Isolation Forest \quad LOF \quad One-Class SVM}\\[1.5em]
+{\small VinSOC Security Operations Center}\\[.4em]
+{\footnotesize Tháng 10/2026}
+\end{center}
+\end{frame}
+
+\begin{frame}{01. Nội dung công việc tuần 4}
+\begin{columns}[T,onlytextwidth]
+\begin{column}{.48\textwidth}
+\begin{block}{Bộ sinh và quy trình tiêm}
+\begin{itemize}\setlength\itemsep{7pt}
+\item 6 kịch bản: 4 theo đề cương, 2 bổ sung.
+\item Tiêm đúng 1\% số dòng User theo tài khoản/ngày.
+\item Tiêm ở tầng log, rồi tính lại 41 đặc trưng.
+\item Nhãn và manifest cho từng run.
+\end{itemize}
+\end{block}
+\end{column}
+\begin{column}{.48\textwidth}
+\begin{exampleblock}{Benchmark}
+\begin{itemize}\setlength\itemsep{7pt}
+\item Chia train, dev, test theo thời gian (mục 5.1).
+\item 3 mô hình, 3--6 cấu hình mỗi mô hình, lặp 5 seed.
+\item So sánh với 4 mốc tham chiếu.
+\item Chọn cấu hình trên dev, chạy test một lần.
+\end{itemize}
+\end{exampleblock}
+\end{column}
+\end{columns}
+\vspace{.8em}
+\nhanxet{Trên test (ngày 43--60), One-Class SVM đạt PR-AUC \textbf{0,182 $\pm$ 0,023}, gấp \textbf{7 lần} luật đếm số lần thất bại và \textbf{18 lần} ngẫu nhiên.}
+\end{frame}
+
+\begin{frame}{02. Chia train, dev và test theo thời gian}
+\normalsize
+\begin{tabularx}{\linewidth}{@{}p{2cm}p{2.8cm}X@{}}
+\toprule\rowcolor{socblue!10}\textbf{Khối} & \textbf{Ngày} & \textbf{Vai trò}\\\midrule
+\textbf{Train} & 1--42 (70\%) & Dựng hồ sơ hành vi, kho khuôn sự kiện và huấn luyện mô hình cho test.\\[10pt]
+\textbf{Dev} & 36--42 & Nằm \textbf{trong train}: mô hình, hồ sơ và luật loại trừ dựng từ ngày 1--35. Dùng để chọn cấu hình.\\[10pt]
+\textbf{Test} & 43--60 (30\%) & Đánh giá một lần với cấu hình đã chốt, không tinh chỉnh bằng nhãn test.\\\bottomrule
+\end{tabularx}
+\vspace{1em}
+\begin{itemize}\setlength\itemsep{5pt}
+\item Train giữ nguyên trong mọi run tiêm, chỉ ngày đánh giá bị tiêm.
+\item Imputer và scaler chỉ \texttt{fit} trên train.
+\item Một run tiêm gồm \textbf{một khối dev hoặc test và một seed}.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{03. Nguyên tắc dựng sự kiện tổng hợp}
+\normalsize
+\begin{enumerate}\setlength\itemsep{10pt}
+\item \textbf{Dùng sự kiện thật làm khuôn.} Ưu tiên sự kiện train của nạn nhân, thiếu thì dùng tài khoản cùng loại.
+\item \textbf{Thay đổi theo hành vi kịch bản.} Điều chỉnh thời gian, máy nguồn/đích và các trường cần thiết như kết quả xác thực hoặc LogonType.
+\item \textbf{Ghi vào bản sao log đánh giá.} Log gốc và train giữ nguyên.
+\item \textbf{Tính lại đặc trưng sau tiêm.} Trích lại toàn bộ 41 đặc trưng, gồm lịch sử 7 ngày.
+\item \textbf{Nhãn lưu riêng.} Log đưa vào trích đặc trưng không có cột đánh dấu tiêm.
+\end{enumerate}
+\end{frame}
+
+\begin{frame}{04. Hồ sơ hành vi và điều kiện chọn nạn nhân}
+\begin{columns}[T,onlytextwidth]
+\begin{column}{.48\textwidth}
+\begin{block}{Hồ sơ học từ train của khối}
+\begin{itemize}\setlength\itemsep{7pt}
+\item Máy nguồn và máy đích quen thuộc.
+\item LogonType thường dùng.
+\item Giờ hoạt động điển hình.
+\item Khoảng nghỉ dài nhất của tài khoản.
+\item Ngưỡng khoá mô phỏng $L=5$.
+\end{itemize}
+\end{block}
+\end{column}
+\begin{column}{.48\textwidth}
+\begin{exampleblock}{Điều kiện chung}
+\begin{itemize}\setlength\itemsep{7pt}
+\item Chỉ tài khoản người dùng (User).
+\item Có ít nhất 7 ngày hoạt động trong train.
+\item Mỗi tài khoản bị tiêm tối đa một lần trong một run.
+\item Loại dòng tài khoản/ngày mà luật ngưỡng đã cảnh báo trên log gốc.
+\end{itemize}
+\end{exampleblock}
+\end{column}
+\end{columns}
+\vspace{.6em}
+\small Mỗi kịch bản còn có điều kiện riêng để hành vi tiêm khác với lịch sử của nạn nhân.
+\end{frame}
+
+\begin{frame}{05. Sáu kịch bản bất thường tổng hợp}
+\small
+\begin{tabularx}{\linewidth}{@{}p{4.4cm}X@{}}
+\toprule\rowcolor{socblue!10}\textbf{Kịch bản} & \textbf{Mô tả hành vi được tiêm}\\\midrule
+\textbf{Brute-force} & 8--25 lần đăng nhập thất bại từ một máy nguồn lạ trong 5--30 phút, sau $L=5$ lần sai thì bị khoá.\\[7pt]
+\textbf{Password spraying} & Một máy nguồn lạ thử sai 1--3 lần trên 5--13 tài khoản, \textbf{cả chiến dịch trong một cửa sổ 30--90 phút}.\\[7pt]
+\textbf{Đăng nhập ngoài giờ} & \textbf{Dời toàn bộ một ngày hoạt động điển hình} của người làm ban ngày sang 0--7 giờ sáng.\\[7pt]
+\textbf{Bùng nổ máy trạm mới} & Đăng nhập thành công từ 4--10 máy nguồn chưa từng dùng trong train, trong 0,5--2 giờ.\\[7pt]
+\textbf{Ngủ đông thức dậy} & Tài khoản im lặng lâu hơn khoảng nghỉ dài nhất của chính nó bỗng có một ngày hoạt động điển hình (giữ giờ gốc).\\[7pt]
+\textbf{Đổi kiểu đăng nhập} & \textbf{Cả một ngày} đăng nhập chuyển sang LogonType chưa từng dùng; ưu tiên chiều \textbf{2 $\rightarrow$ 5/3} theo đề cương, phần còn lại 3 $\rightarrow$ 10/2.\\\bottomrule
+\end{tabularx}
+\end{frame}
+
+\begin{frame}{06. Bốn chỗ đã sửa sau khi đối chiếu đề cương mục 5.2}
+\small
+\begin{tabularx}{\linewidth}{@{}p{2.6cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
+\toprule\rowcolor{socblue!10}\textbf{Kịch bản} & \textbf{Bản trước} & \textbf{Bản hiện tại}\\\midrule
+\textbf{Spraying} & Mỗi nạn nhân một cửa sổ riêng, chiến dịch trải 9--23 giờ (lỗi code) & Một cửa sổ chung 30--90 phút, chiến dịch $\geq$ 5 nạn nhân\\[6pt]
+\textbf{Ngoài giờ} & Thêm 10--40 sự kiện đêm vào ngày đã có hoạt động ban ngày, tín hiệu bị pha loãng & Dời cả ngày sang đêm\\[6pt]
+\textbf{Đổi LogonType} & Thêm 3--10 sự kiện vào ngày có hàng trăm sự kiện (tín hiệu khoảng 2\%), ngược chiều đề cương & Cả ngày đổi loại logon, ưu tiên 2 $\rightarrow$ 5/3\\[6pt]
+\textbf{Ngủ đông} & Ngày phát lại bị dời giờ ngẫu nhiên (lỗi code) & Giữ nguyên giờ trong ngày\\\bottomrule
+\end{tabularx}
+\vspace{.6em}
+\nhanxet{ROC-AUC của OCSVM trên test: ngoài giờ tăng \textbf{0,49 $\rightarrow$ 0,91}, đổi LogonType tăng \textbf{0,44 $\rightarrow$ 0,99}. Hai kịch bản này trước đây khó phát hiện là do cách tiêm, không phải do mô hình.}
+\end{frame}
+
+\begin{frame}{07. Quy trình tiêm và đánh giá}
+\centering
+\begin{tikzpicture}[
+  task/.style={draw=socblue!55, fill=socbg, rounded corners=2pt,
+    line width=.8pt, align=center, text=socdark,
+    font=\small, text width=3.6cm, minimum height=1.1cm, inner sep=5pt},
+  flow/.style={-{Latex[length=2.6mm,width=1.7mm]}, line width=1.05pt, draw=socteal}
+]
+\node[task] (profile) at (0,2.1) {\textbf{1. Hồ sơ hành vi}\\Học từ train};
+\node[task] (rule) at (4.5,2.1) {\textbf{2. Loại cảnh báo sẵn}\\Luật ngưỡng chấm log gốc};
+\node[task] (template) at (9,2.1) {\textbf{3. Kho khuôn}\\Gom sự kiện thật từ train};
+\node[task,fill=socteal!10,draw=socteal,text width=5.4cm] (inject) at (4.5,.2)
+  {\textbf{4. Chọn và sinh}\\Chọn nạn nhân, sinh sự kiện theo 6 kịch bản};
+\node[task] (write) at (0,-1.8) {\textbf{5. Ghi run}\\Ghi log đã tiêm, nhãn và manifest};
+\node[task] (features) at (4.5,-1.8) {\textbf{6. Đặc trưng}\\Tính lại 41 đặc trưng};
+\node[task] (evaluate) at (9,-1.8) {\textbf{7. Đánh giá}\\Benchmark trên khối đánh giá};
+\draw[flow] (profile.south) -- (0,1.02) -| ([xshift=-1.8cm]inject.north);
+\draw[flow] (rule.south) -- (inject.north);
+\draw[flow] (template.south) -- (9,1.02) -| ([xshift=1.8cm]inject.north);
+\draw[flow] (inject.south) -- ++(0,-.35) -| (write.north);
+\draw[flow] (write.east) -- (features.west);
+\draw[flow] (features.east) -- (evaluate.west);
+\end{tikzpicture}
+\par\vspace{.6em}
+\small\textbf{Một run = một khối dev hoặc test + một seed cố định.}
+\end{frame}
+
+\begin{frame}{08. Ví dụ brute-force: Quy trình tiêm}
+% User1, ngày 40, n=17 là giả định minh họa, không trích từ kết quả chạy.
+\fontsize{9}{11}\selectfont
+\par\vspace{.4em}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{3.2cm}>{\raggedright\arraybackslash}X@{}}
+\toprule\rowcolor{socblue!10}\textbf{Bước} & \textbf{Luồng thực hiện cho lần tiêm này}\\\midrule
+\textbf{1. Hồ sơ hành vi} & Lấy dữ liệu của User1 trong train (ngày 1--35 với khối dev) để xác định LogHost, Source quen thuộc và LogonType thường dùng, làm cơ sở sinh log bất thường.\\[7pt]
+\textbf{2. Loại cảnh báo sẵn} & Kiểm tra log gốc của User1 ở ngày 40 bằng luật cảnh báo. Nếu chưa bị cảnh báo thì giữ làm ứng viên tiêm; nếu đã bị cảnh báo thì bỏ qua.\\[7pt]
+\textbf{3. Kho khuôn} & Lấy log đăng nhập thất bại có mã 4625 từ train làm mẫu. Ưu tiên log của User1; nếu thiếu thì lấy log của tài khoản cùng loại. Không có mẫu phù hợp thì bỏ qua.\\[7pt]
+\textbf{4. Chọn và sinh} & Chọn User1 chưa bị tiêm trong lần chạy này. Chọn ngẫu nhiên số dòng log cần thêm trong khoảng từ 8 đến 25. Các dòng log được sinh có \textbf{LogHost lạ}, \textbf{Source quen lấy từ hồ sơ hành vi} và \textbf{LogonType 3}.\\[7pt]
+\textbf{5. Ghi run} & Thêm các dòng log đã sinh vào bản sao log dev, rồi gán nhãn 1 cho User1/ngày 40. Lưu riêng log đã tiêm, file nhãn và manifest chứa seed cùng các tham số tiêm.\\\bottomrule
+\end{tabularx}
+\par\vspace{.4em}
+\end{frame}
+
+\begin{frame}{09. Ví dụ brute-force: Quy trình đánh giá}
+\fontsize{9}{11}\selectfont
+\par\vspace{.4em}
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{3.2cm}>{\raggedright\arraybackslash}X@{}}
+\toprule\rowcolor{socblue!10}\textbf{Bước} & \textbf{Luồng thực hiện cho lần tiêm này}\\\midrule
+\textbf{6. Đặc trưng} & Lấy log dev đã tiêm để tính lại các đặc trưng hành vi của User1/ngày 40, rồi xử lý dữ liệu thiếu và chuẩn hóa bằng imputer, scaler đã học trên train.\\[24pt]
+\textbf{7. Đánh giá} & Dùng mô hình đã học trên train để chấm điểm log dev đã tiêm, rồi ghép điểm với nhãn theo tài khoản/ngày. Kiểm tra thứ hạng của User1/ngày 40 và tính PR-AUC, Precision@k, Recall theo ngân sách trên toàn dev.\\\bottomrule
+\end{tabularx}
+\par\vspace{.4em}
+\end{frame}
+
+\begin{frame}{10. Tiêm bao nhiêu bất thường vào dữ liệu?}
+\small
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}p{4.2cm}>{\raggedright\arraybackslash}X>{\raggedright\arraybackslash}X@{}}
+\toprule\rowcolor{socblue!10}\textbf{Nội dung} & \textbf{Dev (ngày 36--42)} & \textbf{Test (ngày 43--60)}\\\midrule
+\textbf{Mẫu số} (dòng User gốc) & 54.656 & 152.740\\[6pt]
+\textbf{Số lần tiêm} $=\lceil 1\%\cdot D/0{,}99\rceil$ & \textbf{553} (92--93 mỗi kịch bản) & \textbf{1.543} (257--258 mỗi kịch bản)\\[6pt]
+\textbf{Tỷ lệ đạt} & 1,01\% ở cả 5 run & 1,01\% ở cả 5 run\\[6pt]
+\textbf{Sự kiện log được thêm} & 62--130 nghìn & 157--198 nghìn\\\bottomrule
+\end{tabularx}
+\par\vspace{1em}
+Ví dụ: thêm 25 sự kiện cho User1 trong một ngày $\rightarrow$ một dòng nhãn 1.
+\end{frame}
+
+% =============================================================================
+% PHẦN BENCHMARK
+% =============================================================================
+
+\begin{frame}{11. Thiết lập benchmark}
+\small
+\begin{tabularx}{\linewidth}{@{}p{3.4cm}X@{}}
+\toprule\rowcolor{socblue!10}\textbf{Thành phần} & \textbf{Thiết lập}\\\midrule
+Lưới cấu hình & Isolation Forest 3 cấu hình (\texttt{n\_estimators}, \texttt{max\_samples}, \texttt{max\_features}); LOF 4 (scaler $\times$ \texttt{n\_neighbors}); One-Class SVM 6 (scaler, \texttt{gamma}, \texttt{n\_components}).\\[5pt]
+4 mốc tham chiếu & Ngẫu nhiên; \textbf{luật số lần thất bại $\geq$ 5} (ngưỡng cố định, mục 5.3); luật 6 điều kiện; z-score toàn cục.\\[5pt]
+Lặp 5 seed & Mỗi seed = một bộ dữ liệu tiêm + một \texttt{random\_state} mô hình. Báo cáo trung bình $\pm$ độ lệch chuẩn.\\[5pt]
+Ngưỡng cảnh báo & Phân vị $(1-c)$ của điểm \textbf{train}, $c = 5\%$. Không dùng nhãn để đặt ngưỡng.\\[5pt]
+Chỉ số (mục 5.4) & PR-AUC, ROC-AUC, P@10/50/100 (toàn khối và theo ngày), Recall@5\%, Recall top-100/ngày, tỷ lệ cảnh báo, thời gian.\\[5pt]
+Chọn cấu hình & PR-AUC trung bình 5 seed cao nhất trên \textbf{dev}; test sinh tự động từ cấu hình đã chốt.\\[5pt]
+Nhật ký & Mọi lần fit ghi vào \texttt{experiments/logs/experiment\_log.csv} (mục 5.6).\\\bottomrule
+\end{tabularx}
+\end{frame}
+
+\begin{frame}{12. Kết quả dev: toàn bộ cấu hình}
+\fontsize{6.6}{7.6}\selectfont
+\renewcommand{\arraystretch}{1.08}
+\begin{tabularx}{\linewidth}{@{}l>{\raggedright\arraybackslash}Xccccc@{}}
+\toprule\rowcolor{socblue!10}\textbf{Mô hình} & \textbf{Cấu hình} & \textbf{PR-AUC} & \textbf{ROC-AUC} & \textbf{P@100/ngày} & \textbf{Recall@5\%} & \textbf{Tỷ lệ c.báo}\\\midrule
+\rowcolor{socteal!10}\textbf{OCSVM} & \textbf{standard, $\gamma$=scale, 1000 thành phần} $\star$ & \textbf{0,169 $\pm$ 0,021} & 0,908 & 0,27 & \textbf{0,58} & 9,3\%\\
+OCSVM & standard, $\gamma$=scale, 300 thành phần & 0,167 $\pm$ 0,012 & 0,906 & 0,26 & 0,57 & 9,5\%\\
+OCSVM & standard, $\gamma$=0,1, 300 thành phần & 0,164 $\pm$ 0,014 & \textbf{0,916} & 0,25 & 0,56 & 8,2\%\\
+OCSVM & standard, $\gamma$=0,005, 300 thành phần & 0,164 $\pm$ 0,004 & 0,904 & \textbf{0,28} & 0,54 & 10,0\%\\
+OCSVM & quantile, $\gamma$=scale, 300 thành phần & 0,054 $\pm$ 0,008 & 0,848 & 0,09 & 0,31 & 7,2\%\\
+OCSVM & robust, $\gamma$=scale, 300 thành phần & 0,036 $\pm$ 0,012 & 0,512 & 0,07 & 0,19 & 6,4\%\\\midrule
+\rowcolor{socteal!10}\textbf{IF} & \textbf{300 cây, max\_samples=1024, max\_features=1,0} $\star$ & \textbf{0,063 $\pm$ 0,008} & 0,866 & 0,12 & 0,31 & 8,2\%\\
+IF & 150 cây, max\_samples=auto, max\_features=0,5 & 0,046 $\pm$ 0,003 & 0,848 & 0,09 & 0,23 & 8,4\%\\
+IF & 150 cây, max\_samples=auto, max\_features=1,0 (mặc định) & 0,043 $\pm$ 0,003 & 0,846 & 0,08 & 0,23 & 7,9\%\\\midrule
+\rowcolor{socteal!10}\textbf{LOF} & \textbf{robust, k=20} $\star$ & \textbf{0,049 $\pm$ 0,005} & 0,691 & 0,13 & 0,33 & 9,1\%\\
+LOF & quantile, k=20 & 0,043 $\pm$ 0,002 & 0,756 & 0,08 & 0,25 & 7,1\%\\
+LOF & standard, k=100 & 0,042 $\pm$ 0,010 & 0,644 & 0,10 & 0,22 & 9,6\%\\
+LOF & standard, k=20 & 0,027 $\pm$ 0,008 & 0,597 & 0,07 & 0,18 & 10,4\%\\\midrule
+\textit{Z-score} & max $|z|$ bền vững trên 41 đặc trưng & 0,036 $\pm$ 0,009 & 0,727 & 0,07 & 0,13 & 6,2\%\\
+\textit{Luật thất bại} & số lần thất bại/ngày $\geq$ 5 (ngưỡng cố định) & 0,027 $\pm$ 0,001 & 0,631 & 0,08 & 0,21 & 4,4\%\\
+\textit{Luật 6 điều kiện} & tỷ lệ luật thoả, ngưỡng phân vị train & 0,018 $\pm$ 0,001 & 0,605 & 0,06 & 0,13 & 18,8\%\\
+\textit{Ngẫu nhiên} & băm tất định theo dòng & 0,011 $\pm$ 0,001 & 0,501 & 0,01 & 0,05 & 5,0\%\\\bottomrule
+\end{tabularx}
+\par\vspace{.2em}
+
+\end{frame}
+
+\begin{frame}{13. Kết quả dev: PR-AUC theo cấu hình}
+\centering
+\chenanh[width=\linewidth,height=6.5cm,keepaspectratio]{hinh/dev-grid-pr-auc.png}
+
+\end{frame}
+
+\begin{frame}{14. Kết quả test: bảng chính}{Ngày 43--60, chạy một lần, khoảng 153.570 dòng, 1.543 nhãn dương mỗi run}
+\footnotesize
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}Xcccccc@{}}
+\toprule\rowcolor{socblue!10}\textbf{Mô hình (cấu hình chốt)} & \textbf{PR-AUC test} & \textbf{PR-AUC dev} & \textbf{ROC-AUC} & \textbf{P@100/ngày} & \textbf{Recall@5\%} & \textbf{Fit (s)}\\\midrule
+\rowcolor{socteal!10}\textbf{OCSVM} (standard, 1000 tp) & \textbf{0,182 $\pm$ 0,023} & 0,169 & \textbf{0,917} & \textbf{0,29} & \textbf{0,64} & 43,0\\
+\textbf{IF} (n=300, ms=1024) & 0,065 $\pm$ 0,003 & 0,063 & 0,888 & 0,13 & 0,32 & 13,5\\
+\textbf{LOF} (k=20, robust) & 0,047 $\pm$ 0,004 & 0,049 & 0,688 & 0,11 & 0,34 & 12,8\\\midrule
+\textit{Z-score toàn cục} & 0,032 $\pm$ 0,003 & 0,036 & 0,743 & 0,06 & 0,15 & 2,1\\
+\textit{Luật thất bại $\geq$ 5} & 0,025 $\pm$ 0,000 & 0,027 & 0,623 & 0,08 & 0,20 & 1,1\\
+\textit{Luật 6 điều kiện} & 0,015 $\pm$ 0,001 & 0,018 & 0,536 & 0,06 & 0,13 & 1,1\\
+\textit{Ngẫu nhiên} & 0,010 $\pm$ 0,000 & 0,011 & 0,503 & 0,01 & 0,05 & 1,4\\\bottomrule
+\end{tabularx}
+\vspace{.5em}
+\begin{itemize}\setlength\itemsep{3pt}\small
+\item Thứ hạng giữ nguyên giữa dev và test: \textbf{OCSVM $>$ IF $>$ LOF $>$ z-score $>$ luật thất bại $>$ luật 6 điều kiện $>$ ngẫu nhiên}.
+\item Với 100 cảnh báo mỗi ngày, OCSVM có \textbf{29\%} cảnh báo đúng và bắt \textbf{33\%} nạn nhân.
+\end{itemize}
+\end{frame}
+
+\begin{frame}{15. Kết quả test: Precision@k (k = 10, 50, 100)}{Tỷ lệ cảnh báo đúng trong top-$k$, trung bình 5 seed}
+\footnotesize
+\centering
+\begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}lccc@{}}
+\toprule
+\rowcolor{socblue!10}\textbf{Mô hình} & \textbf{P@10} & \textbf{P@50} & \textbf{P@100}\\\midrule
+\rowcolor{socteal!10}\textbf{OCSVM} & 0,18 & 0,24 & \textbf{0,24}\\
+\textbf{IF} & \textbf{0,30} & 0,16 & 0,15\\
+\textbf{LOF} & 0,18 & 0,07 & 0,08\\\midrule
+\textit{Z-score toàn cục} & 0,14 & \textbf{0,26} & 0,23\\
+\textit{Luật thất bại $\geq$ 5} & 0,00 & 0,00 & 0,01\\
+\textit{Luật 6 điều kiện} & 0,02 & 0,03 & 0,04\\
+\textit{Ngẫu nhiên} & 0,02 & 0,01 & 0,02\\\bottomrule
+\end{tabular*}
+\vspace{.5em}
+\begin{itemize}\setlength\itemsep{3pt}\scriptsize
+\item IF có P@10 0,30, z-score có P@50 0,26, nhưng đều tụt khi $k$ tăng.
+\item Z-score mạnh ở top-10/ngày (0,21) rồi giảm nhanh; \textbf{luật thất bại} gần 0 ở top đầu vì điểm cao nhất là tài khoản thật vốn hay thất bại.
+\end{itemize}
+\end{frame}
+
+
+
+\begin{frame}{16. Kết quả test: PR-AUC theo cấu hình chốt}{Trung bình $\pm$ độ lệch chuẩn, 5 seed}
+\centering
+\chenanh[width=\linewidth,height=5.2cm,keepaspectratio]{hinh/test-grid-pr-auc.png}
+\par\vspace{.3em}
+\chuthichbieudo{OCSVM vượt mọi mốc tham chiếu trên cả 5 seed; IF và LOF chỉ nhỉnh hơn z-score. Đường nét đứt là mức PR-AUC của bộ chấm ngẫu nhiên.}
+\end{frame}
+
+\begin{frame}{17. Kết quả test: đường Precision--Recall}{Trung bình 5 seed, dải = $\pm$1 độ lệch chuẩn}
+\begin{columns}[c,onlytextwidth]
+\begin{column}{.58\textwidth}
+\chenanh[width=\linewidth,height=6.3cm,keepaspectratio]{hinh/test-pr-curves.png}
+\end{column}
+\begin{column}{.40\textwidth}
+\begin{itemize}\setlength\itemsep{6pt}\scriptsize
+\item \textbf{OCSVM} giữ precision khoảng 30\% tới recall 0,35: vùng vận hành hữu ích nhất.
+\item \textbf{Z-score} có đỉnh precision cao (P@10/ngày 0,21) nhưng rơi nhanh: chỉ bắt nhóm nhỏ rất lộ, chủ yếu brute-force.
+\item \textbf{Rule base} chỉ đạt precision khoảng 0,02 ở đầu danh sách, cao nhất 0,09 quanh recall 0,1: điểm cao nhất là tài khoản thật vốn hay thất bại, không phải nạn nhân.
+\end{itemize}
+\end{column}
+\end{columns}
+\end{frame}
+
+% Slide 1: Bảng dữ liệu ROC-AUC theo kịch bản
+\begin{frame}{18. Kết quả test theo từng kịch bản (Bảng số liệu)}{ROC-AUC, trung bình 5 seed}
+\vfill
+\centering
+\begin{minipage}{0.85\textwidth}
+\normalsize
+\renewcommand{\arraystretch}{1.3}
+\begin{tabular*}{\linewidth}{@{\extracolsep{\fill}}lcccc@{}}
+\toprule
+\rowcolor{socblue!10}\textbf{Kịch bản} & \textbf{OCSVM} & \textbf{IF} & \textbf{LOF} & \textbf{Luật TB}\\
+\midrule
+Brute-force & \textbf{0,994} & 0,886 & 0,453 & 0,988\\
+Đổi LogonType & \textbf{0,985} & 0,957 & 0,896 & 0,359\\
+Máy trạm mới & \textbf{0,975} & 0,900 & 0,919 & 0,495\\
+Ngủ đông & \textbf{0,947} & 0,911 & 0,604 & 0,513\\
+Ngoài giờ & \textbf{0,906} & 0,877 & 0,730 & 0,510\\
+\rowcolor{socorange!10}Spraying & 0,696 & 0,797 & 0,529 & \textbf{0,875}\\
+\bottomrule
+\end{tabular*}
+\par\vspace{.6em}
+\end{minipage}
+\vfill
+\end{frame}
+
+% Slide 2: Biểu đồ trực quan hóa ROC-AUC
+\begin{frame}{19. Kết quả test theo từng kịch bản (Trực quan hóa)}{ROC-AUC, trung bình 5 seed}
+\vfill
+\centering
+\chenanh[width=0.92\linewidth,height=5.8cm,keepaspectratio]{hinh/test-scenario-roc-auc.png}
+\vfill
+\end{frame}
+\begin{frame}{20. Độ nhạy contamination }{Cấu hình chốt, trung bình $\pm$ độ lệch chuẩn 5 seed}
+\centering
+\chenanh[width=\linewidth,height=6.6cm,keepaspectratio]{hinh/test-contamination-sensitivity.png}
+\end{frame}
+
+\begin{frame}{21. Độ nhạy contamination: }
+\small
+\begin{columns}[T,onlytextwidth]
+\begin{column}{.5\textwidth}
+\scriptsize
+\begin{tabularx}{\linewidth}{@{}c>{\centering\arraybackslash}X>{\centering\arraybackslash}Xc@{}}
+\toprule\rowcolor{socblue!10}\textbf{$c$} & \textbf{OCSVM P / R} & \textbf{IF P / R} & \textbf{Cảnh báo}\\\midrule
+0,2\% & \textbf{0,29} / 0,13 & 0,13 / 0,05 & 0,5\%\\
+0,5\% & 0,27 / 0,30 & 0,10 / 0,10 & 1,1\%\\
+1\% & 0,22 / 0,42 & 0,09 / 0,17 & 1,9\%\\
+2\% & 0,17 / 0,54 & 0,08 / 0,24 & 3,3\%\\
+5\% & 0,10 / \textbf{0,71} & 0,06 / 0,36 & 7,0\%\\\bottomrule
+\end{tabularx}
+\end{column}
+\begin{column}{.47\textwidth}
+\begin{itemize}\setlength\itemsep{3pt}\scriptsize
+\item Contamination \textbf{chỉ dịch ngưỡng}: PR-AUC OCSVM chỉ dao động 0,169--0,182.
+\item Chọn $c$ là chọn giữa precision và recall. Ở 0,5\%: khoảng 95 cảnh báo/ngày, cứ 4 cảnh báo có 1 tấn công, bắt 30\% nạn nhân.
+\item Tỷ lệ cảnh báo thực tế cao hơn $c$ khoảng 1,4--2 lần do dữ liệu trôi so với train $\rightarrow$ cần theo dõi theo ngày.
+\end{itemize}
+\end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{22. Vì sao One-Class SVM tốt hơn Isolation Forest?}{}
+\small
+\textbf{Hai mô hình xếp hạng gần như ngang nhau trên toàn bộ dữ liệu, nhưng khác hẳn ở đầu danh sách cảnh báo:}
+\par\vspace{.3em}
+\begin{center}\footnotesize
+\begin{tabular}{@{}lccc@{}}
+\toprule\rowcolor{socblue!10}\textbf{Mô hình} & \textbf{ROC-AUC} & \textbf{PR-AUC} & \textbf{Precision top 1\% (1.536 dòng)}\\\midrule
+Isolation Forest & 0,886 & 0,064 & 0,10\\
+\rowcolor{socteal!10}One-Class SVM & 0,915 & 0,183 & \textbf{0,31}\\\bottomrule
+\end{tabular}
+\end{center}
+\vspace{.2em}
+\begin{columns}[T,onlytextwidth]
+\begin{column}{.49\textwidth}
+\begin{soccard}{Tấn công tiêm = giá trị \emph{chưa từng thấy} trong train}
+Đếm số đặc trưng mà dòng vượt ra ngoài 99,9\% giá trị train:
+\begin{itemize}\setlength\itemsep{1pt}
+\item \textbf{36\%} dòng tấn công vượt $\geq$ 1 đặc trưng, so với \textbf{2\%} dòng bình thường.
+\item Vượt $\geq$ 3 đặc trưng: 41\% là tấn công (152/372 dòng).
+\item Máy mới, LogonType mới, khoá từ nguồn lạ đẩy các đặc trưng \texttt{novelty\_*}, \texttt{delta\_*} ra ngoài phạm vi train.
+\end{itemize}
+\end{soccard}
+\end{column}
+\begin{column}{.49\textwidth}
+\begin{soccard}{Cơ chế của hai mô hình}
+\begin{itemize}\setlength\itemsep{1pt}
+\item \textbf{IF} cắt tại ngưỡng nằm \emph{trong} khoảng min--max của mẫu train: mọi giá trị vượt max rơi chung lá với điểm train lớn nhất $\Rightarrow$ ``vượt xa'' và ``ở rìa train'' có điểm như nhau.
+\item IF chỉ đo \emph{độ hiếm}: tài khoản thật có lưu lượng lớn hay bị khoá (đuôi dài của train) cũng bị cô lập nhanh.
+\item \textbf{OCSVM (RBF)}: điểm tăng liên tục theo khoảng cách tới vùng train trên mọi đặc trưng cùng lúc $\Rightarrow$ càng ra ngoài train càng bất thường.
+\end{itemize}
+\end{soccard}
+\end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{23. Bằng chứng: IF tiêu tốn đầu danh sách vào đuôi dài của dữ liệu thật}
+\footnotesize
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}Xcc|cc@{}}
+\toprule\rowcolor{socblue!10}\textbf{Số đặc trưng vượt 99,9\% train} & \textbf{Số dòng} & \textbf{Dòng tấn công} & \textbf{IF: chỗ top 1\% (đúng)} & \textbf{OCSVM: chỗ top 1\% (đúng)}\\\midrule
+0 (nằm trong phạm vi train) & 149.845 & 981 & \textcolor{socred}{\textbf{928}} (51) & 356 (165)\\
+1 & 2.782 & 278 & 419 (60) & 771 (95)\\
+2 & 568 & 132 & 71 (19) & 134 (69)\\
+$\geq$ 3 & 372 & 152 & 118 (26) & \textbf{275 (142)}\\\bottomrule
+\end{tabularx}
+\par\vspace{.4em}
+\begin{columns}[T,onlytextwidth]
+\begin{column}{.5\textwidth}
+\scriptsize
+\begin{tabularx}{\linewidth}{@{}>{\raggedright\arraybackslash}Xcc@{}}
+\toprule\rowcolor{socblue!10}\textbf{Tỷ lệ nạn nhân lọt top 1\%} & \textbf{IF} & \textbf{OCSVM}\\\midrule
+Brute-force & 10\% & \textbf{75\%}\\
+Đổi LogonType & 17\% & \textbf{46\%}\\
+Máy trạm mới & 5\% & \textbf{37\%}\\
+Ngủ đông & 5\% & \textbf{8\%}\\
+Ngoài giờ & \textbf{4\%} & 0\%\\
+Spraying & \textbf{20\%} & 16\%\\\bottomrule
+\end{tabularx}
+\end{column}
+\begin{column}{.47\textwidth}
+\begin{itemize}\setlength\itemsep{3pt}\scriptsize
+\item \textbf{60\% top 1\% của IF} (928 chỗ) là dòng nằm trong phạm vi train, chỉ 5\% đúng. Đặc trưng nổi nhất của các dòng này: \texttt{failure\_locked\_out\_share}, \texttt{log\_total\_logons}, \texttt{failure\_ratio} $\Rightarrow$ tài khoản thật hay bị khoá hoặc đăng nhập rất nhiều.
+\item OCSVM dồn top 1\% vào dòng vượt train, nơi tấn công tập trung.
+\item IF chỉ hơn ở spraying và ngoài giờ, hai kịch bản gần như không vượt train (0,19 và 0 đặc trưng/dòng). Với ngoài giờ, OCSVM vẫn có ROC-AUC cao hơn (0,91 so với 0,88) nhưng không đưa được nạn nhân vào top 1\%.
+\end{itemize}
+\end{column}
+\end{columns}
+\nhanxet{IF trả lời ``dòng này có hiếm không?'', OCSVM trả lời ``dòng này có nằm ngoài vùng hành vi đã học không?''. Tấn công tiêm là hành vi \emph{mới} so với train, nên câu hỏi thứ hai đúng hơn.}
+\end{frame}
+
+\begin{frame}{24. Đối chiếu đề cương và giới hạn}
+\begin{columns}[T,onlytextwidth]
+\begin{column}{.48\textwidth}
+\begin{block}{Đầu ra tuần 4}
+\begin{itemize}\setlength\itemsep{4pt}\small
+\item[\color{socgreen}\checkmark] Bộ sinh 4 kịch bản đề cương + 2 bổ sung.
+\item[\color{socgreen}\checkmark] Tiêm 1,01\% ở cả 10 run.
+\item[\color{socgreen}\checkmark] Bảng 3 mô hình $\times$ $\geq$ 3 cấu hình.
+\item[\color{socgreen}\checkmark] Biểu đồ PR, độ nhạy contamination.
+\item[\color{socgreen}\checkmark] 5 seed kèm độ lệch chuẩn.
+\item[\color{socgreen}\checkmark] Đủ chỉ số mục 5.4, nhật ký chung.
+\end{itemize}
+\end{block}
+\end{column}
+\begin{column}{.48\textwidth}
+\begin{exampleblock}{Điểm lệch và giới hạn}
+\begin{itemize}\setlength\itemsep{3pt}\scriptsize
+\item LOF (HNSW) và OCSVM (Nystroem + SGD) là bản xấp xỉ; OCSVM RBF chính xác không chạy được trên 315.000 dòng.
+\item Z-score lấy max $|z|$ trên 41 đặc trưng.
+\item Chiều 2 $\rightarrow$ 5/3 chỉ có 5--8 nạn nhân/run do log thiếu tài khoản dùng type 2.
+\item Nhãn tổng hợp chỉ cho cận trên lạc quan; train có 601 dòng giống tấn công.
+\item Chỉ đánh giá User; chưa có một lệnh chạy toàn bộ chuỗi.
+\end{itemize}
+\end{exampleblock}
+\end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{25. Kết luận và kế hoạch tuần 5}
+\begin{columns}[T,onlytextwidth]
+\begin{column}{.48\textwidth}
+\begin{block}{Kết luận}
+\begin{itemize}\setlength\itemsep{6pt}\small
+\item OCSVM tốt nhất: PR-AUC \textbf{0,182}, ROC-AUC \textbf{0,917} trên test.
+\item Cả 3 mô hình ML đều vượt ngẫu nhiên, luật và z-score.
+\item Lựa chọn scaler ảnh hưởng mạnh hơn tham số mô hình.
+\item Luật thất bại vẫn cần cho spraying.
+\end{itemize}
+\end{block}
+\end{column}
+\begin{column}{.48\textwidth}
+\begin{exampleblock}{Tuần 5}
+\begin{enumerate}\setlength\itemsep{6pt}\small
+\item Đặc trưng fan-out cho spraying; phân tích theo loại bất thường.
+\item Review thủ công top 50 cảnh báo mỗi mô hình.
+\item Ablation theo nhóm đặc trưng.
+\item Một lệnh chạy toàn bộ chuỗi, tái lập sai lệch $\leq$ 1\%.
+\end{enumerate}
+\end{exampleblock}
+\end{column}
+\end{columns}
+\end{frame}
+
+\end{document}
