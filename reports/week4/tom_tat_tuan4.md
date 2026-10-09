@@ -21,7 +21,45 @@ kết quả lặp trên 5 seed kèm độ lệch chuẩn.
 5. Kịch bản có lần đăng nhập thất bại, nguồn mới hoặc tài khoản ngủ đông bị bắt tốt (ROC-AUC 0,90–0,99).
    **Ngoài giờ** và **đổi LogonType** thì không mô hình nào bắt được, vì bộ đặc trưng hiện tại không có tín hiệu đủ mạnh cho hai kịch bản này.
 
-## 2. Bộ sinh bất thường tổng hợp
+## 1b. Đối chiếu với đề cương (`docs/Tong quan de tai ueba.md`)
+
+**Đầu ra tuần 4 (bảng kế hoạch, mục 3):**
+
+| Yêu cầu | Trạng thái | Bằng chứng |
+|---|---|---|
+| Bộ sinh bất thường: brute-force, ngoài giờ, bùng nổ máy trạm mới, ngủ đông | ✅ Đủ 4, thêm spraying và đổi LogonType | §2, `src/injection/` |
+| Tiêm vào tập kiểm thử theo tỷ lệ định trước (mục 5.2: 0,5–1%) | ✅ 1,01% ở cả 10 run (dev và test) | `run_config.json` mỗi run |
+| Tính toàn bộ chỉ số (mục 5.4) | ✅ PR-AUC, ROC-AUC, P@10/50/100, recall tại ngân sách, tỷ lệ cảnh báo, thời gian fit/suy luận | `grid_runs.csv` |
+| Quét tham số: contamination, n_estimators, n_neighbors, nu, gamma | ✅ Cả 5 tham số (nu = contamination với OCSVM) | §3, `configs/benchmark_grid.yaml` |
+| **Bảng 3 mô hình × ≥ 3 cấu hình** | ✅ IF 3, LOF 4, OCSVM 6 cấu hình | §4.1 |
+| **Biểu đồ PR** | ✅ dev và test | `figures/pr_curves.png` |
+| **Biểu đồ độ nhạy contamination** | ⚠️ Có, nhưng dải là 1–20%; mục 5.6 yêu cầu **0,1–5%** | `figures/contamination_sensitivity.png` |
+| **5 seed kèm độ lệch chuẩn** | ✅ Mọi chỉ số đều có mean ± std (ddof = 1) | `grid_summary.csv` |
+
+**Tiêu chí hoàn thành liên quan (mục 4.1):**
+
+| Tiêu chí | Trạng thái | Ghi chú |
+|---|---|---|
+| #4 Bảng benchmark 3 × ≥ 3, 5 seed, mean ± std mọi chỉ số | ✅ | |
+| #5 Bộ chỉ số đầy đủ | ✅ | Precision@k tính trên toàn khối đánh giá; "k cảnh báo mỗi ngày" được đo bằng recall top-N/ngày |
+| #6 Đặt cạnh ngẫu nhiên và **luật ngưỡng dựa trên số lần đăng nhập thất bại** | ⚠️ | Luật ngưỡng trong bảng là 6 luật (thất bại, khoá, NTLM, ngoài giờ...) với ngưỡng phân vị train, **không phải** luật một ngưỡng cố định trên số lần thất bại như mục 5.3 mô tả |
+
+**Điểm lệch so với đề cương, cần nói rõ khi báo cáo:**
+
+1. **Triển khai thuật toán:** đề cương ghi `LocalOutlierFactor(novelty=True)` và `OneClassSVM(kernel RBF)` của scikit-learn.
+   Repo dùng **LOF xấp xỉ bằng HNSW** và **OCSVM nhân RBF xấp xỉ (Nystroem + SGD)**, vì bản chính xác không chạy nổi trên 315.000 dòng train (OCSVM có độ phức tạp bậc 2–3 theo số mẫu).
+   Cần mentor xác nhận cách thay thế này.
+2. **Z-score:** mục 5.3 mô tả z-score của **một** đặc trưng. Bảng dùng max |z| trên 39 đặc trưng, tức vẫn đơn biến từng đặc trưng nhưng lấy đặc trưng lệch nhất.
+3. **Kịch bản khác mô tả mục 5.2:**
+   - ngoài giờ **thêm** chuỗi ban đêm thay vì dời toàn bộ hoạt động;
+   - ngủ đông phát lại một ngày điển hình, không phải "khối lượng lớn";
+   - đổi LogonType theo chiều ngược: tài khoản vốn dùng type 3 chuyển sang 10/2, trong khi đề cương mô tả type 2 chuyển sang 3/5;
+   - spraying không dồn trong khung thời gian ngắn (một chiến dịch trải 9–23 giờ).
+
+   Xem `reports/week4/kich_ban_tiem_slide.md`, slide 5.
+4. **Nhật ký thí nghiệm chung (mục 5.6):** lưới ghi `grid_manifest.json` (commit, cấu hình, seed, sha256 dữ liệu) nhưng chưa ghi vào file `experiment_log.csv` chung.
+
+
 
 ### 2.1. Nguyên tắc
 
