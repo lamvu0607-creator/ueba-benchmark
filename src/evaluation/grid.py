@@ -10,7 +10,8 @@ train. Chỉ số dùng chung định nghĩa với benchmark (``src/evaluation/m
   * ``grid_runs.csv`` / ``grid_summary.csv``             — mỗi (mô hình, cấu hình, seed) / trung bình ± std,
   * ``grid_scenarios.csv``                               — PR-AUC & ROC-AUC theo kịch bản, mỗi seed,
   * ``contamination_runs.csv`` / ``contamination_summary.csv`` — độ nhạy contamination của cấu hình tốt nhất,
-  * ``pr_curves.csv``                                    — đường PR của seed đầu (cấu hình tốt nhất + baseline),
+  * ``pr_curves.csv``                                    — đường PR trung bình ± std qua các seed (cấu hình tốt nhất
+    + baseline): precision tại cùng lưới recall của từng seed rồi lấy trung bình,
   * ``figures/*.png|pdf``, ``grid_manifest.json``.
 """
 
@@ -36,7 +37,8 @@ from src.models.registry import create_model, load_params
 
 logger = logging.getLogger("ueba_benchmark.grid")
 
-__all__ = ["load_grid_config", "load_run_data", "fit_and_score", "run_grid", "summarize", "select_best"]
+__all__ = ["load_grid_config", "load_run_data", "fit_and_score", "run_grid", "summarize", "select_best",
+           "mean_pr_curve"]
 
 METRICS = [
     "pr_auc", "roc_auc", "precision_at_10", "precision_at_50", "precision_at_100", "recall_at_budget",
@@ -176,6 +178,25 @@ def summarize(runs: pd.DataFrame, keys: Sequence[str], metrics: Sequence[str] = 
     return out[order].reset_index()
 
 
+def mean_pr_curve(ys: Sequence[np.ndarray], scores: Sequence[np.ndarray],
+                  recall_grid: Optional[np.ndarray] = None) -> pd.DataFrame:
+    """
+    Đường PR trung bình qua các seed (vertical averaging): với mỗi mức recall r của lưới chung, lấy precision
+    tại ngưỡng cao nhất đạt recall ≥ r của từng seed (không nội suy lạc quan), rồi trung bình ± std (ddof = 1).
+    """
+    grid = np.linspace(0.001, 1.0, 1000) if recall_grid is None else np.asarray(recall_grid, dtype=np.float64)
+    per_seed = []
+    for y, s in zip(ys, scores):
+        p, r, _ = precision_recall_curve(y, s)
+        p, r = p[::-1][1:], r[::-1][1:]  # recall tăng dần, bỏ điểm (recall 0, precision 1) quy ước
+        idx = np.minimum(np.searchsorted(r, grid - 1e-12, side="left"), len(r) - 1)
+        per_seed.append(p[idx])
+    arr = np.vstack(per_seed)
+    std = arr.std(axis=0, ddof=1) if len(arr) > 1 else np.full(grid.size, np.nan)
+    return pd.DataFrame({"recall": grid, "precision": arr.mean(axis=0), "precision_std": std,
+                         "n_seeds": len(arr)})
+
+
 def select_best(summary: pd.DataFrame, metric: str = "pr_auc_mean") -> Dict[str, str]:
     """Cấu hình có ``metric`` trung bình cao nhất của mỗi mô hình ML (quy tắc chọn ghi vào manifest)."""
     ml = summary[summary["kind"] == "ml"]
@@ -208,12 +229,14 @@ def run_grid(config_path: Path | str = "configs/benchmark_grid.yaml",
 
     rows: List[Dict[str, Any]] = []
     scen_rows: List[Dict[str, Any]] = []
-    pr_scores: Dict[str, np.ndarray] = {}
+    pr_scores: Dict[str, List[np.ndarray]] = {}
+    pr_labels: List[np.ndarray] = []
     inputs = []
     ref = None
     for i, (run_dir, mseed) in enumerate(zip(cfg["runs"], cfg["model_seeds"])):
         data = load_run_data(run_dir, cfg.get("segment"), split_day)
         ref = ref or data
+        pr_labels.append(data["y"])
         inputs.append({"run": str(run_dir), "injection_seed": data["seed"], "model_seed": int(mseed),
                        "n_eval": int(data["y"].size), "n_positive": int(data["y"].sum()),
                        "matrix_sha256": file_sha256(Path(run_dir) / "processed" / "feature_matrix_processed.parquet")})
@@ -234,8 +257,7 @@ def run_grid(config_path: Path | str = "configs/benchmark_grid.yaml",
                                      params=base["params"], seed=int(mseed), contamination=c0, split_day=split_day,
                                      segment=cfg.get("segment"), commit=commit))
             scen_rows += _scenario_rows(data, res["scores"], base)
-            if i == 0:
-                pr_scores[f"{model}|{cid}"] = res["scores"]
+            pr_scores.setdefault(f"{model}|{cid}", []).append(res["scores"])
             logger.info("[grid]   %-24s %-22s PR-AUC %.4f  ROC %.3f  (%.0fs)", model, cid, rows[-1]["pr_auc"],
                         rows[-1]["roc_auc"], res["fit_seconds"] + res["score_seconds"])
 
@@ -269,15 +291,12 @@ def run_grid(config_path: Path | str = "configs/benchmark_grid.yaml",
     cont_df = pd.DataFrame(c_rows)
     cont_summary = summarize(cont_df, ["model", "config_id", "contamination"])
 
-    # ---- đường PR (seed đầu, không chọn seed đẹp nhất)
-    pr_rows = []
+    # ---- đường PR trung bình ± std qua mọi seed (không chọn seed đẹp nhất)
     curve_keys = [f"{m}|{cid}" for m, cid in best.items()] + [f"{b}|default" for b in cfg.get("baselines") or []]
-    for key in curve_keys:
-        p, r, _ = precision_recall_curve(ref["y"], pr_scores[key], drop_intermediate=True)
-        model, cid = key.split("|")
-        pr_rows += [{"model": model, "config_id": cid, "recall": float(rr), "precision": float(pp)}
-                    for pp, rr in zip(p, r)]
-    pr_df = pd.DataFrame(pr_rows)
+    pr_df = pd.concat([mean_pr_curve(pr_labels, pr_scores[key]).assign(model=key.split("|")[0],
+                                                                       config_id=key.split("|")[1])
+                       for key in curve_keys], ignore_index=True)
+    pr_df = pr_df[["model", "config_id", "recall", "precision", "precision_std", "n_seeds"]]
 
     artifacts = {
         "grid_runs": out / "grid_runs.csv", "grid_summary": out / "grid_summary.csv",
