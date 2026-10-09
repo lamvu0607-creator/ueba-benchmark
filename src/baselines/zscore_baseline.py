@@ -37,7 +37,9 @@ import polars as pl
 
 from src.baselines._common import ACCOUNT_KEYS, TrainMedianImputer, column_matrix, logger
 
-__all__ = ["MAD_CONSISTENCY", "DEFAULT_ZERO_TOLERANCE", "GlobalRobustZScore", "AccountRobustZScore"]
+__all__ = [
+    "MAD_CONSISTENCY", "DEFAULT_ZERO_TOLERANCE", "robust_location_scale", "GlobalRobustZScore", "AccountRobustZScore",
+]
 
 #: 1 / Φ⁻¹(0.75): MAD × hằng số này ước lượng nhất quán σ của phân phối chuẩn.
 MAD_CONSISTENCY = 1.4826
@@ -51,6 +53,28 @@ def _check_quantile(q: float) -> float:
     if not 0.0 <= float(q) <= 1.0:
         raise ValueError(f"mad_floor.quantile phải nằm trong [0, 1], nhận được {q}.")
     return float(q)
+
+
+def robust_location_scale(
+    X: np.ndarray, mad_floor_quantile: float, zero_tolerance: float = DEFAULT_ZERO_TOLERANCE
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """
+    median / MAD toàn cục của ``X`` (đã impute) -> ``(location, mad, scale)``.
+
+    ``scale_j`` = MAD_j nếu > 0, ngược lại = sàn 1.4826 × phân vị ``mad_floor_quantile`` của các độ lệch
+    KHÁC 0 của đặc trưng j; đặc trưng hằng số (không có độ lệch khác 0) -> ``+inf`` (đóng góp 0 vào điểm).
+    Dùng chung cho ``GlobalRobustZScore`` và ``zscore_baseline`` của registry mô hình.
+    """
+    location = np.median(X, axis=0)
+    dev = np.abs(X - location)
+    dev[dev <= zero_tolerance] = 0.0  # nhiễu dấu phẩy động (vd. hiệu hai trung bình = 1e-16) là 0
+    mad = MAD_CONSISTENCY * np.median(dev, axis=0)
+    floor = np.full(X.shape[1], np.inf)
+    for j in range(X.shape[1]):
+        nonzero = dev[:, j][dev[:, j] > 0]
+        if nonzero.size:
+            floor[j] = MAD_CONSISTENCY * float(np.quantile(nonzero, _check_quantile(mad_floor_quantile)))
+    return location, mad, np.where(mad > 0, mad, floor)
 
 
 def _max_abs_z(X: np.ndarray, location: np.ndarray, scale: np.ndarray) -> np.ndarray:
@@ -77,19 +101,8 @@ class GlobalRobustZScore:
     def fit(self, train: pl.DataFrame) -> "GlobalRobustZScore":
         X = column_matrix(train, self.features, f"[{self.name}] train")
         X = self.imputer_.fit(X, self.features).transform(X)
-        self.location_ = np.median(X, axis=0)
-        dev = np.abs(X - self.location_)
-        dev[dev <= self.zero_tolerance] = 0.0  # nhiễu dấu phẩy động (vd. hiệu hai trung bình = 1e-16) là 0
-        mad = MAD_CONSISTENCY * np.median(dev, axis=0)
-
-        floor = np.full(len(self.features), np.inf)
-        for j in range(len(self.features)):
-            nonzero = dev[:, j][dev[:, j] > 0]
-            if nonzero.size:
-                floor[j] = MAD_CONSISTENCY * float(np.quantile(nonzero, self.mad_floor_quantile))
+        self.location_, mad, self.scale_ = robust_location_scale(X, self.mad_floor_quantile, self.zero_tolerance)
         self.mad_ = mad
-        self.floor_ = floor
-        self.scale_ = np.where(mad > 0, mad, floor)
         self.floored_features_ = [f for f, m, s in zip(self.features, mad, self.scale_) if m <= 0 and np.isfinite(s)]
         self.constant_features_ = [f for f, s in zip(self.features, self.scale_) if not np.isfinite(s)]
         self.n_train_ = int(X.shape[0])

@@ -92,3 +92,5 @@ experiments/results/*
 .tmp_*
 *.tmp
 .lof_shape.txt
+# Kết quả benchmark trên run tiêm (paths.injection_results_dir): commit results/ + labels/run_config, bỏ mô hình .joblib
+experiments/injection_runs/*/models/

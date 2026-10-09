@@ -74,6 +74,21 @@ def test_run_layout_paths_and_run_id_validation(temp_artifact_dir: Path):
             RunLayout.for_run(temp_artifact_dir, bad)
 
 
+def test_run_layout_results_live_under_experiments(temp_artifact_dir: Path):
+    """Kết quả benchmark của run ghi vào <experiments>/<run_id>/, không vào data/injection_runs."""
+    exp = temp_artifact_dir / "experiments" / "injection_runs"
+    layout = RunLayout.for_run(temp_artifact_dir / "runs", "r9", experiments_dir=exp)
+    assert layout.results_dir == exp / "r9" / "results"
+    assert layout.models_dir == exp / "r9" / "models"
+    assert RunLayout.from_events_dir(layout.events_dir, exp).results_dir == exp / "r9" / "results"
+    layout.root.mkdir(parents=True)
+    pl.DataFrame({"x": [1]}).write_parquet(layout.labels_path)
+    (layout.root / "run_config.json").write_text("{}", encoding="utf-8")
+    copied = layout.export_run_metadata()
+    assert sorted(p.name for p in copied) == ["labels.parquet", "run_config.json"]
+    assert (layout.results_dir.parent / "labels.parquet").is_file()  # plots tìm nhãn ở <results>/../
+
+
 def _touch_day(root: Path, eid: int, day: int) -> Path:
     p = interim_day_path(root, eid, day)
     p.parent.mkdir(parents=True, exist_ok=True)

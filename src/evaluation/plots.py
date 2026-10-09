@@ -22,7 +22,7 @@ from src.evaluation.metrics import daily_budget_flags, precision_at_k
 BASELINE_METHODS = ("random", "zscore_global", "zscore_account", "rule_ecdf", "rule_external")
 NAMES = {
     "isolation_forest": "Isolation Forest", "local_outlier_factor": "LOF",
-    "one_class_svm": "One-Class SVM", "zscore_baseline": "Z-score (registry)",
+    "one_class_svm": "One-Class SVM", "zscore_baseline": "Z-score (global)",
     "rule_threshold_baseline": "Rule (registry)", "random_baseline": "Random (registry)",
     "baseline:random": "Random", "baseline:zscore_global": "Z-score global",
     "baseline:zscore_account": "Z-score account", "baseline:rule_ecdf": "Rule ECDF",

@@ -12,7 +12,7 @@ python main.py --stage plots --events-dir data/injection_runs/dev_seed42/events_
 ```
 
 Đường dẫn run chỉ là ví dụ: thay `dev_seed42` bằng run thực tế. Kết quả nằm ở
-`<run>/results/figures/week4/`. `plots` là stage riêng, không được gọi ngầm bởi `all`.
+`experiments/injection_runs/<run_id>/results/figures/week4/`. `plots` là stage riêng, không được gọi ngầm bởi `all`.
 Nhãn được lấy từ `<run>/labels.parquet`; nếu dùng dữ liệu ngoài run:
 
 ```bash

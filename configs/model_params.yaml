@@ -64,8 +64,14 @@ one_class_svm: # NystroemSGDOCSVM — OCSVM nhân RBF xấp xỉ: Nystroem → S
 # Baseline label-free (Tuần 3) — 3 mốc so sánh KHÔNG cần nhãn
 # ---------------------------------------------------------------------------
 # Điểm của Z-score: agg_j |(x_j - loc_j) / scale_j|  (điểm CAO = DỊ BIỆT)
+# Z-score TOÀN CỤC (2026-10-09): median/MAD trên toàn tập train của phân khúc, cùng quy tắc với zscore_global
+# của stage baselines — MAD = 0 -> sàn từ các độ lệch khác 0; giữ mad_floor_quantile/zero_tolerance khớp
+# configs/baselines.yaml (zscore.mad_floor.quantile, zscore.zero_tolerance).
 zscore_baseline:
   method: "robust" # robust = median/MAD*1.4826 (chống outlier) | classic = mean/std
+  scale_fallback: "mad_floor" # mad_floor = z-score toàn cục như zscore_global | iqr_std = MAD->IQR->std (cũ)
+  mad_floor_quantile: 0.25
+  zero_tolerance: 1.0e-9
   agg: "max" # max = có bất kỳ đặc trưng nào lệch mạnh | mean | p95
   z_threshold: 3.0 # ngưỡng tuyệt đối |z| >= 3, CHỈ dùng khi threshold_mode: "fixed"
   threshold_mode: "quantile" # quantile = ngân sách cảnh báo theo contamination (so sánh được với ML)

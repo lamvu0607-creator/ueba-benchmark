@@ -1,0 +1,13 @@
+segment,model,isolation_forest,local_outlier_factor,one_class_svm,zscore_baseline,rule_threshold_baseline,random_baseline
+Machine,isolation_forest,1.0,0.0,0.0,0.2,0.0,0.0
+Machine,local_outlier_factor,0.0,1.0,0.0,0.0,0.0,0.0
+Machine,one_class_svm,0.0,0.0,1.0,0.1,0.0,0.0
+Machine,zscore_baseline,0.2,0.0,0.1,1.0,0.0,0.0
+Machine,rule_threshold_baseline,0.0,0.0,0.0,0.0,1.0,0.0
+Machine,random_baseline,0.0,0.0,0.0,0.0,0.0,1.0
+User,isolation_forest,1.0,0.0,0.0,0.3,0.0,0.0
+User,local_outlier_factor,0.0,1.0,0.0,0.0,0.0,0.0
+User,one_class_svm,0.0,0.0,1.0,0.3,0.0,0.0
+User,zscore_baseline,0.3,0.0,0.3,1.0,0.0,0.0
+User,rule_threshold_baseline,0.0,0.0,0.0,0.0,1.0,0.0
+User,random_baseline,0.0,0.0,0.0,0.0,0.0,1.0

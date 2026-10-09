@@ -1,0 +1,56 @@
+# =============================================================================
+# Lưới thí nghiệm tuần 4 (scripts/evaluation/run_grid.py):
+#   bảng 3 mô hình ML × ≥ 3 cấu hình, đường PR, độ nhạy contamination, lặp 5 seed kèm độ lệch chuẩn.
+#
+# Một "seed" = MỘT cặp (run tiêm, random_state mô hình): run thứ i dùng model_seeds[i]. Độ lệch chuẩn vì vậy
+# phản ánh cả biến động của dữ liệu tiêm (nạn nhân, sự kiện) lẫn của mô hình.
+# Chọn cấu hình trên khối DEV (ngày 43–51); khối TEST chỉ chạy một lần với cấu hình đã chốt.
+# Chỉ phân khúc User có nhãn dương (mẫu số 1% = dòng User) nên lưới chỉ đánh giá User.
+# =============================================================================
+
+block: dev
+segment: User
+output_dir: "experiments/grid/dev"
+
+runs:
+  - "data/injection_runs/dev_seed20261043"
+  - "data/injection_runs/dev_seed20261044"
+  - "data/injection_runs/dev_seed20261045"
+  - "data/injection_runs/dev_seed20261046"
+  - "data/injection_runs/dev_seed20261047"
+model_seeds: [42, 7, 2024, 1, 2]
+
+# Ngân sách cảnh báo của lưới (ngưỡng = phân vị 1 − contamination của điểm TRAIN).
+contamination: 0.05
+precision_ks: [10, 50, 100]
+daily_budgets: [10, 50, 100]
+
+# Mỗi cấu hình: id duy nhất, scaler (robust | standard | quantile) và tham số ghi đè khối của mô hình trong
+# configs/model_params.yaml. Isolation Forest bất biến với phép scale đơn điệu từng cột nên chỉ đổi siêu tham số.
+# Scaler là một chiều của lưới vì RobustScaler làm lệch thang đo: đặc trưng có IQR rất nhỏ bị phóng đại
+# (failure_ratio ×1.400) còn đặc trưng IQR = 0 giữ đơn vị gốc — LOF/OCSVM (dựa trên khoảng cách) bị ảnh hưởng.
+models:
+  isolation_forest:
+    - {id: if_default, scaler: robust, params: {}}
+    - {id: if_n300_ms1024, scaler: robust, params: {n_estimators: 300, max_samples: 1024}}
+    - {id: if_maxfeat05, scaler: robust, params: {max_features: 0.5}}
+  local_outlier_factor:
+    - {id: lof_k20_robust, scaler: robust, params: {}}
+    - {id: lof_k20_standard, scaler: standard, params: {}}
+    - {id: lof_k20_quantile, scaler: quantile, params: {}}
+    - {id: lof_k100_standard, scaler: standard, params: {n_neighbors: 100}}
+  one_class_svm:
+    - {id: ocsvm_robust, scaler: robust, params: {}}
+    - {id: ocsvm_standard, scaler: standard, params: {}}
+    - {id: ocsvm_quantile, scaler: quantile, params: {}}
+    - {id: ocsvm_standard_nc1000, scaler: standard, params: {n_components: 1000}}
+    # gamma: "scale" = 1/(n_features·Var(X)) ≈ 1/39 ≈ 0,026 sau StandardScaler -> quét ÷5 và ×4 quanh giá trị đó
+    - {id: ocsvm_standard_g0005, scaler: standard, params: {gamma: 0.005}}
+    - {id: ocsvm_standard_g01, scaler: standard, params: {gamma: 0.1}}
+
+# Mốc so sánh (không scale, tham số mặc định của model_params.yaml).
+baselines: [zscore_baseline, rule_threshold_baseline, random_baseline]
+
+# Độ nhạy contamination: chạy lại CẤU HÌNH TỐT NHẤT của mỗi mô hình (PR-AUC trung bình cao nhất trên lưới)
+# với từng mức. IF/LOF: chỉ ngưỡng đổi; OCSVM: nu = contamination nên chính mô hình cũng đổi.
+contamination_sweep: [0.01, 0.02, 0.05, 0.10, 0.20]

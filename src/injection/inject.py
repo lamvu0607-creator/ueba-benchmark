@@ -94,7 +94,9 @@ class InjectionConfig:
         config_path: Path | str = "configs/injection.yaml",
         system_config_path: Path | str = "configs/system_config.yaml",
         run_id: Optional[str] = None,
+        seed: Optional[int] = None,
     ) -> "InjectionConfig":
+        """``seed`` (tuỳ chọn) thay seed của khối — để lặp thí nghiệm trên nhiều bộ dữ liệu tiêm."""
         cfg = yaml.safe_load(Path(config_path).read_text(encoding="utf-8"))
         sys_cfg = yaml.safe_load(Path(system_config_path).read_text(encoding="utf-8"))
         if block not in cfg["blocks"]:
@@ -105,9 +107,10 @@ class InjectionConfig:
         days = [int(d) for d in blk["days"]]
         if min(days) <= split_day:
             raise ValueError(f"Khối '{block}' có ngày ≤ split_day ({split_day}) — chỉ được tiêm test.")
-        rid = run_id or f"{blk.get('run_id_prefix', block)}_seed{blk['seed']}"
+        seed = int(blk["seed"] if seed is None else seed)
+        rid = run_id or f"{blk.get('run_id_prefix', block)}_seed{seed}"
         scen = {k: v for k, v in blk["scenarios"].items() if v.get("enabled", True)}
-        return cls(block, days, int(blk["seed"]), rid, scen, common, split_day)
+        return cls(block, days, seed, rid, scen, common, split_day)
 
 
 # --------------------------------------------------------------------------- cache khuôn own trên đĩa
@@ -187,6 +190,8 @@ class InjectionRunner:
         self._own_dir: Optional[Path] = None
         self._domain_raw_cache: Dict[Tuple[str, str], str] = {}
         self._used_accounts: Set[Tuple[str, str]] = set()      # mỗi tài khoản tối đa một lần / run
+        self._n_campaigns = 0                                   # đánh số campaign_id liên tục qua các vòng
+        self._target: Dict[str, Any] = {}                       # thông tin tỉ lệ mục tiêu (ghi run_config.json)
         self._flagged = _rule_flagged(cfg.common)
         # Include earlier evaluation days: a test block must not mistake dev activity for dormancy.
         self._presence = _read_presence(self.interim, range(cfg.split_day + 1, max(cfg.days) + 1))
@@ -448,14 +453,25 @@ class InjectionRunner:
             logger.warning("Chỉ chọn được %d/%d nạn nhân sạch — giảm số nạn nhân.", len(out), n)
         return out
 
-    def _run_spraying(self, params: Dict[str, Any]) -> List[Tuple[Account, int, ScenarioResult]]:
-        """Nhiều chiến dịch: mỗi chiến dịch một Source mới, một campaign_id, nhiều nạn nhân cùng ngày."""
+    def _run_spraying(
+        self, params: Dict[str, Any], n_victims: Optional[int] = None
+    ) -> List[Tuple[Account, int, ScenarioResult]]:
+        """
+        Nhiều chiến dịch: mỗi chiến dịch một Source mới, một campaign_id, nhiều nạn nhân cùng ngày.
+
+        ``n_victims`` = None: chạy đúng ``n_campaigns`` chiến dịch. Có giá trị (chế độ ``target_rate``): mở chiến
+        dịch tới khi đủ ``n_victims`` nạn nhân (chiến dịch cuối bị cắt cỡ cho vừa).
+        """
         from src.injection.scenarios import pick_unseen_sources
 
-        n_camp = int(params.get("n_campaigns", 3))
+        n_camp = int(params.get("n_campaigns", 3)) if n_victims is None else 4 * max(int(n_victims), 1)
         out: List[Tuple[Account, int, ScenarioResult]] = []
         for c in range(n_camp):
+            if n_victims is not None and len(out) >= n_victims:
+                break
             size = _draw(params["victims_per_campaign"], self.rng)
+            if n_victims is not None:
+                size = min(size, n_victims - len(out))
             day = int(self.cfg.days[int(self.rng.integers(len(self.cfg.days)))])
             # nạn nhân chiến dịch: tài khoản cơ sở chưa dùng (không cần hoạt động ngày đó — spray tạo khoá mới)
             pool_keys = self._base_victims().select(ACCOUNT_KEYS)
@@ -474,7 +490,8 @@ class InjectionRunner:
                 for d, u in zip(chosen["DomainName"], chosen["UserName"]):
                     self._used_accounts.discard((d, u))     # chiến dịch hỏng: trả lại suất cho cả nhóm
                 continue
-            cid = f"{self.cfg.run_id}_spray{c:02d}"
+            cid = f"{self.cfg.run_id}_spray{self._n_campaigns:02d}"
+            self._n_campaigns += 1
             campaign = {"id": cid, "source": source, "size": chosen.height}
             for d, u, _ in chosen.iter_rows():
                 ctx = self._ctx(d, u, day)
@@ -487,27 +504,96 @@ class InjectionRunner:
                 out.append((ctx.account, day, res))
         return out
 
+    # ---- tỉ lệ mục tiêu (mục 5.2 đề tài: nhãn dương ≈ 0,5–1% số bản ghi của tập kiểm thử)
+    def _denominator(self, entity_type: str) -> int:
+        """Số dòng (tài khoản, ngày) loại ``entity_type`` trong khối, trên log GỐC (= dòng ma trận đặc trưng)."""
+        from src.features.extractor import DEFAULT_FEATURE_CFG, entity_type_expr
+
+        et = entity_type_expr(self._feature_cfg or DEFAULT_FEATURE_CFG)
+        pres = self._presence.filter(pl.col("day").is_in(self.cfg.days)).with_columns(et)
+        return pres.filter(pl.col("entity_type") == entity_type).height
+
+    def _quotas(self, names: List[str]) -> Dict[str, Optional[int]]:
+        """
+        Số nạn nhân mỗi kịch bản. ``common.target_rate`` tắt -> ``n_victims`` của từng kịch bản (spraying:
+        None = chạy ``n_campaigns``). Bật -> tổng N = ⌈rate·D / (1 − rate)⌉ với D = số dòng (tài khoản, ngày)
+        ``entity_type`` của khối trên log gốc, chia theo ``weights``. Chia cho (1 − rate) vì mỗi lần tiêm có
+        thể tạo thêm một dòng mới (spraying/dormant) -> tỉ lệ cuối trên ma trận vẫn ≥ rate.
+        """
+        tr = self.cfg.common.get("target_rate") or {}
+        if not tr.get("enabled", False):
+            return {n: (None if n == "password_spraying" else int(self.cfg.scenarios[n].get("n_victims", 0)))
+                    for n in names}
+        rate = float(tr["rate"])
+        if not 0.0 < rate < 1.0:
+            raise ValueError(f"target_rate.rate phải trong (0, 1), nhận {rate}.")
+        denom = self._denominator(str(tr.get("entity_type", "User")))
+        total = int(np.ceil(rate * denom / (1.0 - rate)))
+        weights = {n: float((tr.get("weights") or {}).get(n, 1.0)) for n in names}
+        wsum = sum(weights.values())
+        if wsum <= 0:
+            raise ValueError("target_rate.weights phải có tổng > 0.")
+        # chia nguyên theo phần dư lớn nhất -> tổng đúng bằng ``total``
+        raw = {n: total * weights[n] / wsum for n in names}
+        quotas = {n: int(np.floor(v)) for n, v in raw.items()}
+        for n in sorted(names, key=lambda k: (-(raw[k] - quotas[k]), names.index(k)))[: total - sum(quotas.values())]:
+            quotas[n] += 1
+        self._target = {"rate": rate, "entity_type": str(tr.get("entity_type", "User")),
+                        "denominator": denom, "n_target": total, "quotas": dict(quotas)}
+        logger.info("Tỉ lệ mục tiêu %.2f%% × %s dòng %s -> %d lần tiêm: %s",
+                    100 * rate, f"{denom:,}", self._target["entity_type"], total, quotas)
+        return quotas
+
+    def _run_scenario(self, name: str, n: Optional[int]) -> List[Tuple[Account, int, ScenarioResult]]:
+        params = self.cfg.scenarios[name]
+        if name == "password_spraying":
+            return self._run_spraying(params, n)
+        chooser = {
+            "dormant_wakeup": self._candidates_dormant,
+            "logon_type_switch": self._candidates_logon_switch,
+            "off_hours": self._candidates_off_hours,
+        }.get(name, self._candidates_on_active_day)
+        return self._run_simple(name, chooser, params, int(n or 0))
+
     # ---- chạy toàn khối
     def build(self) -> Dict[str, Any]:
         _ = self.pool                                       # ép đọc train trước khi chọn nạn nhân
+        names = [n for n in _SCENARIO_ORDER if n in self.cfg.scenarios]
+        need = self._quotas(names)
         results: List[Tuple[str, Account, int, ScenarioResult]] = []
-        for name in _SCENARIO_ORDER:
-            if name not in self.cfg.scenarios:
-                continue
-            params = self.cfg.scenarios[name]
-            if name == "password_spraying":
-                triples = self._run_spraying(params)
-            else:
-                chooser = {
-                    "dormant_wakeup": self._candidates_dormant,
-                    "logon_type_switch": self._candidates_logon_switch,
-                    "off_hours": self._candidates_off_hours,
-                }.get(name, self._candidates_on_active_day)
-                n = int(params.get("n_victims", 0))
-                triples = self._run_simple(name, chooser, params, n)
-            for acct, day, res in triples:
-                results.append((name, acct, day, res))
-            logger.info("[%s] tiêm %d nạn nhân.", name, len(triples))
+        got: Dict[str, int] = {n: 0 for n in names}
+        # Vòng 1 chạy hạn mức; ở chế độ target_rate, phần THIẾU (kịch bản hết ứng viên dựng được) được chia
+        # lại cho các kịch bản đã đủ hạn mức, tối đa 3 vòng.
+        for _round in range(3):
+            short: Dict[str, int] = {}
+            for name in names:
+                n = need.get(name, 0)
+                if n is not None and n <= 0:
+                    continue
+                triples = self._run_scenario(name, n)
+                for acct, day, res in triples:
+                    results.append((name, acct, day, res))
+                got[name] += len(triples)
+                if n is not None:
+                    short[name] = n - len(triples)
+                logger.info("[%s] tiêm %d nạn nhân.", name, len(triples))
+            deficit = sum(short.values())
+            if not self._target or deficit <= 0:
+                break
+            capable = [n for n in names if short.get(n, 1) == 0]
+            if not capable:
+                break
+            logger.warning("Thiếu %d lần tiêm so với mục tiêu -> chia lại cho %s.", deficit, capable)
+            need = {n: 0 for n in names}
+            for i, n in enumerate(capable):
+                need[n] = deficit // len(capable) + (1 if i < deficit % len(capable) else 0)
+        if self._target:
+            self._target["achieved"] = dict(got)
+            self._target["n_injected"] = sum(got.values())
+            self._target["rate_achieved"] = sum(got.values()) / max(self._target["denominator"], 1)
+            if sum(got.values()) < self._target["n_target"]:
+                logger.warning("Chỉ tiêm được %d/%d lần (%.3f%%).", sum(got.values()), self._target["n_target"],
+                               100 * self._target["rate_achieved"])
         return self._assemble_and_write(results)
 
     # ---- ghép log đè + ghi đầu ra + kiểm tra
@@ -529,7 +615,7 @@ class InjectionRunner:
                 "n_events": res.n_events, "params": json.dumps(res.params, ensure_ascii=False, default=str),
             })
         injected = pl.concat(inj_rows, how="vertical")
-        manifest_df = pl.DataFrame(manifest)
+        manifest_df = pl.DataFrame(manifest, infer_schema_length=None)  # campaign_id null ở >100 dòng đầu
 
         base_days = self._write_overlay(layout, injected)
         injected.write_parquet(layout.injected_events_path)
@@ -539,6 +625,7 @@ class InjectionRunner:
         (layout.root / "run_config.json").write_text(json.dumps({
             "run_id": self.cfg.run_id, "block": self.cfg.block, "seed": self.cfg.seed,
             "split_day": self.cfg.split_day, "eval_days": self.cfg.days,
+            "target_rate": self._target or None,
         }, indent=2), encoding="utf-8")
 
         logger.info("Run '%s': %s sự kiện tiêm, %d lần tiêm, %d ngày đè.",
@@ -640,7 +727,8 @@ def run_injection(
     system_config_path: Path | str = "configs/system_config.yaml",
     run_id: Optional[str] = None,
     feature_cfg: Optional[Dict[str, Any]] = None,
+    seed: Optional[int] = None,
 ) -> Dict[str, Any]:
-    """Điểm vào: dựng và ghi một run cho ``block`` ('dev' hoặc 'test')."""
-    cfg = InjectionConfig.from_files(block, config_path, system_config_path, run_id)
+    """Điểm vào: dựng và ghi một run cho ``block`` ('dev' hoặc 'test'); ``seed`` thay seed của khối."""
+    cfg = InjectionConfig.from_files(block, config_path, system_config_path, run_id, seed)
     return InjectionRunner(cfg, feature_cfg=feature_cfg).build()
