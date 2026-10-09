@@ -17,7 +17,41 @@ Mọi số liệu đo trên run `dev_seed20261043` (ngày 43–51). Cấu hình:
 
 ---
 
-## Slide 2: Sáu kịch bản (số liệu thực tế)
+## Slide 2: Quy trình tiêm (một run = một khối dev hoặc test + một seed)
+
+```text
+ Log gốc train (ngày 1–42)          Log gốc khối đánh giá (dev 43–51 / test 52–60)
+          │                                         │
+   ① Hồ sơ hành vi ───────┐          ② Luật ngưỡng chấm log gốc → bỏ (tài khoản, ngày) đã bị cảnh báo
+          │               ▼                         │
+   ③ Kho khuôn sự kiện thật ──► ④ Chọn nạn nhân + sinh sự kiện (6 kịch bản, hạn mức 1%)
+                                                    │
+                    ⑤ Ghi log đã tiêm + nhãn + manifest (kiểm tra tự động)
+                                                    │
+                    ⑥ Tính lại 39 đặc trưng ──► ⑦ Benchmark: fit trên train, chấm khối đánh giá
+```
+
+| Bước | Làm gì | Đầu ra |
+|---|---|---|
+| ① Hồ sơ | Học từ train: máy nguồn/đích quen, LogonType hay dùng, giờ hoạt động, khoảng nghỉ dài nhất, ngưỡng khoá L = 5 | `data/features/train_profiles/` |
+| ② Loại cảnh báo sẵn | Luật ngưỡng chấm log **gốc**; các (tài khoản, ngày) đã bị cờ không được chọn làm nạn nhân | danh sách loại trừ |
+| ③ Kho khuôn | Gom sự kiện thật của train làm khuôn để nhân bản (của nạn nhân, hoặc của tài khoản cùng loại) | cache trên đĩa |
+| ④ Chọn và sinh | Tính hạn mức (1% → 736 lần), xáo trộn ứng viên theo seed, lần lượt chạy 6 kịch bản. Mỗi tài khoản tối đa 1 lần; ứng viên không dựng được thì bỏ và thử người kế; thiếu thì chia lại cho kịch bản khác | sự kiện tổng hợp |
+| ⑤ Ghi run | Gộp sự kiện tiêm vào bản sao log của ngày bị tiêm (log gốc không bị sửa). Kiểm tra: đúng ngày, sau train, không trùng tài khoản, đúng schema | `events_injected/`, `labels.parquet`, `injection_manifest.csv`, `run_config.json` |
+| ⑥ Đặc trưng | Trích lại ma trận (tài khoản × ngày) trên log đã tiêm; log **không chứa** cột đánh dấu tiêm, nên mô hình không "nhìn thấy" nhãn | ma trận đặc trưng của run |
+| ⑦ Đánh giá | Mô hình chỉ học trên train, chấm khối đánh giá, so với nhãn | `experiments/` |
+
+**Lệnh** (mỗi seed khoảng 25 phút: tiêm 2 phút, đặc trưng 22 phút):
+
+```bash
+python main.py --stage inject   --block dev --injection-seed 20261044
+python main.py --stage features --events-dir data/injection_runs/dev_seed20261044/events_injected
+python scripts/evaluation/run_grid.py   # lưới 3 mô hình × cấu hình × 5 seed
+```
+
+---
+
+## Slide 3: Sáu kịch bản (số liệu thực tế)
 
 | Kịch bản (MITRE) | Hành vi được tiêm | Số sự kiện / lần tiêm |
 |---|---|---|
@@ -32,7 +66,7 @@ Mọi số liệu đo trên run `dev_seed20261043` (ngày 43–51). Cấu hình:
 
 ---
 
-## Slide 3: Lượng tiêm
+## Slide 4: Lượng tiêm
 
 | | Giá trị |
 |---|---|
@@ -48,7 +82,7 @@ Mọi số liệu đo trên run `dev_seed20261043` (ngày 43–51). Cấu hình:
 
 ---
 
-## Slide 4: Giới hạn cần nói rõ
+## Slide 5: Giới hạn cần nói rõ
 
 - **Nhãn tổng hợp cho cận trên lạc quan:** tấn công thật kín đáo và đa dạng hơn. Dòng nhãn 0 cũng chưa chắc lành tính.
 - **Spraying chưa đồng thời:** một chiến dịch trải 9–23 giờ trong ngày, trong khi spraying thật thường dồn trong vài phút đến vài giờ.
