@@ -1,0 +1,162 @@
+{
+  "format": "ueba-grid-manifest/1",
+  "created_at": "2026-10-09T05:57:31.922706+00:00",
+  "git": {
+    "commit": "30f8ebf9beba625ef5572794e965ded2974a9f0e",
+    "branch": "feature/target-rate-1pct",
+    "is_dirty": true
+  },
+  "libraries": {
+    "python": "3.14.6",
+    "scikit-learn": "1.9.1",
+    "scipy": "1.18.1",
+    "polars": "1.44.2",
+    "numpy": "2.5.3",
+    "pandas": "3.0.5",
+    "joblib": "1.6.0",
+    "pyarrow": "24.0.0"
+  },
+  "config_path": "configs/benchmark_grid_test.yaml",
+  "config": {
+    "block": "test",
+    "segment": "User",
+    "output_dir": "experiments/grid/test",
+    "runs": [
+      "data/injection_runs/test_seed20261052",
+      "data/injection_runs/test_seed20261053",
+      "data/injection_runs/test_seed20261054",
+      "data/injection_runs/test_seed20261055",
+      "data/injection_runs/test_seed20261056"
+    ],
+    "model_seeds": [
+      42,
+      7,
+      2024,
+      1,
+      2
+    ],
+    "contamination": 0.05,
+    "precision_ks": [
+      10,
+      50,
+      100
+    ],
+    "daily_budgets": [
+      10,
+      50,
+      100
+    ],
+    "models": {
+      "isolation_forest": [
+        {
+          "id": "if_n300_ms1024",
+          "scaler": "robust",
+          "params": {
+            "n_estimators": 300,
+            "max_samples": 1024
+          }
+        }
+      ],
+      "local_outlier_factor": [
+        {
+          "id": "lof_k100_standard",
+          "scaler": "standard",
+          "params": {
+            "n_neighbors": 100
+          }
+        }
+      ],
+      "one_class_svm": [
+        {
+          "id": "ocsvm_standard_g0005",
+          "scaler": "standard",
+          "params": {
+            "gamma": 0.005
+          }
+        }
+      ]
+    },
+    "baselines": [
+      "zscore_baseline",
+      "rule_threshold_baseline",
+      "random_baseline"
+    ],
+    "contamination_sweep": [
+      0.01,
+      0.02,
+      0.05,
+      0.1,
+      0.2
+    ]
+  },
+  "params_path": "configs/model_params.yaml",
+  "split_day": 42,
+  "segment": "User",
+  "inputs": [
+    {
+      "run": "data/injection_runs/test_seed20261052",
+      "injection_seed": 20261052,
+      "model_seed": 42,
+      "n_eval": 80076,
+      "n_positive": 808,
+      "matrix_sha256": "a9e13d23cb8f9527c8cc2ab5bcb9e58c5e87c3ae99510746b893c256ad4907b3"
+    },
+    {
+      "run": "data/injection_runs/test_seed20261053",
+      "injection_seed": 20261053,
+      "model_seed": 7,
+      "n_eval": 80059,
+      "n_positive": 808,
+      "matrix_sha256": "da5d87f6176cc66de61d61d8614e27f662597b367068c57e60b1b7765c14567e"
+    },
+    {
+      "run": "data/injection_runs/test_seed20261054",
+      "injection_seed": 20261054,
+      "model_seed": 2024,
+      "n_eval": 80065,
+      "n_positive": 808,
+      "matrix_sha256": "2ff6123abbd684c7971c0bae2e51ce7cdb55dac5b1f265ec8076187e2be09f0a"
+    },
+    {
+      "run": "data/injection_runs/test_seed20261055",
+      "injection_seed": 20261055,
+      "model_seed": 1,
+      "n_eval": 80054,
+      "n_positive": 808,
+      "matrix_sha256": "de6040f744e0569e34a20d7adb82a0501e4bb93e373a462d0a3579bcb54116fd"
+    },
+    {
+      "run": "data/injection_runs/test_seed20261056",
+      "injection_seed": 20261056,
+      "model_seed": 2,
+      "n_eval": 80068,
+      "n_positive": 808,
+      "matrix_sha256": "dbfbefbaf50fd7f5301204c6a6d40a4737564bc6ec26858e655cc12142c0736c"
+    }
+  ],
+  "selection_rule": "best config per ML model = highest mean pr_auc over seeds on this block",
+  "best_configs": {
+    "isolation_forest": "if_n300_ms1024",
+    "local_outlier_factor": "lof_k100_standard",
+    "one_class_svm": "ocsvm_standard_g0005"
+  },
+  "artifacts": {
+    "grid_runs": "experiments\\grid\\test\\grid_runs.csv",
+    "grid_summary": "experiments\\grid\\test\\grid_summary.csv",
+    "grid_scenarios": "experiments\\grid\\test\\grid_scenarios.csv",
+    "grid_scenarios_summary": "experiments\\grid\\test\\grid_scenarios_summary.csv",
+    "contamination_runs": "experiments\\grid\\test\\contamination_runs.csv",
+    "contamination_summary": "experiments\\grid\\test\\contamination_summary.csv",
+    "pr_curves": "experiments\\grid\\test\\pr_curves.csv"
+  },
+  "figures": [
+    "experiments\\grid\\test\\figures\\grid_pr_auc.png",
+    "experiments\\grid\\test\\figures\\grid_pr_auc.pdf",
+    "experiments\\grid\\test\\figures\\pr_curves.png",
+    "experiments\\grid\\test\\figures\\pr_curves.pdf",
+    "experiments\\grid\\test\\figures\\contamination_sensitivity.png",
+    "experiments\\grid\\test\\figures\\contamination_sensitivity.pdf",
+    "experiments\\grid\\test\\figures\\scenario_roc_auc.png",
+    "experiments\\grid\\test\\figures\\scenario_roc_auc.pdf"
+  ]
+}
