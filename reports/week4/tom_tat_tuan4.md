@@ -14,14 +14,52 @@ kết quả lặp trên 5 seed kèm độ lệch chuẩn.
    Mỗi run tiêm đúng **1% số dòng (tài khoản, ngày) User**, tức 736 nhãn dương, đúng mức 0,5–1% của mục 5.2.
 2. Lưới benchmark gồm **3 mô hình × 3–6 cấu hình × 5 seed**, đặt cạnh 3 baseline (ngẫu nhiên, luật ngưỡng, z-score toàn cục).
    Một seed là một cặp (bộ dữ liệu tiêm, `random_state` mô hình).
-3. Trên dev, **One-Class SVM** đạt PR-AUC **0,112 ± 0,005**, gấp khoảng **3,4 lần z-score** (0,033) và **11 lần ngẫu nhiên** (0,0105).
-   Mô hình bắt được **29%** nạn nhân trong ngân sách 100 cảnh báo/ngày.
+3. Trên khối **test** (chạy một lần, cấu hình chốt trên dev), **One-Class SVM** đạt PR-AUC **0,113 ± 0,006**, gấp khoảng **4 lần z-score** (0,028) và **11 lần ngẫu nhiên** (0,0104).
+   Kết quả này khớp với dev (0,112 ± 0,005). Mô hình bắt được **27,5%** nạn nhân trong ngân sách 100 cảnh báo/ngày.
 4. **Phát hiện quan trọng nhất:** `RobustScaler` làm lệch thang đo đặc trưng và làm hỏng LOF/OCSVM.
    Chỉ cần đổi scaler, PR-AUC của OCSVM tăng từ 0,024 lên 0,108. Lỗi được tìm ra bằng một chuỗi kiểm tra có hệ thống, xem §5.1.
 5. Kịch bản có lần đăng nhập thất bại, nguồn mới hoặc tài khoản ngủ đông bị bắt tốt (ROC-AUC 0,90–0,99).
    **Ngoài giờ** và **đổi LogonType** thì không mô hình nào bắt được, vì bộ đặc trưng hiện tại không có tín hiệu đủ mạnh cho hai kịch bản này.
 
-## 2. Bộ sinh bất thường tổng hợp
+## 1b. Đối chiếu với đề cương (`docs/Tong quan de tai ueba.md`)
+
+**Đầu ra tuần 4 (bảng kế hoạch, mục 3):**
+
+| Yêu cầu | Trạng thái | Bằng chứng |
+|---|---|---|
+| Bộ sinh bất thường: brute-force, ngoài giờ, bùng nổ máy trạm mới, ngủ đông | ✅ Đủ 4, thêm spraying và đổi LogonType | §2, `src/injection/` |
+| Tiêm vào tập kiểm thử theo tỷ lệ định trước (mục 5.2: 0,5–1%) | ✅ 1,01% ở cả 10 run (dev và test) | `run_config.json` mỗi run |
+| Tính toàn bộ chỉ số (mục 5.4) | ✅ PR-AUC, ROC-AUC, P@10/50/100, recall tại ngân sách, tỷ lệ cảnh báo, thời gian fit/suy luận | `grid_runs.csv` |
+| Quét tham số: contamination, n_estimators, n_neighbors, nu, gamma | ✅ Cả 5 tham số (nu = contamination với OCSVM) | §3, `configs/benchmark_grid.yaml` |
+| **Bảng 3 mô hình × ≥ 3 cấu hình** | ✅ IF 3, LOF 4, OCSVM 6 cấu hình | §4.1 |
+| **Biểu đồ PR** | ✅ dev và test | `figures/pr_curves.png` |
+| **Biểu đồ độ nhạy contamination** | ⚠️ Có, nhưng dải là 1–20%; mục 5.6 yêu cầu **0,1–5%** | `figures/contamination_sensitivity.png` |
+| **5 seed kèm độ lệch chuẩn** | ✅ Mọi chỉ số đều có mean ± std (ddof = 1) | `grid_summary.csv` |
+
+**Tiêu chí hoàn thành liên quan (mục 4.1):**
+
+| Tiêu chí | Trạng thái | Ghi chú |
+|---|---|---|
+| #4 Bảng benchmark 3 × ≥ 3, 5 seed, mean ± std mọi chỉ số | ✅ | |
+| #5 Bộ chỉ số đầy đủ | ✅ | Precision@k tính trên toàn khối đánh giá; "k cảnh báo mỗi ngày" được đo bằng recall top-N/ngày |
+| #6 Đặt cạnh ngẫu nhiên và **luật ngưỡng dựa trên số lần đăng nhập thất bại** | ⚠️ | Luật ngưỡng trong bảng là 6 luật (thất bại, khoá, NTLM, ngoài giờ...) với ngưỡng phân vị train, **không phải** luật một ngưỡng cố định trên số lần thất bại như mục 5.3 mô tả |
+
+**Điểm lệch so với đề cương, cần nói rõ khi báo cáo:**
+
+1. **Triển khai thuật toán:** đề cương ghi `LocalOutlierFactor(novelty=True)` và `OneClassSVM(kernel RBF)` của scikit-learn.
+   Repo dùng **LOF xấp xỉ bằng HNSW** và **OCSVM nhân RBF xấp xỉ (Nystroem + SGD)**, vì bản chính xác không chạy nổi trên 315.000 dòng train (OCSVM có độ phức tạp bậc 2–3 theo số mẫu).
+   Cần mentor xác nhận cách thay thế này.
+2. **Z-score:** mục 5.3 mô tả z-score của **một** đặc trưng. Bảng dùng max |z| trên 39 đặc trưng, tức vẫn đơn biến từng đặc trưng nhưng lấy đặc trưng lệch nhất.
+3. **Kịch bản khác mô tả mục 5.2:**
+   - ngoài giờ **thêm** chuỗi ban đêm thay vì dời toàn bộ hoạt động;
+   - ngủ đông phát lại một ngày điển hình, không phải "khối lượng lớn";
+   - đổi LogonType theo chiều ngược: tài khoản vốn dùng type 3 chuyển sang 10/2, trong khi đề cương mô tả type 2 chuyển sang 3/5;
+   - spraying không dồn trong khung thời gian ngắn (một chiến dịch trải 9–23 giờ).
+
+   Xem `reports/week4/kich_ban_tiem_slide.md`, slide 5.
+4. **Nhật ký thí nghiệm chung (mục 5.6):** lưới ghi `grid_manifest.json` (commit, cấu hình, seed, sha256 dữ liệu) nhưng chưa ghi vào file `experiment_log.csv` chung.
+
+
 
 ### 2.1. Nguyên tắc
 
@@ -199,12 +237,43 @@ Vì vậy **không so PR-AUC giữa hai tỷ lệ tiêm khác nhau**. Nên báo 
 
 ## 6. Kết quả trên khối test
 
-*Đang chạy:* 5 run test (`test_seed20261052…56`) với 3 cấu hình đã chốt (`configs/benchmark_grid_test.yaml`).
-Mục này sẽ được cập nhật khi có kết quả.
+Chạy **một lần** (ngày 52–60) với đúng 3 cấu hình đã chốt trên dev (`configs/benchmark_grid_test.yaml`), không chọn lại gì trên test.
+Gồm 5 run test (`test_seed20261052…56`, seed mô hình 42/7/2024/1/2), mỗi run có 808 nhãn dương trên khoảng 80.060 dòng User (1,01%).
+Số liệu gốc: [`experiments/grid/test/`](../../experiments/grid/test/).
+
+### 6.1. Bảng kết quả test (User, trung bình ± độ lệch chuẩn qua 5 seed), so với dev
+
+| Mô hình (cấu hình chốt) | PR-AUC test | PR-AUC dev | ROC-AUC test | P@100 test | Recall@ngân sách 5% | Recall top-100/ngày | Tỷ lệ cảnh báo |
+|---|---|---|---|---|---|---|---|
+| **OCSVM** (standard, γ = 0,005) | **0,113 ± 0,006** | 0,112 ± 0,005 | 0,764 ± 0,004 | 0,02 ± 0,03 | **0,490 ± 0,008** | **0,275 ± 0,011** | 6,7% |
+| **IF** (n = 300, ms = 1024) | 0,039 ± 0,001 | 0,043 ± 0,003 | **0,768 ± 0,005** | 0,14 ± 0,02 | 0,203 ± 0,013 | 0,096 ± 0,008 | 6,5% |
+| **LOF** (k = 100, standard) | 0,033 ± 0,008 | 0,033 ± 0,005 | 0,580 ± 0,014 | **0,29 ± 0,06** | 0,173 ± 0,014 | 0,087 ± 0,014 | 7,1% |
+| *Z-score toàn cục* | 0,028 ± 0,003 | 0,033 ± 0,005 | 0,660 ± 0,004 | 0,22 ± 0,05 | 0,150 ± 0,002 | 0,070 ± 0,007 | 7,6% |
+| *Luật ngưỡng* | 0,014 ± 0,001 | 0,016 ± 0,002 | 0,521 ± 0,010 | 0,04 ± 0,01 | 0,124 ± 0,009 | 0,060 ± 0,008 | 37,4% |
+| *Ngẫu nhiên* | 0,0104 ± 0,0006 | 0,0105 ± 0,0004 | 0,496 ± 0,011 | 0,01 ± 0,01 | 0,055 ± 0,008 | 0,013 ± 0,006 | 5,1% |
+
+Thời gian trên test giống dev: OCSVM fit 4,9 giây / suy luận 0,44 giây; IF 13,3 / 0,96 giây; LOF 15,2 / 2,7 giây.
+
+![PR-AUC test](../../experiments/grid/test/figures/grid_pr_auc.png)
+![Đường PR test](../../experiments/grid/test/figures/pr_curves.png)
+
+### 6.2. Nhận xét
+
+1. **Kết luận của dev đứng vững trên test.**
+   - OCSVM giữ nguyên PR-AUC: 0,113 trên test so với 0,112 trên dev, gấp **4 lần z-score** và **11 lần ngẫu nhiên**. Mô hình bắt được 49% nạn nhân trong ngân sách 5% và 27,5% trong 100 cảnh báo/ngày.
+   - Thứ hạng các phương pháp không đổi: OCSVM > IF > LOF ≈ z-score > luật > ngẫu nhiên.
+2. **Mức lạc quan do chọn cấu hình trên dev là nhỏ.** IF giảm nhẹ từ 0,043 xuống 0,039, nằm trong khoảng 1–2 độ lệch chuẩn; OCSVM và LOF không giảm.
+   Lý do là lưới nhỏ (3–6 cấu hình mỗi mô hình) và khoảng cách giữa các cấu hình tốt lớn hơn nhiều so với nhiễu.
+3. **Theo kịch bản** (ROC-AUC trên test), kết quả lặp lại dev:
+   - OCSVM: brute-force 0,99, máy trạm mới 0,98, ngủ đông 0,96, spraying 0,72;
+   - **ngoài giờ (0,50) và đổi LogonType (0,42)** vẫn không được bắt (đã phân tích ở §5.3).
+4. **Độ nhạy contamination giống dev.** OCSVM ở c = 0,01 có precision 19% và recall 36%. Tỷ lệ cảnh báo thực tế của IF/OCSVM bám sát c; LOF vượt (33% khi c = 0,20).
+5. **Luật ngưỡng** gắn cờ 37,4% dòng test (dev: 34,7%). Ngưỡng đồng hạng trên train không giữ được ngân sách khi phân phối thay đổi nhẹ.
+6. **Hai khối đánh giá có quy mô hơi khác nhau:** test có khoảng 8.900 dòng User/ngày so với khoảng 8.100 ở dev, nên mẫu số 1% của test lớn hơn (808 so với 736). PR-AUC của ngẫu nhiên vẫn ≈ 1,0% ở cả hai, nên các con số so sánh được.
 
 ## 7. Hạn chế đã biết
 
-1. **Cấu hình được chọn bằng nhãn dev,** nên số liệu dev của cấu hình ★ hơi lạc quan. Con số khách quan là khối test (§6).
+1. **Cấu hình được chọn bằng nhãn dev,** nên số liệu dev của cấu hình ★ hơi lạc quan. Con số khách quan là khối test (§6); trên thực tế mức chênh nhỏ (IF giảm 0,004, OCSVM/LOF không giảm).
 2. **Nhãn tổng hợp** chỉ cho cận trên lạc quan (mục 5.4): tấn công thật đa dạng và kín đáo hơn.
    Dòng nhãn 0 cũng không chắc lành tính: log gốc có thể chứa bất thường thật chưa được gán nhãn.
 3. **Chỉ phân khúc User được đánh giá**, vì Machine không được tiêm.
