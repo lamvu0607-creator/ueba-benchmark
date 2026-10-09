@@ -44,6 +44,9 @@ models:
     - {id: ocsvm_standard, scaler: standard, params: {}}
     - {id: ocsvm_quantile, scaler: quantile, params: {}}
     - {id: ocsvm_standard_nc1000, scaler: standard, params: {n_components: 1000}}
+    # gamma: "scale" = 1/(n_features·Var(X)) ≈ 1/39 ≈ 0,026 sau StandardScaler -> quét ÷5 và ×4 quanh giá trị đó
+    - {id: ocsvm_standard_g0005, scaler: standard, params: {gamma: 0.005}}
+    - {id: ocsvm_standard_g01, scaler: standard, params: {gamma: 0.1}}
 
 # Mốc so sánh (không scale, tham số mặc định của model_params.yaml).
 baselines: [zscore_baseline, rule_threshold_baseline, random_baseline]
