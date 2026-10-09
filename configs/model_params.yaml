@@ -16,7 +16,7 @@ training:
 preprocessing:
   imputer: "median" # median fit trên tập train (KHÔNG fill 0 các NULL hợp lệ như interarrival_dt_mean)
   scaler: "robust" # chỉ áp dụng cho mô hình requires_scaling (IF/LOF/OCSVM); baseline dùng đơn vị gốc
-  feature_set: "core" # 39 đặc trưng core trong configs/feature_schema.yaml (v4.0)
+  feature_set: "core" # 41 đặc trưng core trong configs/feature_schema.yaml (v4.1)
 
 # ---------------------------------------------------------------------------
 # Phân khúc (Segmented UEBA Benchmark) — mỗi phân khúc có imputer/scaler/mô hình RIÊNG
@@ -105,6 +105,13 @@ rule_threshold_baseline:
       op: ">="
       value: 0.9
       rationale: "Gần như toàn bộ đăng nhập đến từ nguồn khác host (Source != LogHost) — truy cập từ xa."
+
+# Mốc "luật ngưỡng số lần thất bại" của đề cương (mục 4.1 #6, 5.3): điểm = số lần đăng nhập thất bại trong ngày,
+# cảnh báo khi >= min_failures (ngưỡng CỐ ĐỊNH; 5 = ngưỡng khoá tài khoản L ước lượng từ train). Chỉ dùng trong lưới
+# tuần 4 (configs/benchmark_grid*.yaml), không thuộc bảng benchmark mặc định.
+failure_count_baseline:
+  threshold_mode: "fixed" # "quantile" -> alert rate ~ contamination như các mốc khác
+  min_failures: 5
 
 # Điểm của baseline ngẫu nhiên: băm tất định theo nội dung dòng → đều trong [0, 1).
 # Là MỐC DƯỚI cho mọi chỉ số (ROC-AUC kỳ vọng 0,5 · AP/Precision@K kỳ vọng ≈ tỷ lệ dương tính).

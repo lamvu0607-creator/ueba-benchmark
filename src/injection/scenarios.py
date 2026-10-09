@@ -45,6 +45,7 @@ __all__ = [
     "scenario_new_workstation_burst",
     "scenario_dormant_wakeup",
     "scenario_logon_type_switch",
+    "switch_targets",
 ]
 
 
@@ -204,14 +205,19 @@ def scenario_password_spraying(
     n_try = draw_int(params["attempts_per_victim"], rng)
     logon_type = int(params.get("logon_type", 3))
     loghost = _one_known_loghost(ctx, rng) if params.get("target_loghost") == "victim_known" else None
-    sched = schedule(TimeProfile.from_config(params["time_profile"]), ctx.day, n_try, rng)
-    events = add_failures(ctx.pool, ctx.account, sched["Time"].to_list(), rng, source=campaign["source"],
+    window = campaign.get("window")
+    if window is not None:      # cả chiến dịch dồn trong MỘT cửa sổ ngắn (đề cương 5.2), do inject.py rút
+        times = np.sort(rng.integers(int(window[0]), int(window[1]), size=n_try)).astype(np.int64).tolist()
+    else:
+        times = schedule(TimeProfile.from_config(params["time_profile"]), ctx.day, n_try, rng)["Time"].to_list()
+    events = add_failures(ctx.pool, ctx.account, times, rng, source=campaign["source"],
                           loghost=loghost, fail_kind="bad_pw", logon_type=logon_type,
                           prefer_own=ctx.prefer_own, allow_peer=ctx.allow_peer)
     return ScenarioResult(
         _finalize(events, ctx.day),
         params={"attempts": n_try, "source": campaign["source"], "loghost": loghost, "logon_type": logon_type,
                 "campaign_id": campaign["id"], "campaign_size": campaign["size"],
+                "campaign_window": None if window is None else [int(window[0]), int(window[1])],
                 "time_profile": TimeProfile.from_config(params["time_profile"]).to_dict()},
         campaign_id=campaign["id"],
     )
@@ -220,6 +226,46 @@ def scenario_password_spraying(
 # =========================================================================== 3. hoạt động ngoài giờ (T1078)
 
 def scenario_off_hours(ctx: VictimContext, params: Dict[str, Any], rng: np.random.Generator) -> ScenarioResult:
+    """
+    Hai chế độ (``params['mode']``):
+
+    * ``shift`` (đúng đề cương 5.2 "dịch chuyển TOÀN BỘ hoạt động sang khung giờ đêm"): cấy MỘT ngày
+      hoạt động thật, điển hình của chính nạn nhân (4624 + 4625, ngày train gần ``median_daily_events``
+      nhất) vào khung đêm của ``ctx.day`` — ngày nạn nhân KHÔNG hoạt động (``inject.py`` chọn ngày trống
+      ngay sau ngày hoạt động để không lẫn với ngủ đông). Cả ngày của nạn nhân vì vậy nằm trọn ban đêm.
+      Chuỗi dài hơn cửa sổ được co tuyến tính (``replay_fit: compress``).
+    * ``add`` (bản cũ, mặc định nếu thiếu ``mode``): xem :func:`_off_hours_add`.
+    """
+    if str(params.get("mode", "add")) == "shift":
+        return _off_hours_shift(ctx, params, rng)
+    return _off_hours_add(ctx, params, rng)
+
+
+def _off_hours_shift(ctx: VictimContext, params: Dict[str, Any], rng: np.random.Generator) -> ScenarioResult:
+    source_day = _dormant_source_day(ctx, params.get("source_day", "closest_to_median"))
+    day_events = _own_day_events(ctx, source_day)
+    profile = TimeProfile.from_config(params["time_profile"])
+    offsets = [int(t % 86400) for t in day_events["Time"].to_list()]
+    sched = schedule(profile, ctx.day, day_events.height, rng, offsets=offsets)
+    from src.injection.operations import retarget_account, set_times
+
+    tpl = day_events.with_columns(
+        pl.col("UserName").alias("_tpl_UserName"), pl.col("DomainName").alias("_tpl_DomainName"),
+        pl.col("Time").alias("_tpl_Time"),
+    )
+    placed = set_times(retarget_account(tpl, ctx.account), sched["Time"].to_list())
+    span_src = max(offsets) - min(offsets)
+    span_new = int(sched["Time"].max() - sched["Time"].min())
+    return ScenarioResult(
+        _finalize(placed, ctx.day),
+        params={"mode": "shift", "n_events": day_events.height, "source_train_day": source_day,
+                "source_span_s": span_src, "placed_span_s": span_new,
+                "compress_ratio": (span_new / span_src) if span_src > 0 else 1.0,
+                "time_profile": profile.to_dict()},
+    )
+
+
+def _off_hours_add(ctx: VictimContext, params: Dict[str, Any], rng: np.random.Generator) -> ScenarioResult:
     """
     Sao chép một chuỗi 4624 THẬT của chính nạn nhân sang khung giờ đêm CÙNG NGÀY, giữ nguyên Source/LogHost
     và khoảng cách giữa các sự kiện (``mode: replay``).
@@ -309,17 +355,7 @@ def scenario_dormant_wakeup(ctx: VictimContext, params: Dict[str, Any], rng: np.
     MỚI — điều mà hợp đồng cho phép.
     """
     source_day = _dormant_source_day(ctx, params.get("source_day", "closest_to_median"))
-    day_events = ctx.pool.candidates(account=ctx.account, event_id=4624, entity_type=ctx.account.entity_type).filter(
-        (pl.col("Time") >= (source_day - 1) * 86400) & (pl.col("Time") < source_day * 86400)
-    )
-    day_events = pl.concat([
-        day_events,
-        ctx.pool.candidates(account=ctx.account, event_id=4625, entity_type=ctx.account.entity_type).filter(
-            (pl.col("Time") >= (source_day - 1) * 86400) & (pl.col("Time") < source_day * 86400)
-        ),
-    ], how="vertical").sort("Time")
-    if day_events.is_empty():
-        raise ScenarioError(f"{ctx.account.key} không có sự kiện ngày train {source_day} để cấy.")
+    day_events = _own_day_events(ctx, source_day)
     offsets = [int(t % 86400) for t in day_events["Time"].to_list()]      # giữ giờ trong ngày
     sched = schedule(TimeProfile.from_config(params["time_profile"]), ctx.day, day_events.height, rng, offsets=offsets)
     from src.injection.operations import retarget_account, set_times
@@ -334,6 +370,18 @@ def scenario_dormant_wakeup(ctx: VictimContext, params: Dict[str, Any], rng: np.
         params={"n_events": day_events.height, "source_train_day": source_day,
                 "time_profile": TimeProfile.from_config(params["time_profile"]).to_dict()},
     )
+
+
+def _own_day_events(ctx: VictimContext, source_day: int) -> pl.DataFrame:
+    """Toàn bộ 4624 + 4625 của chính nạn nhân trong MỘT ngày train, sắp theo thời gian."""
+    in_day = (pl.col("Time") >= (source_day - 1) * 86400) & (pl.col("Time") < source_day * 86400)
+    day_events = pl.concat([
+        ctx.pool.candidates(account=ctx.account, event_id=e, entity_type=ctx.account.entity_type).filter(in_day)
+        for e in (4624, 4625)
+    ], how="vertical").sort("Time")
+    if day_events.is_empty():
+        raise ScenarioError(f"{ctx.account.key} không có sự kiện ngày train {source_day} để cấy.")
+    return day_events
 
 
 def _dormant_source_day(ctx: VictimContext, rule: str) -> int:
@@ -363,7 +411,10 @@ def scenario_logon_type_switch(
     hồ sơ — điều kiện này do ``inject.py`` lọc.
     """
     shares = ctx.logon_shares()
-    target = _choose_logon_type(ctx, params["target_logon_types"], shares)
+    dominant = max(shares, key=shares.get) if shares else None
+    target = _choose_logon_type(ctx, switch_targets(params, dominant), shares)
+    if str(params.get("mode", "add")) == "shift":
+        return _logon_switch_shift(ctx, params, rng, target, dominant, shares)
     n_ev = draw_int(params["n_events"], rng)
     known_src = ctx.known_sources()
     known_host = ctx.known_loghosts()
@@ -372,7 +423,6 @@ def scenario_logon_type_switch(
     sched = schedule(TimeProfile.from_config(params["time_profile"]), ctx.day, n_ev, rng)
     events = retype_logon(ctx.pool, ctx.account, sched["Time"].to_list(), rng, logon_type=target,
                           source=source, loghost=loghost, prefer_own=ctx.prefer_own, allow_peer=ctx.allow_peer)
-    dominant = max(shares, key=shares.get) if shares else None
     return ScenarioResult(
         _finalize(events, ctx.day),
         params={"target_logon_type": target, "n_events": n_ev, "source": source, "loghost": loghost,
@@ -380,6 +430,54 @@ def scenario_logon_type_switch(
                 "dominant_share": None if dominant is None else float(shares[dominant]),
                 "time_profile": TimeProfile.from_config(params["time_profile"]).to_dict()},
     )
+
+
+def _logon_switch_shift(ctx: VictimContext, params: Dict[str, Any], rng: np.random.Generator, target: int,
+                        dominant: Optional[int], shares: Dict[int, float]) -> ScenarioResult:
+    """
+    ``mode: shift`` (đề cương 5.2 "tài khoản vốn chỉ dùng type 2 CHUYỂN sang type 3/5"): cấy MỘT ngày điển
+    hình của chính nạn nhân (mọi 4624 của ngày train gần ``median_daily_events`` nhất, giữ nguyên giờ và
+    Source/LogHost) vào ``ctx.day`` — ngày nạn nhân không hoạt động — nhưng MỌI lần đăng nhập đều mang
+    LogonType ``target``. Mỗi sự kiện là bản sao một 4624 thật có đúng type đó (``retype_logon``) nên
+    AuthenticationPackage/LogonTypeDescription/ProcessName khớp nhau. Khác ``add`` (thêm 3–10 sự kiện vào
+    ngày vốn có hàng trăm sự kiện, tín hiệu ~2%): cả ngày của nạn nhân đổi sang cơ chế đăng nhập mới.
+    """
+    source_day = _dormant_source_day(ctx, params.get("source_day", "closest_to_median"))
+    own = _own_day_events(ctx, source_day).filter(pl.col("EventID") == 4624)
+    if own.is_empty():
+        raise ScenarioError(f"{ctx.account.key} không có 4624 ngày train {source_day} để đổi LogonType.")
+    profile = TimeProfile.from_config(params["time_profile"])
+    sched = schedule(profile, ctx.day, own.height, rng, offsets=[int(t % 86400) for t in own["Time"].to_list()])
+    own = own.sort("Time").with_columns(pl.Series("_new_time", sched["Time"].to_list(), dtype=pl.Int64))
+    parts = []
+    for (src, host), grp in own.group_by(["Source", "LogHost"], maintain_order=True):
+        parts.append(retype_logon(ctx.pool, ctx.account, grp["_new_time"].to_list(), rng, logon_type=target,
+                                  source=src, loghost=host, prefer_own=ctx.prefer_own, allow_peer=ctx.allow_peer))
+    events = pl.concat(parts, how="vertical").sort("Time")
+    return ScenarioResult(
+        _finalize(events, ctx.day),
+        params={"mode": "shift", "target_logon_type": target, "n_events": events.height,
+                "source_train_day": source_day, "dominant_logon_type": None if dominant is None else int(dominant),
+                "dominant_share": None if dominant is None else float(shares[dominant]),
+                "time_profile": profile.to_dict()},
+    )
+
+
+def switch_targets(params: Dict[str, Any], dominant: Optional[int]) -> List[int]:
+    """
+    Danh sách LogonType đích (theo ưu tiên) cho nạn nhân có LogonType chiếm ưu thế ``dominant``.
+
+    ``directions``: danh sách ``{from: [...], to: [...]}`` xét theo thứ tự — hướng đầu tiên có ``dominant``
+    trong ``from`` thắng; không hướng nào khớp -> ``[]`` (nạn nhân không hợp lệ). Không có ``directions``:
+    dùng ``target_logon_types`` cho mọi nạn nhân (hành vi cũ).
+    """
+    directions = params.get("directions")
+    if not directions:
+        return [int(t) for t in params["target_logon_types"]]
+    for d in directions:
+        if dominant is not None and int(dominant) in {int(x) for x in d["from"]}:
+            return [int(t) for t in d["to"]]
+    return []
 
 
 def _choose_logon_type(ctx: VictimContext, targets: Sequence[int], shares: Dict[int, float]) -> int:

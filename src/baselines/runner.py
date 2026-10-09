@@ -110,6 +110,7 @@ def run_baselines(
     output_dir: Optional[Path | str] = None,
     use_segments: Optional[bool] = None,
     eval_days: Optional[Sequence[int]] = None,
+    split_day: Optional[int] = None,
 ) -> Dict[str, Any]:
     from src.evaluation.split import resolve_split_day, time_split, restrict_eval_days
     from src.features.schema import FeatureSchema
@@ -130,13 +131,17 @@ def run_baselines(
 
     features = list(FeatureSchema().core_features)
     df = load_feature_matrix(data_path)
-    split_day = eval_cfg.get("split_day")
+    # ``split_day`` tường minh (vd. 35 cho khối dev nằm trong train) thắng evaluation.split_day của system config.
+    split_override = split_day is not None and int(split_day) != eval_cfg.get("split_day")
+    if split_day is None:
+        split_day = eval_cfg.get("split_day")
     if split_day is None:
         split_day = resolve_split_day(df, test_split_ratio=float(eval_cfg.get("test_split_ratio", 0.30)))
     days = sorted(int(d) for d in df["day"].unique().to_list())
 
     # Log đã tiêm thay đổi R2/R4/R6 của ngày test -> cache riêng trong thư mục kết quả của lần chạy.
-    if rules_cfg.get("injected_events_dir"):
+    # Mốc chia khác mặc định cũng dùng cache riêng (cache chung chỉ giữ MỘT train_last_day -> hai mốc sẽ ghi đè nhau).
+    if rules_cfg.get("injected_events_dir") or split_override:
         cache_path: Optional[Path] = out_dir / "rule_event_stats.parquet"
     else:
         cache_path = Path(rules_cfg["event_stats_cache"]) if rules_cfg.get("event_stats_cache") else None

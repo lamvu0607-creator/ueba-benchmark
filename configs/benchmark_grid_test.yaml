@@ -1,33 +1,59 @@
 # =============================================================================
-# Khối TEST (ngày 52–60) — chạy MỘT lần với cấu hình ĐÃ CHỐT trên dev (experiments/grid/dev/grid_manifest.json,
-# best_configs, chọn theo PR-AUC trung bình 5 seed dev ngày 2026-10-09). KHÔNG chọn lại cấu hình trên test.
-# Một cấu hình / mô hình -> "cấu hình tốt nhất" của lưới này là cấu hình đã chốt (select_best không có lựa chọn).
+# Khối TEST — SINH TỰ ĐỘNG bởi scripts/evaluation/freeze_test_grid.py, không sửa tay.
+# Cấu hình chốt trên dev: experiments\grid\dev\grid_manifest.json (best_configs, commit c2fa15f0a86668c429692afab67895abff17df3c).
+# Một cấu hình / mô hình -> select_best không còn lựa chọn; KHÔNG chọn lại trên test.
 # =============================================================================
-
 block: test
 segment: User
-output_dir: "experiments/grid/test"
-
+output_dir: experiments/grid/test
 runs:
-  - "data/injection_runs/test_seed20261052"
-  - "data/injection_runs/test_seed20261053"
-  - "data/injection_runs/test_seed20261054"
-  - "data/injection_runs/test_seed20261055"
-  - "data/injection_runs/test_seed20261056"
-model_seeds: [42, 7, 2024, 1, 2]
-
+- data/injection_runs/test_seed20261061
+- data/injection_runs/test_seed20261062
+- data/injection_runs/test_seed20261063
+- data/injection_runs/test_seed20261064
+- data/injection_runs/test_seed20261065
+model_seeds:
+- 42
+- 7
+- 2024
+- 1
+- 2
 contamination: 0.05
-precision_ks: [10, 50, 100]
-daily_budgets: [10, 50, 100]
-
+precision_ks:
+- 10
+- 50
+- 100
+daily_budgets:
+- 10
+- 50
+- 100
 models:
   isolation_forest:
-    - {id: if_n300_ms1024, scaler: robust, params: {n_estimators: 300, max_samples: 1024}}
+  - id: if_n300_ms1024
+    scaler: robust
+    params:
+      n_estimators: 300
+      max_samples: 1024
   local_outlier_factor:
-    - {id: lof_k100_standard, scaler: standard, params: {n_neighbors: 100}}
+  - id: lof_k20_robust
+    scaler: robust
+    params: {}
   one_class_svm:
-    - {id: ocsvm_standard_g0005, scaler: standard, params: {gamma: 0.005}}
-
-baselines: [zscore_baseline, rule_threshold_baseline, random_baseline]
-
-contamination_sweep: [0.01, 0.02, 0.05, 0.10, 0.20]
+  - id: ocsvm_standard_nc1000
+    scaler: standard
+    params:
+      n_components: 1000
+baselines:
+- zscore_baseline
+- rule_threshold_baseline
+- failure_count_baseline
+- random_baseline
+contamination_sweep:
+- 0.001
+- 0.002
+- 0.005
+- 0.01
+- 0.02
+- 0.05
+- 0.1
+- 0.2

@@ -356,3 +356,20 @@ def test_baseline_runner_restricts_block_and_keeps_train_thresholds(temp_artifac
     assert set(scoped['metrics'].filter(pl.col('method') != 'random_multi_seed_mean')['n_eval']) == {5.0}
     meta = json.loads((temp_artifact_dir / 'dev' / 'thresholds.json').read_text(encoding='utf-8'))
     assert meta['eval_days'] == [8] and meta['split']['n_eval'] == 6
+
+
+def test_failure_count_baseline_counts_failures_with_fixed_threshold():
+    """Mốc đề cương 4.1 #6: điểm = số lần thất bại/ngày dựng lại từ ratio × expm1(log1p(total)), ngưỡng cố định."""
+    import numpy as np
+
+    from src.models.registry import DEFAULT_MODEL_NAMES, create_model
+
+    totals = np.array([100.0, 100.0, 2_266_457.0, 1.0])
+    fails = np.array([7.0, 3.0, 1_234_567.0, 0.0])
+    X = np.column_stack([fails / totals, np.log1p(totals)])
+    model = create_model("failure_count_baseline", params={"failure_count_baseline": {"min_failures": 5}},
+                         feature_names=["failure_ratio", "log_total_logons"]).fit(X)
+    np.testing.assert_array_equal(model.score(X), fails)
+    assert model.threshold_ == 5.0
+    np.testing.assert_array_equal(model.predict(X), [1, 0, 1, 0])
+    assert "failure_count_baseline" not in DEFAULT_MODEL_NAMES  # chỉ dùng trong lưới tuần 4

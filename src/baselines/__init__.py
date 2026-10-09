@@ -2,7 +2,7 @@
 Ba baseline so sánh với IForest / LOF / OCSVM (cấu hình: ``configs/baselines.yaml``).
 
   * ``random_baseline``  — điểm ngẫu nhiên đều, seed cố định; PR-AUC kỳ vọng = tỷ lệ dương tính,
-  * ``zscore_baseline``  — max_j |robust z| trên 39 đặc trưng core, toàn cục và theo tài khoản,
+  * ``zscore_baseline``  — max_j |robust z| trên các đặc trưng core, toàn cục và theo tài khoản,
   * ``rule_baseline``    — 6 luật R1–R6 quy về ECDF train, điểm = max (+ biến thể ngưỡng ngoài),
   * ``rule_stats``       — R2/R4/R6 tính từ log sự kiện (không có sẵn trong ma trận),
   * ``thresholding``     — ngưỡng theo ngân sách cảnh báo, dùng chung cho mọi phương pháp,

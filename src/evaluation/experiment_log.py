@@ -72,6 +72,13 @@ NEW_COLUMNS = [
     "sklearn_version",
     "git_commit",
     "segment",
+    # Tuần 4 (lưới src/evaluation/grid.py): mục 5.6 yêu cầu log ghi cả CẤU HÌNH và KẾT QUẢ
+    "experiment",
+    "config_id",
+    "run_id",
+    "params",
+    "pr_auc",
+    "roc_auc",
 ]
 
 COLUMNS = LEGACY_COLUMNS + NEW_COLUMNS
@@ -90,7 +97,8 @@ LEGACY_MODEL_NAMES: Dict[str, str] = {
 LEGACY_QUANTILE_PROBS: Tuple[float, ...] = (0.0, 0.25, 0.5, 0.75, 0.95, 0.99, 1.0)
 
 #: Khoá chống ghi trùng khi chạy lại cùng một cấu hình.
-_DEDUPE_KEYS = ("model_key", "segment", "seed", "split_day", "train_samples", "test_samples", "git_commit")
+_DEDUPE_KEYS = ("model_key", "segment", "seed", "split_day", "train_samples", "test_samples", "git_commit",
+                "experiment", "config_id", "run_id", "contamination")
 
 
 def _canonical_name(name: str) -> str:

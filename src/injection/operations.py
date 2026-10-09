@@ -64,6 +64,7 @@ __all__ = [
     "TimeProfile",
     "allowed_segments",
     "schedule",
+    "draw_window",
     "assert_within_days",
     "changed_fields",
     "draw_int",
@@ -471,12 +472,19 @@ class TimeProfile:
         chỉ dời cả khối vào ``hour_window``.
     ``n_days``: số ngày trải, bắt đầu từ ngày dự định (mặc định 1 — hiện tại chỉ dùng 1).
     ``hour_window``: ``[h0, h1)``; ``h0 > h1`` = ``[h0,24) ∪ [0,h1)`` của CÙNG ngày lịch.
+    ``replay_fit`` (chỉ ``replay``): ``strict`` = chuỗi dài hơn cửa sổ thì lỗi (mặc định);
+    ``compress`` = co tuyến tính offsets cho vừa đoạn dài nhất của cửa sổ (giữ thứ tự và tỉ lệ khoảng cách).
+    ``replay_anchor`` (chỉ ``replay``): ``random`` = dời cả khối tới vị trí ngẫu nhiên trong cửa sổ (mặc định);
+    ``keep`` = giữ NGUYÊN giờ trong ngày của chuỗi nguồn (offsets là giây tính từ 00:00), mọi mốc phải nằm
+    trong cửa sổ.
     """
 
     mode: str = "spread"
     n_days: int = 1
     hour_window: Tuple[int, int] = (0, 24)
     burst_duration_s: Tuple[int, int] = (600, 600)
+    replay_fit: str = "strict"
+    replay_anchor: str = "random"
 
     def __post_init__(self) -> None:
         if self.mode not in ("burst", "spread", "replay"):
@@ -489,6 +497,10 @@ class TimeProfile:
         lo, hi = (int(x) for x in self.burst_duration_s)
         if lo < 1 or hi < lo:
             raise ValueError(f"burst_duration_s không hợp lệ: {self.burst_duration_s}.")
+        if self.replay_fit not in ("strict", "compress"):
+            raise ValueError(f"replay_fit phải là strict/compress, nhận {self.replay_fit!r}.")
+        if self.replay_anchor not in ("random", "keep"):
+            raise ValueError(f"replay_anchor phải là random/keep, nhận {self.replay_anchor!r}.")
 
     @classmethod
     def from_config(cls, cfg: Optional[Mapping[str, Any]]) -> "TimeProfile":
@@ -501,14 +513,21 @@ class TimeProfile:
             n_days=int(cfg.get("n_days", 1)),
             hour_window=(int(hw[0]), int(hw[1])),
             burst_duration_s=bd,
+            replay_fit=str(cfg.get("replay_fit", "strict")),
+            replay_anchor=str(cfg.get("replay_anchor", "random")),
         )
 
     def days(self, start_day: int) -> List[int]:
         return [int(start_day) + i for i in range(int(self.n_days))]
 
     def to_dict(self) -> Dict[str, Any]:
-        return {"mode": self.mode, "n_days": int(self.n_days), "hour_window": list(self.hour_window),
-                "burst_duration_s": list(self.burst_duration_s)}
+        out = {"mode": self.mode, "n_days": int(self.n_days), "hour_window": list(self.hour_window),
+               "burst_duration_s": list(self.burst_duration_s)}
+        if self.replay_fit != "strict":
+            out["replay_fit"] = self.replay_fit
+        if self.replay_anchor != "random":
+            out["replay_anchor"] = self.replay_anchor
+        return out
 
 
 def allowed_segments(hour_window: Tuple[int, int]) -> List[Tuple[int, int]]:
@@ -540,9 +559,17 @@ def _times_one_day(
     segs = allowed_segments(profile.hour_window)
     if k == 0:
         return np.zeros(0, dtype=np.int64)
+    if profile.mode == "replay" and profile.replay_anchor == "keep":
+        tod = np.sort(np.asarray(offsets, dtype=np.int64) % SECONDS_PER_DAY)
+        if not any(((tod >= a) & (tod < b)).all() for a, b in segs):
+            raise ScheduleError(f"replay_anchor=keep: chuỗi nguồn không nằm trọn trong cửa sổ {profile.hour_window}.")
+        return start + tod
     if profile.mode == "replay":
         rel = np.asarray(offsets, dtype=np.int64)
         rel = rel - rel.min()
+        longest = max(b - a for a, b in segs)
+        if profile.replay_fit == "compress" and rel.max() >= longest:
+            rel = (rel * (longest - 1)) // int(rel.max())          # co tuyến tính, giữ thứ tự
         a, b = _pick_segment(segs, int(rel.max()), rng)
         s = int(rng.integers(a, b - int(rel.max())))
         return start + s + np.sort(rel)
@@ -558,6 +585,21 @@ def _times_one_day(
     a, b = _pick_segment(segs, dur - 1, rng)          # mốc cuối ≤ s + dur − 1 < b
     s = int(rng.integers(a, b - dur + 1))
     return start + s + np.sort(rng.integers(0, dur, size=k)).astype(np.int64)
+
+
+def draw_window(profile: TimeProfile, day: int, rng: np.random.Generator) -> Tuple[int, int]:
+    """
+    MỘT cửa sổ burst ``[t0, t1)`` (giây tuyệt đối) trong ngày ``day``: độ dài rút trong ``burst_duration_s``,
+    vị trí ngẫu nhiên trong ``hour_window``. Dùng khi nhiều nạn nhân phải CHUNG một khung thời gian
+    (password spraying: cả chiến dịch dồn trong một cửa sổ ngắn).
+    """
+    start, _ = day_window(day)
+    segs = allowed_segments(profile.hour_window)
+    lo, hi = profile.burst_duration_s
+    dur = min(int(rng.integers(lo, hi + 1)), max(b - a for a, b in segs))
+    a, b = _pick_segment(segs, dur - 1, rng)
+    s = int(rng.integers(a, b - dur + 1))
+    return start + s, start + s + dur
 
 
 def schedule(

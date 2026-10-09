@@ -46,9 +46,11 @@ from src.injection.operations import (
     ScheduleError,
     TemplateNotFoundError,
     TemplatePool,
+    TimeProfile,
     annotate_events,
     annotate_events_lazy,
     conform_to_interim,
+    draw_window,
 )
 from src.injection.profiles import ACCOUNT_KEYS, TrainProfiles
 from src.injection.scenarios import (
@@ -68,11 +70,11 @@ _SCENARIO_ORDER = [
     "dormant_wakeup", "logon_type_switch",
 ]
 #: Kịch bản tiêm vào ngày nạn nhân VỐN hoạt động (và chưa bị luật cờ).
-_ON_ACTIVE_DAY = {"brute_force", "new_workstation_burst", "logon_type_switch", "off_hours"}
+_ON_ACTIVE_DAY = {"brute_force", "new_workstation_burst", "logon_type_switch", "off_hours"}  # off_hours: mode add
 #: Kịch bản tiêm vào ngày nạn nhân KHÔNG hoạt động.
-_ON_IDLE_DAY = {"dormant_wakeup"}
+_ON_IDLE_DAY = {"dormant_wakeup", "off_hours", "logon_type_switch"}   # 2 kịch bản sau: mode shift
 #: Kịch bản tạo khoá (tài khoản, ngày) có thể CHƯA tồn tại (nạn nhân không cần hoạt động ngày đó).
-_MAY_CREATE_KEY = {"password_spraying", "dormant_wakeup"}
+_MAY_CREATE_KEY = {"password_spraying", "dormant_wakeup", "off_hours", "logon_type_switch"}
 
 
 @dataclass
@@ -102,7 +104,11 @@ class InjectionConfig:
         if block not in cfg["blocks"]:
             raise KeyError(f"Khối '{block}' không có trong {config_path} (có: {sorted(cfg['blocks'])}).")
         blk = cfg["blocks"][block]
-        common = cfg["common"]
+        # Khối có thể ghi đè common (vd. dev nằm TRONG train: split_day 35 + hồ sơ/luật loại trừ dựng từ ≤ 35);
+        # dict lồng (rule_exclusion, template...) được gộp theo khoá, không thay cả khối.
+        common = dict(cfg["common"])
+        for key, val in (blk.get("common") or {}).items():
+            common[key] = {**(common.get(key) or {}), **val} if isinstance(val, dict) else val
         split_day = int(common.get("split_day") or sys_cfg["evaluation"]["split_day"])
         days = [int(d) for d in blk["days"]]
         if min(days) <= split_day:
@@ -367,10 +373,8 @@ class InjectionRunner:
         """Nạn nhân×ngày cho kịch bản tiêm vào ngày đang hoạt động (có lọc phụ theo kịch bản nếu cần)."""
         return self._active_in_block()
 
-    def _candidates_dormant(self, params: Dict[str, Any]) -> pl.DataFrame:
-        """Nạn nhân×ngày (ngủ đông): ngày khối mà nạn nhân KHÔNG hoạt động, sau một khoảng trống đủ dài."""
-        base = self._base_victims()
-        base_keys = base.select(ACCOUNT_KEYS)
+    def _activity_calendar(self, base_keys: pl.DataFrame) -> Tuple[Dict[Tuple[str, str], Set[int]], Dict[int, int]]:
+        """(ngày hoạt động của từng tài khoản cơ sở trên train + khối, thứ hạng ngày lịch) cho luật khoảng trống."""
         train_days = [int(d) for d in self.profiles.network["train_days"]]
         calendar = sorted(set(train_days) | set(range(self.cfg.split_day + 1, max(self.cfg.days) + 1)))
         rank = {d: i for i, d in enumerate(calendar)}
@@ -381,6 +385,12 @@ class InjectionRunner:
         act: Dict[Tuple[str, str], Set[int]] = {}
         for d, u, day in active.iter_rows():
             act.setdefault((d, u), set()).add(int(day))
+        return act, rank
+
+    def _candidates_dormant(self, params: Dict[str, Any]) -> pl.DataFrame:
+        """Nạn nhân×ngày (ngủ đông): ngày khối mà nạn nhân KHÔNG hoạt động, sau một khoảng trống đủ dài."""
+        base = self._base_victims()
+        act, rank = self._activity_calendar(base.select(ACCOUNT_KEYS))
         max_gap = {(r["DomainName"], r["UserName"]): (r["max_internal_gap_days"] or 0)
                    for r in base.iter_rows(named=True)}
         min_gap = int(params.get("min_gap_days", 7))
@@ -401,23 +411,69 @@ class InjectionRunner:
                             orient="row")
 
     def _candidates_logon_switch(self, params: Dict[str, Any]) -> pl.DataFrame:
-        """Nạn nhân×ngày đang hoạt động + có LogonType chiếm ưu thế ≥ ngưỡng và ≥ 1 Source/LogHost quen."""
-        act = self._active_in_block()
+        """
+        Nạn nhân×ngày đang hoạt động + có LogonType chiếm ưu thế ≥ ngưỡng và ≥ 1 Source/LogHost quen.
+
+        Có ``directions``: chỉ giữ nạn nhân mà LogonType chiếm ưu thế thuộc ``from`` của một hướng, kèm cột
+        ``_priority`` = chỉ số hướng -> ``_run_simple`` dùng hết ứng viên của hướng đầu (hướng đề cương
+        2 -> 3/5, vốn hiếm trong LANL) rồi mới tới hướng sau.
+        """
         lt = self.profiles.account_logon_types.filter(pl.col("LogonType").is_not_null())
-        dom = lt.group_by(ACCOUNT_KEYS).agg(pl.col("share").max().alias("dominant_share"))
-        ok_dom = dom.filter(pl.col("dominant_share") >= float(params.get("min_dominant_share", 0.8))).select(ACCOUNT_KEYS)
+        dom = (lt.sort(["share", "LogonType"], descending=[True, False])
+               .group_by(ACCOUNT_KEYS, maintain_order=True).first()
+               .select(ACCOUNT_KEYS + [pl.col("LogonType").alias("dominant_type"), pl.col("share").alias("dominant_share")]))
+        ok_dom = dom.filter(pl.col("dominant_share") >= float(params.get("min_dominant_share", 0.8)))
         has_host = self.profiles.accounts.filter(
             (pl.col("n_known_sources") > 0) & (pl.col("n_known_loghosts") > 0)
         ).select(ACCOUNT_KEYS)
-        return act.join(ok_dom, on=ACCOUNT_KEYS, how="semi").join(has_host, on=ACCOUNT_KEYS, how="semi")
+        if str(params.get("mode", "add")) == "shift":
+            act = self._idle_days_after_activity(self._base_victims().select(ACCOUNT_KEYS),
+                                                 int(params.get("max_idle_gap_days", 3)))
+        else:
+            act = self._active_in_block()
+        out = act.join(has_host, on=ACCOUNT_KEYS, how="semi")
+        directions = params.get("directions")
+        if not directions:
+            return out.join(ok_dom.select(ACCOUNT_KEYS), on=ACCOUNT_KEYS, how="semi")
+        prio = pl.DataFrame(
+            [(int(t), i) for i, d in enumerate(directions) for t in d["from"]],
+            schema={"dominant_type": ok_dom.schema["dominant_type"], "_priority": pl.Int64}, orient="row",
+        ).unique(subset="dominant_type", keep="first", maintain_order=True)
+        keyed = ok_dom.join(prio, on="dominant_type", how="inner").select(ACCOUNT_KEYS + ["_priority"])
+        return out.join(keyed, on=ACCOUNT_KEYS, how="inner")
 
     def _candidates_off_hours(self, params: Dict[str, Any]) -> pl.DataFrame:
-        """Nạn nhân×ngày đang hoạt động + off_hours_ratio train thấp (người thường làm ban ngày)."""
-        act = self._active_in_block()
+        """
+        Người thường làm ban ngày (``off_hours_ratio`` train thấp) ×
+          * ``mode: add``   — ngày khối đang hoạt động (thêm chuỗi đêm vào ngày có sẵn hoạt động);
+          * ``mode: shift`` — ngày khối KHÔNG hoạt động mà ngày lịch hoạt động gần nhất trước đó cách
+            ≤ ``max_idle_gap_days`` ngày (mặc định 3): cả ngày hoạt động bị dời sang đêm, còn khoảng trống
+            ngắn để không lẫn với ngủ đông.
+        """
         day_people = self.profiles.accounts.filter(
             pl.col("off_hours_ratio") <= float(params.get("max_train_off_hours_ratio", 0.2))
         ).select(ACCOUNT_KEYS)
-        return act.join(day_people, on=ACCOUNT_KEYS, how="semi")
+        if str(params.get("mode", "add")) != "shift":
+            return self._active_in_block().join(day_people, on=ACCOUNT_KEYS, how="semi")
+        keys = self._base_victims().select(ACCOUNT_KEYS).join(day_people, on=ACCOUNT_KEYS, how="semi")
+        return self._idle_days_after_activity(keys, int(params.get("max_idle_gap_days", 3)))
+
+    def _idle_days_after_activity(self, keys: pl.DataFrame, max_gap: int) -> pl.DataFrame:
+        """
+        (tài khoản, ngày khối) mà tài khoản KHÔNG hoạt động nhưng ngày lịch hoạt động gần nhất trước đó cách
+        < ``max_gap`` ngày — nơi cấy "cả một ngày bị dời/đổi" mà không lẫn với ngủ đông (kịch bản mode shift).
+        """
+        act, rank = self._activity_calendar(keys)
+        rows = []
+        for key, days in act.items():
+            for t in self.cfg.days:
+                if t in days or t not in rank:
+                    continue
+                prev = [d for d in days if d < t]
+                if prev and rank[t] - rank[max(prev)] - 1 < max_gap:
+                    rows.append((key[0], key[1], t))
+        return pl.DataFrame(rows, schema={"DomainName": pl.String, "UserName": pl.String, "day": pl.Int64},
+                            orient="row")
 
     # ---- gọi kịch bản cho một nạn nhân, bắt lỗi "không dựng được" để bỏ qua
     def _ctx(self, domain: str, user: str, day: int) -> VictimContext:
@@ -435,7 +491,10 @@ class InjectionRunner:
             return out
         skipped = 0
         fn = SCENARIOS[name]
-        for d, u, day in self._shuffled_unused(chooser(params)).select(ACCOUNT_KEYS + ["day"]).iter_rows():
+        cands = self._shuffled_unused(chooser(params))
+        if "_priority" in cands.columns:        # vd. hướng đổi LogonType: dùng hết hướng ưu tiên trước
+            cands = cands.sort("_priority", maintain_order=True)
+        for d, u, day in cands.select(ACCOUNT_KEYS + ["day"]).iter_rows():
             if len(out) >= n:
                 break
             ctx = self._ctx(d, u, int(day))
@@ -460,7 +519,7 @@ class InjectionRunner:
         Nhiều chiến dịch: mỗi chiến dịch một Source mới, một campaign_id, nhiều nạn nhân cùng ngày.
 
         ``n_victims`` = None: chạy đúng ``n_campaigns`` chiến dịch. Có giá trị (chế độ ``target_rate``): mở chiến
-        dịch tới khi đủ ``n_victims`` nạn nhân (chiến dịch cuối bị cắt cỡ cho vừa).
+        dịch tới khi đủ ``n_victims`` nạn nhân (phần dư < cỡ tối thiểu được gộp vào chiến dịch kế cuối).
         """
         from src.injection.scenarios import pick_unseen_sources
 
@@ -471,7 +530,12 @@ class InjectionRunner:
                 break
             size = _draw(params["victims_per_campaign"], self.rng)
             if n_victims is not None:
-                size = min(size, n_victims - len(out))
+                rem = n_victims - len(out)
+                vpc = params["victims_per_campaign"]
+                lo = int(vpc[0]) if isinstance(vpc, (list, tuple)) else int(vpc)
+                # phần dư nhỏ hơn cỡ tối thiểu được GỘP vào chiến dịch này (không sinh chiến dịch 1–2 nạn nhân,
+                # vốn không còn là spraying)
+                size = rem if rem - size < lo else size
             day = int(self.cfg.days[int(self.rng.integers(len(self.cfg.days)))])
             # nạn nhân chiến dịch: tài khoản cơ sở chưa dùng (không cần hoạt động ngày đó — spray tạo khoá mới)
             pool_keys = self._base_victims().select(ACCOUNT_KEYS)
@@ -493,6 +557,10 @@ class InjectionRunner:
             cid = f"{self.cfg.run_id}_spray{self._n_campaigns:02d}"
             self._n_campaigns += 1
             campaign = {"id": cid, "source": source, "size": chosen.height}
+            if str(params.get("time_scope", "campaign")) == "campaign":
+                # cả chiến dịch chung MỘT cửa sổ burst (đề cương 5.2: "trong một khung thời gian ngắn");
+                # "victim" = bản cũ, mỗi nạn nhân một cửa sổ riêng -> chiến dịch trải gần cả ngày
+                campaign["window"] = draw_window(TimeProfile.from_config(params["time_profile"]), day, self.rng)
             for d, u, _ in chosen.iter_rows():
                 ctx = self._ctx(d, u, day)
                 try:

@@ -97,6 +97,9 @@ TEMPLATE_V4_FEATURES: List[str] = [
     # đổi loại logon bất thường
     "dist_shift_logontype_7d",
     "jaccard_logontype_7d",
+    # v4.1 (2026-10-09): đưa từ reserve vào core (configs/feature_schema.yaml)
+    "delta_mean_share_night_7d",
+    "novelty_logontype_7d",
 ]
 
 MATRIX_ORDERED_COLS: List[str] = (

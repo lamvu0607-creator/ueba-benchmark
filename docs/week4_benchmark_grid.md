@@ -5,17 +5,30 @@ và **kết quả lặp trên 5 seed kèm độ lệch chuẩn**. Cấu hình l�
 
 ## Cách chạy
 
-```bash
-# 1. Bốn run dev bổ sung (seed tiêm khác nhau), mỗi run: inject (~2 phút nhờ cache khuôn) + features (~22 phút)
-python main.py --stage inject --block dev --injection-seed 20261044
-python main.py --stage features --events-dir data/injection_runs/dev_seed20261044/events_injected
-#    ... lặp lại với 20261045, 20261046, 20261047 (run gốc dev_seed20261043 đã có)
+Chia tập (đề cương 5.1): **test = ngày 43–60** (30% thời gian, mô hình fit trên 1–42); **dev = ngày 36–42 nằm trong train**
+(fit trên 1–35). Mọi thứ khối dev dùng (hồ sơ hành vi, kho khuôn, luật loại trừ) đều dựng từ ngày ≤ 35: khối `dev` trong
+`configs/injection.yaml` ghi đè `common.split_day` và đường dẫn.
 
-# 2. Lưới (mọi fit dùng lại ma trận đã có, không trích lại đặc trưng)
+```bash
+# 0. Ma trận gốc (schema v4.1, 41 đặc trưng) — luật loại trừ của mốc 35 đọc ma trận này
+python main.py --stage features
+# 1. Hồ sơ train + luật loại trừ cho khối dev (mốc 35); mốc 42 dùng data/features/train_profiles và experiments/results/baselines
+python scripts/injection_profiles_summary.py --train-end-day 35 --out data/features/train_profiles_d35
+python main.py --stage baselines --split-day 35          # -> experiments/results/baselines_d35/
+# 2. Năm run dev (seed tiêm 20261036..40), mỗi run: inject (~2 phút) + features (~21 phút)
+python main.py --stage inject --block dev --injection-seed 20261036
+python main.py --stage features --events-dir data/injection_runs/dev_seed20261036/events_injected
+# 3. Lưới dev -> chọn cấu hình tốt nhất
 python scripts/evaluation/run_grid.py --config configs/benchmark_grid.yaml
+# 4. Năm run test (seed tiêm 20261061..65, ~25 phút mỗi run), chốt cấu hình từ dev, lưới test (chạy một lần)
+python main.py --stage inject --block test --injection-seed 20261061
+python main.py --stage features --events-dir data/injection_runs/test_seed20261061/events_injected
+python scripts/evaluation/freeze_test_grid.py --runs data/injection_runs/test_seed2026106{1,2,3,4,5}
+python scripts/evaluation/run_grid.py --config configs/benchmark_grid_test.yaml
 ```
 
-Kết quả nằm ở `experiments/grid/dev/` (được commit).
+Toàn bộ chuỗi mất khoảng 6 giờ trên máy 24 GB RAM. Kết quả nằm ở `experiments/grid/{dev,test}/` (được commit); mọi lần
+fit cũng được ghi vào `experiments/logs/experiment_log.csv` (bỏ qua bằng `--experiment-log ""`).
 
 ## Thiết kế
 
@@ -23,15 +36,17 @@ Kết quả nằm ở `experiments/grid/dev/` (được commit).
   (mẫu, `ddof = 1`) vì vậy gồm cả biến động của dữ liệu tiêm (nạn nhân, sự kiện) lẫn của mô hình.
 - **Chỉ phân khúc User** được đánh giá: nhãn dương chỉ tiêm vào User (mẫu số 1% = dòng User), nên Machine
   không có dương để tính PR-AUC.
-- **Train / eval**: imputer, scaler và mô hình fit trên train (ngày ≤ 42) của phân khúc; chấm đúng
-  `eval_days` đóng băng trong `run_config.json` của run (dev 43–51). Ngưỡng cảnh báo = phân vị
-  (1 − contamination) của điểm train; cờ = điểm ≥ ngưỡng, giống `BaseAnomalyModel.predict`.
+- **Train / eval**: imputer, scaler và mô hình fit trên train (ngày ≤ mốc chia của run: 35 với dev, 42 với test);
+  chấm đúng `eval_days` đóng băng trong `run_config.json`. Ngưỡng cảnh báo = phân vị (1 − contamination) của điểm
+  train; cờ = điểm ≥ ngưỡng, giống `BaseAnomalyModel.predict`.
 - **Cấu hình**: scaler (`robust` / `standard` / `quantile`) là một chiều của lưới cho LOF và OCSVM. Isolation
   Forest không phụ thuộc phép scale đơn điệu theo cột nên chỉ đổi siêu tham số.
-- **Chọn cấu hình tốt nhất**: PR-AUC trung bình cao nhất qua 5 seed, trên khối **dev**. Khối test chỉ chạy
-  một lần với cấu hình đã chốt. Vì việc chọn dùng nhãn dev, con số dev của cấu hình được chọn là lạc quan.
-- **Độ nhạy contamination**: chạy lại cấu hình tốt nhất của mỗi mô hình với contamination 0,01–0,20.
+- **Mốc tham chiếu**: z-score toàn cục, luật 6 điều kiện, **luật số lần thất bại ≥ 5** (ngưỡng cố định, mục 5.3), ngẫu nhiên.
+- **Chọn cấu hình tốt nhất**: PR-AUC trung bình cao nhất qua 5 seed, trên khối **dev**. `freeze_test_grid.py` sinh lưới test
+  từ `best_configs` của dev; test chỉ chạy một lần.
+- **Độ nhạy contamination**: chạy lại cấu hình tốt nhất của mỗi mô hình với contamination 0,1–5% (mục 5.6) và 10/20%.
   IF/LOF chỉ đổi ngưỡng; OCSVM đổi cả mô hình vì `nu` = contamination.
+- **P@k**: có cả bản trên toàn khối (`precision_at_k`) và bản theo ngày của mục 5.4 (`precision_at_k_per_day`).
 
 ## Vì sao scaler là một chiều của lưới
 
@@ -44,7 +59,7 @@ Kết quả nằm ở `experiments/grid/dev/` (được commit).
 
 LOF và OCSVM dựa trên khoảng cách nên chỉ "thấy" vài đặc trưng bị phóng đại. Ví dụ trên run dev đầu tiên,
 OCSVM robust có ROC-AUC 0,47 và xếp `new_workstation_burst` ngược (AUC 0,21); chỉ đổi sang `standard`
-thì PR-AUC tăng 0,024 → 0,092. Kết quả robust được giữ trong lưới làm bằng chứng.
+thì PR-AUC tăng 0,024 → 0,092 (bộ tiêm và cách chia trước 2026-10-09; số mới ở reports/week4/tom_tat_tuan4.md §6.2). Kết quả robust được giữ trong lưới làm bằng chứng.
 
 ## Đầu ra
 

@@ -153,6 +153,8 @@ def main() -> None:
     ap.add_argument("--out", default="data/features/train_profiles")
     ap.add_argument("--load", action="store_true", help="nạp hồ sơ đã lưu ở --out thay vì dựng lại")
     ap.add_argument("--no-save", action="store_true")
+    ap.add_argument("--train-end-day", type=int, default=None,
+                    help="ngày train cuối (mặc định evaluation.split_day); 35 = hồ sơ cho khối dev 36–42")
     ap.add_argument("--lockout-window", type=int, default=None, help="giây; mặc định ProfileConfig")
     ap.add_argument("--lockout-episode-gap", type=int, default=None)
     ap.add_argument("--samples", type=int, default=5)
@@ -170,6 +172,8 @@ def main() -> None:
             overrides["lockout_window_s"] = args.lockout_window
         if args.lockout_episode_gap is not None:
             overrides["lockout_episode_gap_s"] = args.lockout_episode_gap
+        if args.train_end_day is not None:
+            overrides["train_end_day"] = args.train_end_day
         pcfg = ProfileConfig.from_system_config(cfg, **overrides)
         interim = args.interim_dir or (cfg.get("paths", {}) or {}).get("interim_data_dir", "data/interim")
         t0 = time.time()

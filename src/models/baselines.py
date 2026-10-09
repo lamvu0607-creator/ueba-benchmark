@@ -21,7 +21,7 @@ from src.models.base import BaseAnomalyModel
 
 logger = logging.getLogger("ueba_benchmark.models.baselines")
 
-__all__ = ["RandomBaseline", "ZScoreBaseline", "RuleThresholdBaseline", "RULE_OPERATORS"]
+__all__ = ["RandomBaseline", "ZScoreBaseline", "RuleThresholdBaseline", "FailureCountBaseline", "RULE_OPERATORS"]
 
 #: Các toán tử so sánh được phép trong luật.
 RULE_OPERATORS = (">=", ">", "<=", "<", "==", "!=")
@@ -346,3 +346,67 @@ class RuleThresholdBaseline(BaseAnomalyModel):
         ]
         return metadata
 
+
+class FailureCountBaseline(BaseAnomalyModel):
+    """
+    Mốc "luật ngưỡng số lần thất bại" của đề cương (mục 4.1 #6, 5.3): điểm = **số lần đăng nhập thất bại
+    trong ngày** của (tài khoản, ngày); cảnh báo khi điểm >= ``min_failures`` (ngưỡng CỐ ĐỊNH).
+
+    Số lần thất bại không có sẵn trong bộ đặc trưng core nên được dựng lại chính xác (số nguyên) từ
+    ``failure_ratio × expm1(log_total_logons)`` (``log_total_logons = log1p(total_logons)``).
+
+    Tham số (``configs/model_params.yaml`` -> ``failure_count_baseline``):
+      * ``min_failures``: ngưỡng cảnh báo (mặc định 5 = ngưỡng khoá tài khoản L ước lượng từ train),
+      * ``threshold_mode``: ``"fixed"`` (mặc định, đúng đề cương) hoặc ``"quantile"`` (alert rate ~ contamination),
+      * ``ratio_feature`` / ``total_log_feature``: tên cột (mặc định ``failure_ratio`` / ``log_total_logons``).
+
+    Không cần scale (``requires_scaling = False``): điểm là số đếm thô.
+    """
+
+    name = "failure_count_baseline"
+    aliases = ("FailureCountBaseline", "failure_count")
+    is_baseline = True
+    estimator_class = None
+    default_max_train_samples = None
+
+    def __init__(
+        self,
+        contamination: float = 0.05,
+        random_state: int = 42,
+        max_train_samples: Optional[int] = None,
+        feature_names: Optional[Sequence[str]] = None,
+        **native_params: Any,
+    ):
+        super().__init__(
+            contamination=contamination,
+            random_state=random_state,
+            max_train_samples=max_train_samples,
+            **native_params,
+        )
+        self.feature_names = list(feature_names) if feature_names else None
+        self.columns_: Tuple[int, int] = (-1, -1)
+
+    def _fit_estimator(self, X: np.ndarray) -> None:
+        names = self.feature_names or (list(self.feature_names_in_) if self.feature_names_in_ else None)
+        if not names:
+            raise ValueError(
+                f"[{self.name}] cần TÊN đặc trưng: hãy fit qua AnomalyPipeline hoặc truyền feature_names=[...]."
+            )
+        ratio = str(self.native_params.get("ratio_feature", "failure_ratio"))
+        total = str(self.native_params.get("total_log_feature", "log_total_logons"))
+        missing = [c for c in (ratio, total) if c not in names]
+        if missing:
+            raise ValueError(f"[{self.name}] thiếu đặc trưng {missing} trong tập đặc trưng đang dùng.")
+        self.columns_ = (names.index(ratio), names.index(total))
+        logger.info("[%s] điểm = số lần thất bại/ngày = round(%s × expm1(%s)); ngưỡng cố định >= %s.",
+                    self.name, ratio, total, self.native_params.get("min_failures", 5))
+        return None
+
+    def _anomaly_score(self, X: np.ndarray) -> np.ndarray:
+        r, t = self.columns_
+        return np.round(np.clip(X[:, r], 0.0, None) * np.expm1(np.clip(X[:, t], 0.0, None)))
+
+    def _resolve_threshold(self, fit_scores: np.ndarray) -> float:
+        if str(self.native_params.get("threshold_mode", "fixed")) == "fixed":
+            return float(self.native_params.get("min_failures", 5))
+        return super()._resolve_threshold(fit_scores)
