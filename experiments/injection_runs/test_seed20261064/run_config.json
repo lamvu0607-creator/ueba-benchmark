@@ -1,0 +1,50 @@
+{
+  "run_id": "test_seed20261064",
+  "block": "test",
+  "seed": 20261064,
+  "split_day": 42,
+  "eval_days": [
+    43,
+    44,
+    45,
+    46,
+    47,
+    48,
+    49,
+    50,
+    51,
+    52,
+    53,
+    54,
+    55,
+    56,
+    57,
+    58,
+    59,
+    60
+  ],
+  "target_rate": {
+    "rate": 0.01,
+    "entity_type": "User",
+    "denominator": 152740,
+    "n_target": 1543,
+    "quotas": {
+      "brute_force": 258,
+      "password_spraying": 257,
+      "off_hours": 257,
+      "new_workstation_burst": 257,
+      "dormant_wakeup": 257,
+      "logon_type_switch": 257
+    },
+    "achieved": {
+      "brute_force": 258,
+      "password_spraying": 257,
+      "off_hours": 257,
+      "new_workstation_burst": 257,
+      "dormant_wakeup": 257,
+      "logon_type_switch": 257
+    },
+    "n_injected": 1543,
+    "rate_achieved": 0.010102134345947361
+  }
+}

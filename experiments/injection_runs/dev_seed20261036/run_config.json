@@ -1,0 +1,39 @@
+{
+  "run_id": "dev_seed20261036",
+  "block": "dev",
+  "seed": 20261036,
+  "split_day": 35,
+  "eval_days": [
+    36,
+    37,
+    38,
+    39,
+    40,
+    41,
+    42
+  ],
+  "target_rate": {
+    "rate": 0.01,
+    "entity_type": "User",
+    "denominator": 54656,
+    "n_target": 553,
+    "quotas": {
+      "brute_force": 93,
+      "password_spraying": 92,
+      "off_hours": 92,
+      "new_workstation_burst": 92,
+      "dormant_wakeup": 92,
+      "logon_type_switch": 92
+    },
+    "achieved": {
+      "brute_force": 93,
+      "password_spraying": 92,
+      "off_hours": 92,
+      "new_workstation_burst": 92,
+      "dormant_wakeup": 92,
+      "logon_type_switch": 92
+    },
+    "n_injected": 553,
+    "rate_achieved": 0.01011782786885246
+  }
+}
