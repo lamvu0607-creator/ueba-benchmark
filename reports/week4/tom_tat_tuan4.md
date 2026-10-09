@@ -35,11 +35,11 @@ kết quả lặp trên 5 seed kèm độ lệch chuẩn.
 
 | Kịch bản | Hành vi được tiêm | Đề cương |
 |---|---|---|
-| `brute_force` | 8–25 lần 4625 (LogonType 3) từ một nguồn mới, dồn trong 5–30 phút; có thể dẫn tới khoá tài khoản | ✔ brute-force |
-| `off_hours` | Chuỗi 10–40 sự kiện 4624 của chính tài khoản, dời vào khung 0–6 giờ | ✔ ngoài giờ bất thường |
+| `brute_force` | 8–25 lần 4625 (LogonType 3) từ một nguồn mới, dồn trong 5–30 phút; 5 lần sai mật khẩu rồi các lần sau bị khoá | ✔ brute-force |
+| `off_hours` | **Thêm** chuỗi 10–40 sự kiện 4624 (sao chép từ một ngày train của chính tài khoản) vào khung 0–6 giờ; hoạt động ban ngày giữ nguyên | ✔ ngoài giờ bất thường |
 | `new_workstation_burst` | Đăng nhập thành công từ 4–10 máy nguồn chưa từng thấy trong train | ✔ bùng nổ máy trạm mới |
 | `dormant_wakeup` | Một ngày hoạt động đầy đủ, cấy vào sau một khoảng im lặng dài | ✔ ngủ đông thức dậy |
-| `password_spraying` | Một nguồn gây 1–3 lần thất bại cho 5–10 tài khoản trong cùng ngày, có `campaign_id` | bổ sung |
+| `password_spraying` | Một nguồn gây 1–3 lần thất bại cho 5–10 tài khoản trong cùng ngày, có `campaign_id` (chiến dịch trải 9–23 giờ, không đồng thời) | bổ sung |
 | `logon_type_switch` | 3–10 lần 4624 với LogonType tài khoản chưa từng dùng | bổ sung |
 
 ### 2.3. Tỷ lệ tiêm 1%

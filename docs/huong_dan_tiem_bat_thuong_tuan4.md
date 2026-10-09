@@ -6,6 +6,13 @@ Tài liệu này giải thích từ mục đích, cách tạo log, cách chạy,
 
 ## 1. Tuần 4 đã hoàn thành chưa?
 
+> **Cập nhật 09/10/2026** (nhánh `feature/target-rate-1pct`, PR #10). Bảng trạng thái bên dưới là ảnh chụp ngày 08/10 và đã lỗi thời ở các điểm sau:
+> - **Tiêm theo tỷ lệ định trước:** đã đáp ứng. `common.target_rate` tiêm đúng 1% số dòng (tài khoản, ngày) User; mỗi run dev đạt 736 / 72.845 = 1,01%.
+> - **Bảng 3 mô hình × ≥ 3 cấu hình, 5 seed, đường PR, độ nhạy contamination:** đã có ở `experiments/grid/dev/`. Xem `reports/week4/tom_tat_tuan4.md`.
+> - **PR #8 (biểu đồ):** đã hợp nhất vào `main`.
+>
+> Bản tóm tắt ngắn của bộ tiêm (dùng cho slide): `reports/week4/kich_ban_tiem_slide.md`.
+
 **Chưa đủ bằng chứng để nghiệm thu toàn bộ tuần 4.** Bộ tiêm và phần tính chỉ số đã được triển khai, nhưng đầu ra thực nghiệm và một số yêu cầu còn thiếu.
 
 Đề cương yêu cầu tuần 4 có bộ sinh bất thường, tiêm theo tỷ lệ định trước, tính chỉ số, quét tham số; bàn giao bảng **3 mô hình × ít nhất 3 cấu hình**, đường Precision–Recall, biểu đồ độ nhạy `contamination`, và kết quả **5 seed kèm độ lệch chuẩn**.
@@ -63,16 +70,18 @@ Thông tin về hành vi quen/mới và khuôn log lấy từ train. Tuy nhiên,
 
 ## 4. Sáu kịch bản đang được tiêm như thế nào?
 
+**Số nạn nhân:** khi bật `common.target_rate` (mặc định từ 09/10), `n_victims` / `n_campaigns` bị bỏ qua. Mỗi kịch bản nhận 1/6 tổng số lần tiêm (dev: 122–123 lần/kịch bản; spraying khoảng 17 chiến dịch). Xem mục 7.
+
 Các số `[a, b]` của tham số đếm được rút ngẫu nhiên **bao gồm hai đầu**. Cửa sổ giờ `[a, b)` không gồm giờ kết thúc. Mặc định mọi lần tiêm nằm trong một ngày.
 
 | Kịch bản | Hành vi được thêm theo cấu hình hiện tại | Tín hiệu mong đợi sau tính lại đặc trưng |
 | --- | --- | --- |
-| `brute_force` | Chọn 15 tài khoản; mỗi tài khoản thêm 8–25 lần 4625, LogonType 3, từ máy nguồn mới so với train; dồn trong 300–1.800 giây. Dùng khuôn sai mật khẩu rồi khuôn bị khoá nếu đạt ngưỡng khoá. | Tăng thất bại, thay đổi nhịp sự kiện; có thể tăng tỷ lệ thất bại do bị khoá. |
-| `password_spraying` | 3 chiến dịch; mỗi chiến dịch chọn 5–10 tài khoản, chung một máy nguồn và một ngày; mỗi nạn nhân thêm 1–3 lần 4625. Có `campaign_id` để đánh giá theo chiến dịch. | Nhiều tài khoản nhận một ít lần thử thất bại từ cùng nguồn; có thể tạo dòng tài khoản-ngày mới. |
-| `off_hours` | Chọn 15 tài khoản có tỷ lệ ngoài giờ trong train ≤0,2; lấy chuỗi 10–40 sự kiện 4624 liên tiếp của chính tài khoản trong một ngày train, đưa vào 0–6 giờ, giữ khoảng cách thời gian của chuỗi. | Tăng tỷ lệ ngoài giờ và thay đổi phân bố giờ. |
-| `new_workstation_burst` | Chọn 15 tài khoản; mỗi tài khoản thêm đăng nhập thành công từ 4–10 máy nguồn chưa quen trong train, 1–3 sự kiện/máy; dồn trong 1.800–7.200 giây, khung 8–18 giờ. | Tăng số nguồn khác nhau; có thể tăng novelty nguồn và thay đổi quan hệ nguồn–máy đích. |
-| `dormant_wakeup` | Chọn tối đa 10 tài khoản; tại ngày đang trống sau khoảng im lặng đủ dài, cấy toàn bộ 4624/4625 của một ngày train gần trung vị số sự kiện nhất, giữ giờ trong ngày. | Tạo hoạt động trở lại và một dòng tài khoản-ngày mới; tác động lên đặc trưng lịch sử. |
-| `logon_type_switch` | Chọn 15 tài khoản có một LogonType chiếm ≥80% trong train và có nguồn/máy ghi log quen; thêm 3–10 lần 4624 với type chưa dùng trong train, ưu tiên 10 rồi 2, rải trong 8–18 giờ. | Thay đổi cơ chế đăng nhập, phân bố LogonType và mức độ hiếm của type. |
+| `brute_force` | Mỗi nạn nhân thêm 8–25 lần 4625, LogonType 3, từ máy nguồn mới so với train; dồn trong 300–1.800 giây. 5 lần đầu là khuôn sai mật khẩu, các lần sau là khuôn bị khoá (luôn xảy ra vì 8 > L = 5). | Tăng thất bại, thay đổi nhịp sự kiện; có thể tăng tỷ lệ thất bại do bị khoá. |
+| `password_spraying` | Mở chiến dịch tới khi đủ hạn mức; mỗi chiến dịch chọn 5–10 tài khoản, chung một máy nguồn và một ngày; mỗi nạn nhân thêm 1–3 lần 4625. Có `campaign_id` để đánh giá theo chiến dịch. | Nhiều tài khoản nhận một ít lần thử thất bại từ cùng nguồn; có thể tạo dòng tài khoản-ngày mới. |
+| `off_hours` | Chọn tài khoản có tỷ lệ ngoài giờ trong train ≤0,2; lấy chuỗi 10–40 sự kiện 4624 liên tiếp của chính tài khoản trong một ngày train, đưa vào 0–6 giờ, giữ khoảng cách thời gian của chuỗi. | Tăng tỷ lệ ngoài giờ và thay đổi phân bố giờ. |
+| `new_workstation_burst` | Mỗi nạn nhân thêm đăng nhập thành công từ 4–10 máy nguồn chưa quen trong train, 1–3 sự kiện/máy; dồn trong 1.800–7.200 giây, khung 8–18 giờ. | Tăng số nguồn khác nhau; có thể tăng novelty nguồn và thay đổi quan hệ nguồn–máy đích. |
+| `dormant_wakeup` | Tại ngày đang trống sau khoảng im lặng đủ dài, cấy toàn bộ 4624/4625 của một ngày train gần trung vị số sự kiện nhất, giữ giờ trong ngày. | Tạo hoạt động trở lại và một dòng tài khoản-ngày mới; tác động lên đặc trưng lịch sử. |
+| `logon_type_switch` | Chọn tài khoản có một LogonType chiếm ≥80% trong train và có nguồn/máy ghi log quen; thêm 3–10 lần 4624 với type chưa dùng trong train, ưu tiên 10 rồi 2, rải trong 8–18 giờ. | Thay đổi cơ chế đăng nhập, phân bố LogonType và mức độ hiếm của type. |
 
 Các tín hiệu trên là **mong đợi cần kiểm tra**, không phải cam kết rằng mọi đặc trưng sẽ tăng hoặc mọi mô hình sẽ bắt được.
 
@@ -80,7 +89,7 @@ Các tín hiệu trên là **mong đợi cần kiểm tra**, không phải cam k
 
 **Brute-force:** `L: auto` lấy ngưỡng khoá ước lượng từ train, không luôn bằng 5. Nếu rút 12 lần thử và `L = 5`, chế độ `locked_out` tạo 5 khuôn sai mật khẩu rồi 7 khuôn bị khoá. Lần thứ `L` vẫn là khuôn sai mật khẩu. Chế độ `stop` dừng ở ngưỡng, vì vậy phải đọc số sự kiện thực tế trong manifest thay vì suy từ khoảng cấu hình.
 
-**Spraying:** chú thích cấu hình muốn số lần thử nhỏ hơn `L`, nhưng hàm kịch bản hiện không tự ép điều kiện đó. Cần kiểm tra `L` và chỉnh khoảng `[1, 3]` nếu cần. Các nạn nhân được sinh lịch burst riêng; code bảo đảm cùng nguồn/ngày/chiến dịch, chưa bảo đảm toàn bộ chiến dịch nằm trong một cửa sổ burst chung. Kiểm tra độ trải thời gian của cả `campaign_id` trước khi mô tả là một chiến dịch đồng thời.
+**Spraying:** chú thích cấu hình muốn số lần thử nhỏ hơn `L`, nhưng hàm kịch bản hiện không tự ép điều kiện đó. Cần kiểm tra `L` và chỉnh khoảng `[1, 3]` nếu cần. Các nạn nhân được sinh lịch burst riêng; code bảo đảm cùng nguồn/ngày/chiến dịch, chưa bảo đảm toàn bộ chiến dịch nằm trong một cửa sổ burst chung. Kiểm tra độ trải thời gian của cả `campaign_id` trước khi mô tả là một chiến dịch đồng thời. **Đã đo (09/10, dev_seed20261043):** một chiến dịch trải **9,5–23 giờ** trong ngày (trung vị 17 giờ), nên **không** phải đợt dồn dập đồng thời. Mỗi chiến dịch đúng 1 nguồn, 1 ngày.
 
 **Ngoài giờ:** code **thêm** chuỗi ban đêm vào log gốc. Nó không chuyển toàn bộ hoạt động ban ngày sang ban đêm. Chuỗi không vừa cửa sổ 0–6 giờ hoặc không có đủ khuôn sẽ bị bỏ qua.
 
@@ -172,7 +181,7 @@ Không nhầm ba số:
 
 Ví dụ minh họa: 20.000 dòng User sau tiêm, 100 dòng dương tính khớp ma trận → tỷ lệ tiêm 0,5%. Thêm 2.000 sự kiện cho 100 dòng đó vẫn chỉ có 100 dòng dương.
 
-Cấu hình hiện đặt mục tiêu 70 nạn nhân ở 5 kịch bản đơn và 15–30 nạn nhân spraying, tổng dự kiến **85–100 dòng dương/run nếu đủ ứng viên**. Đây không phải tỷ lệ bảo đảm; thực tế có thể thấp hơn. Để đáp ứng tỷ lệ định trước, cần chốt tỷ lệ mục tiêu và dung sai trước thí nghiệm, phân bổ số nạn nhân theo kịch bản, tính lại mẫu số sau tiêm rồi ghi tỷ lệ đạt được. Hiện chưa có bộ điều phối tự làm việc này. Không chọn tỷ lệ dựa trên việc mức nào làm AP đẹp hơn.
+**Cập nhật 09/10:** đã có bộ điều phối `common.target_rate`. Tỷ lệ mục tiêu là 1%, mẫu số D = số dòng (tài khoản, ngày) User của khối trên log **gốc**. Tổng N = ⌈1% · D / (1 − 1%)⌉; chia cho (1 − 1%) vì spraying/ngủ đông có thể tạo dòng mới. N chia đều cho 6 kịch bản; kịch bản thiếu ứng viên thì phần thiếu được chia lại (tối đa 3 vòng). `run_config.json` ghi mẫu số, hạn mức, số đạt được và tỷ lệ đạt được. Dev: D = 72.845, N = 736, đạt 1,01%; trên ma trận sau tiêm là 736 / 72.998 = 1,008%. Mức 1% được chốt theo mục 5.2 đề cương (0,5–1%), không chọn theo AP. Bản cũ (số nạn nhân cố định) chỉ đạt 92 dòng = 0,13%.
 
 ## 8. Lệnh chạy từ đầu đến cuối
 
