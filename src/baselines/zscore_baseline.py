@@ -1,5 +1,5 @@
 """
-BASELINE 2 — Z-SCORE ĐƠN BIẾN ROBUST trên 39 đặc trưng core.
+BASELINE 2 — Z-SCORE ĐƠN BIẾN ROBUST trên các đặc trưng core (41 từ schema v4.1).
 
     z_j(x)  = (x_j − median_j) / (1.4826 · MAD_j)
     score(x) = max_j |z_j(x)|

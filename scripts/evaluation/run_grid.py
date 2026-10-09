@@ -17,9 +17,12 @@ def main() -> None:
     parser.add_argument("--system-config", default="configs/system_config.yaml")
     parser.add_argument("--output-dir", default=None, help="Default: output_dir of the grid config")
     parser.add_argument("--formats", nargs="+", choices=["png", "pdf", "svg"], default=["png", "pdf"])
+    parser.add_argument("--experiment-log", default="experiments/logs/experiment_log.csv",
+                        help="Shared experiment log (spec 5.6); pass '' to skip")
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(asctime)s - [%(levelname)s] - %(name)s - %(message)s")
-    result = run_grid(args.config, args.model_params, args.system_config, args.output_dir, args.formats)
+    result = run_grid(args.config, args.model_params, args.system_config, args.output_dir, args.formats,
+                      experiment_log=args.experiment_log or None)
     logging.getLogger("ueba_benchmark.grid").info("Cấu hình tốt nhất: %s -> %s", result["best"], result["output_dir"])
 
 

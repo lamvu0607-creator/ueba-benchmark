@@ -1,6 +1,9 @@
 # Hợp đồng schema đặc trưng (Feature Contract) — UEBA Anomaly Detection Benchmark
 #
-# Phiên bản : v2.0 (16 core) -> v3.0 (24 core) -> v4.0 (39 core)
+# Phiên bản : v2.0 (16 core) -> v3.0 (24 core) -> v4.0 (39 core) -> v4.1 (41 core)
+#   * v4.1 (2026-10-09) đưa 2 biến dự bị của phễu v4 vào core: delta_mean_share_night_7d (off_hours),
+#     novelty_logontype_7d (logon_type_switch) — căn cứ: chẩn đoán theo kịch bản trên bộ tiêm đã sửa
+#     (reports/week4/tom_tat_tuan4.md). Phễu v4 đo AUC trên bộ tiêm CŨ; con số đó không chuyển sang bộ mới.
 #   * v4.0 (2026-10-04) bổ sung 15 đặc trưng sinh từ Combinatorial Template
 #     (PHÉP ĐO × ĐỐI TƯỢNG × CHIỀU × CỬA SỔ, src/features/templates.py), chọn qua phễu:
 #       3.136 tổ hợp → 471 hợp lệ ngữ pháp → vòng 1 (lập luận, luật R1–R4) còn 78
@@ -374,6 +377,27 @@ features:
     scenarios: [logon_type_switch]
     note: "v4.0. AUC 1.000 trên logon_type_switch; max |rho| 0.6692 với dist_shift_logontype_7d."
 
+  # ---- v4.1 (2026-10-09): 2 biến DỰ BỊ của phễu v4 (đã qua đủ 4 cổng E/B/A/C) được đưa vào core sau khi đo
+  # trên bộ tiêm đã sửa (off_hours/logon_type_switch mode shift): bộ 39 core để off_hours ở ROC-AUC 0,84 (OCSVM).
+  - name: delta_mean_share_night_7d
+    group: template_v4
+    definition: "tỷ lệ sự kiện ngoài giờ (18h–7h) hôm nay trừ trung bình của 7 ngày lịch trước"
+    core: true
+    model_transform: none
+    nullable: "NULL ở 7 ngày đầu của dải quan sát (warm-up)"
+    template: {measure: delta_mean, object: night, entity: event, window: 7d}
+    scenarios: [off_hours]
+    note: "v4.1 (từ reserve). Phễu v4: AUC 0.978 trên off_hours, max |rho| 0.6293. Chẩn đoán 2026-10-09 (tập con dev, tiêm mode shift): AUC đơn lẻ 0.983 — cao nhất cho off_hours; thêm vào core nâng ROC-AUC off_hours của OCSVM 0.836 -> 0.908, IF 0.844 -> 0.875."
+
+  - name: novelty_logontype_7d
+    group: template_v4
+    definition: "số loại logon trong mọi sự kiện hôm nay chưa xuất hiện trong 7 ngày lịch trước"
+    core: true
+    model_transform: none
+    template: {measure: novelty, object: all, entity: logon_type, window: 7d}
+    scenarios: [logon_type_switch, dormant_wakeup]
+    note: "v4.1 (từ reserve). Phễu v4: AUC 0.996 trên logon_type_switch, max |rho| 0.5417. Chẩn đoán 2026-10-09: AUC đơn lẻ 0.953 (logon_type_switch), 0.978 (dormant_wakeup); khác jaccard_logontype_7d, chỉ đếm loại MỚI nên không bị nhiễu bởi loại cũ vắng mặt hôm nay."
+
 # ---------------------------------------------------------------------------
 # CHƯA triển khai (roadmap v3.0) — xem docs/reports/bao_cao_bo_dac_trung_v3.md §5
 # ---------------------------------------------------------------------------
@@ -408,10 +432,6 @@ reserve:
     definition: "số sự kiện ngoài giờ (18h–7h) trong khung 15 phút đông nhất của ngày"
     template: {measure: count, object: night, entity: event, window: 15m}
     reason: "AUC 0.909 trên off_hours; max |rho| 0.7203. Chưa vào core: kịch bản đã đủ đại diện có AUC cao hơn ở bước chốt."
-  - name: delta_mean_share_night_7d
-    definition: "tỷ lệ sự kiện ngoài giờ (18h–7h) hôm nay trừ trung bình của 7 ngày lịch trước"
-    template: {measure: delta_mean, object: night, entity: event, window: 7d}
-    reason: "AUC 0.978 trên off_hours; max |rho| 0.6293. Chưa vào core: kịch bản đã đủ đại diện có AUC cao hơn ở bước chốt."
   - name: dist_shift_source_7d
     definition: "khoảng cách phân bố (total variation) của mọi sự kiện theo máy nguồn (Source) giữa hôm nay và 7 ngày lịch trước"
     template: {measure: dist_shift, object: all, entity: Source, window: 7d}
@@ -440,10 +460,6 @@ reserve:
     definition: "số ngày có hoạt động trong 7 ngày lịch trước"
     template: {measure: active_days, object: all, entity: event, window: 7d}
     reason: "AUC 0.998 trên dormant_wakeup; max |rho| 0.7944. Chưa vào core: VIF bộ core lên 11.72 (> 10) nếu thêm."
-  - name: novelty_logontype_7d
-    definition: "số loại logon trong mọi sự kiện hôm nay chưa xuất hiện trong 7 ngày lịch trước"
-    template: {measure: novelty, object: all, entity: logon_type, window: 7d}
-    reason: "AUC 0.996 trên logon_type_switch; max |rho| 0.5417. Chưa vào core: kịch bản đã đủ đại diện có AUC cao hơn ở bước chốt."
 
 # ---------------------------------------------------------------------------
 # Đã LOẠI BỎ so với bản 1.0 (xem §5 và §7.1 của review) — kèm lý do

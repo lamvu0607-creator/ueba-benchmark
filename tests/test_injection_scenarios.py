@@ -509,3 +509,130 @@ def test_target_rate_disabled_keeps_fixed_victim_counts(built):
 
     _, layout, _ = built
     assert json.loads((layout.root / "run_config.json").read_text(encoding="utf-8"))["target_rate"] is None
+
+
+# --------------------------------------------------------------------------- sửa 2026-10-09 (đối chiếu đề cương 5.2)
+
+def test_spraying_campaign_shares_one_short_window(built):
+    """Cả chiến dịch spraying dồn trong MỘT cửa sổ burst (trước đây mỗi nạn nhân một cửa sổ -> trải cả ngày)."""
+    import json
+
+    _, layout, _ = built
+    manifest = pl.read_csv(layout.manifest_path).filter(pl.col("scenario") == "password_spraying")
+    inj = pl.read_parquet(layout.injected_events_path)
+    for cid, part in manifest.group_by("campaign_id"):
+        windows = {tuple(json.loads(p)["campaign_window"]) for p in part["params"]}
+        assert len(windows) == 1                                     # chung một cửa sổ
+        t0, t1 = windows.pop()
+        assert 1800 <= t1 - t0 <= 3600                               # burst_duration_s của config test
+        times = inj.filter(pl.col("inj_id").is_in(part["inj_id"].to_list()))["Time"]
+        assert times.min() >= t0 and times.max() < t1
+
+
+def test_off_hours_shift_moves_a_whole_day_into_the_night(profiles, pool):
+    params = {"mode": "shift", "source_day": "closest_to_median",
+              "time_profile": {"mode": "replay", "n_days": 1, "hour_window": [0, 1], "replay_fit": "compress"}}
+    res = scenario_off_hours(_ctx(profiles, pool, "User1", 6), params, np.random.default_rng(1))
+    start, _ = day_window(6)
+    assert res.events.height == 5                                    # cả một ngày train (5 sự kiện), không phải chuỗi con
+    assert all(0 <= t - start < 3600 for t in res.events["Time"])   # ngày 9h–14h bị co vào 0–1h
+    assert res.params["compress_ratio"] < 1.0 and res.params["mode"] == "shift"
+    assert set(res.events["Source"]) == {"S1"} and set(res.events["UserName"]) == {"User1"}
+
+
+def test_off_hours_shift_strict_window_rejects_long_day(profiles, pool):
+    from src.injection.operations import ScheduleError
+
+    params = {"mode": "shift", "time_profile": {"mode": "replay", "n_days": 1, "hour_window": [0, 1]}}
+    with pytest.raises(ScheduleError):
+        scenario_off_hours(_ctx(profiles, pool, "User1", 6), params, np.random.default_rng(1))
+
+
+def test_off_hours_shift_candidates_are_idle_days_right_after_activity(temp_artifact_dir, interim, profiles):
+    profiles.save(temp_artifact_dir / "profiles")
+    cfg_path = _write_config(temp_artifact_dir, interim, temp_artifact_dir / "runs")
+    runner = InjectionRunner(InjectionConfig.from_files("dev", cfg_path, temp_artifact_dir / "system.yaml"))
+    cands = runner._candidates_off_hours({"mode": "shift", "max_train_off_hours_ratio": 1.0, "max_idle_gap_days": 3})
+    users = set(cands["UserName"].to_list())
+    assert "User5" in users                  # hoạt động tới ngày 5, trống ngày 6–8 (khoảng trống 0–2 ngày)
+    assert "User2" not in users              # trống từ ngày 3 -> khoảng trống ≥ 3: là ngủ đông, không phải ngoài giờ
+    assert "User1" not in users              # hoạt động mọi ngày test -> không có ngày trống
+
+
+def test_logon_switch_directions_pick_targets_by_dominant_type(profiles, pool):
+    from src.injection.scenarios import ScenarioError, switch_targets
+
+    dirs = {"directions": [{"from": [2], "to": [5, 3]}, {"from": [3], "to": [10, 2]}]}
+    assert switch_targets(dirs, 2) == [5, 3] and switch_targets(dirs, 3) == [10, 2] and switch_targets(dirs, 8) == []
+    assert switch_targets({"target_logon_types": [10, 2]}, 8) == [10, 2]     # không có directions: hành vi cũ
+    params = {**dirs, "min_dominant_share": 0.5, "n_events": 3,
+              "time_profile": {"mode": "spread", "n_days": 1, "hour_window": [8, 18]}}
+    res = scenario_logon_type_switch(_ctx(profiles, pool, "User4", 6), params, np.random.default_rng(4))
+    assert res.params["dominant_logon_type"] == 3 and res.params["target_logon_type"] == 10
+    with pytest.raises(ScenarioError):        # User4 chủ yếu type 3, không hướng nào nhận type 3
+        scenario_logon_type_switch(_ctx(profiles, pool, "User4", 6),
+                                   {**params, "directions": [{"from": [2], "to": [5, 3]}]}, np.random.default_rng(4))
+
+
+def test_logon_switch_candidates_follow_direction_priority(temp_artifact_dir, interim, profiles):
+    profiles.save(temp_artifact_dir / "profiles")
+    cfg_path = _write_config(temp_artifact_dir, interim, temp_artifact_dir / "runs")
+    runner = InjectionRunner(InjectionConfig.from_files("dev", cfg_path, temp_artifact_dir / "system.yaml"))
+    cands = runner._candidates_logon_switch({"min_dominant_share": 0.5,
+                                             "directions": [{"from": [2], "to": [5]}, {"from": [3], "to": [10]}]})
+    assert "_priority" in cands.columns and set(cands["_priority"].to_list()) == {1}   # mini data: chỉ có type 3
+    only_type2 = runner._candidates_logon_switch({"min_dominant_share": 0.5, "directions": [{"from": [2], "to": [5]}]})
+    assert only_type2.is_empty()
+
+
+def test_logon_switch_shift_retypes_a_whole_typical_day(profiles, pool):
+    """mode shift: cả một ngày 4624 của nạn nhân (giữ giờ + Source/LogHost) mang LogonType mới, khuôn thật khớp."""
+    params = {"mode": "shift", "directions": [{"from": [3], "to": [10, 2]}], "min_dominant_share": 0.5,
+              "source_day": "closest_to_median",
+              "time_profile": {"mode": "replay", "n_days": 1, "hour_window": [0, 24], "replay_anchor": "keep"}}
+    res = scenario_logon_type_switch(_ctx(profiles, pool, "User4", 7), params, np.random.default_rng(5))
+    assert res.events.height == 3                                   # User4: 3 sự kiện mỗi ngày train (8h, 12h, 16h)
+    assert set(res.events["LogonType"]) == {10} and set(res.events["AuthenticationPackage"]) == {"Negotiate"}
+    start, _ = day_window(7)
+    assert sorted((t - start) // 3600 for t in res.events["Time"]) == [8, 12, 16]     # giữ giờ trong ngày
+    assert set(res.events["Source"]) == {"S4"} and set(res.events["LogHost"]) == {"H4"}
+    assert res.params["mode"] == "shift" and res.params["target_logon_type"] == 10
+
+
+def test_logon_switch_shift_candidates_are_idle_days(temp_artifact_dir, interim, profiles):
+    profiles.save(temp_artifact_dir / "profiles")
+    cfg_path = _write_config(temp_artifact_dir, interim, temp_artifact_dir / "runs")
+    runner = InjectionRunner(InjectionConfig.from_files("dev", cfg_path, temp_artifact_dir / "system.yaml"))
+    cands = runner._candidates_logon_switch({"mode": "shift", "min_dominant_share": 0.5, "max_idle_gap_days": 3,
+                                             "directions": [{"from": [3], "to": [10]}, {"from": [10], "to": [3]}]})
+    users = set(cands["UserName"].to_list())
+    assert "User4" not in users              # hoạt động mọi ngày test -> không có ngày trống
+    assert "User5" in users                  # type 10, trống ngày 6–8 ngay sau train
+
+
+def test_dormant_replay_keep_anchor_preserves_time_of_day(profiles, pool):
+    """replay_anchor keep: ngày được cấy giữ nguyên giờ gốc (User2 hoạt động 9h, 10h, 11h)."""
+    params = {"source_day": "closest_to_median",
+              "time_profile": {"mode": "replay", "n_days": 1, "hour_window": [0, 24], "replay_anchor": "keep"}}
+    res = scenario_dormant_wakeup(_ctx(profiles, pool, "User2", 8), params, np.random.default_rng(3))
+    start, _ = day_window(8)
+    assert sorted((t - start) // 3600 for t in res.events["Time"]) == [9, 10, 11]
+
+
+def test_block_common_overrides_split_and_nested_keys(temp_artifact_dir, interim, profiles):
+    """Khối dev nằm trong train: `blocks.<b>.common` ghi đè split_day và gộp theo khoá các dict lồng."""
+    import yaml
+
+    profiles.save(temp_artifact_dir / "profiles")
+    cfg_path = _write_config(temp_artifact_dir, interim, temp_artifact_dir / "runs")
+    raw = yaml.safe_load(cfg_path.read_text(encoding="utf-8"))
+    raw["blocks"]["dev"]["days"] = [5]
+    raw["blocks"]["dev"]["common"] = {"split_day": 4, "victim": {"min_train_active_days": 1}}
+    cfg_path.write_text(yaml.safe_dump(raw, allow_unicode=True), encoding="utf-8")
+    cfg = InjectionConfig.from_files("dev", cfg_path, temp_artifact_dir / "system.yaml")
+    assert cfg.split_day == 4 and cfg.days == [5]
+    assert cfg.common["victim"] == {"entity_type": "User", "min_train_active_days": 1, "one_injection_per_account": True}
+    raw["blocks"]["dev"]["common"] = {}
+    cfg_path.write_text(yaml.safe_dump(raw, allow_unicode=True), encoding="utf-8")
+    with pytest.raises(ValueError, match="split_day"):          # ngày 5 ≤ split 5 của system config
+        InjectionConfig.from_files("dev", cfg_path, temp_artifact_dir / "system.yaml")

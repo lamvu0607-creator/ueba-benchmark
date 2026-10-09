@@ -28,6 +28,6 @@ models:
   one_class_svm:
     - {id: ocsvm_standard_g0005, scaler: standard, params: {gamma: 0.005}}
 
-baselines: [zscore_baseline, rule_threshold_baseline, random_baseline]
+baselines: [zscore_baseline, rule_threshold_baseline, failure_count_baseline, random_baseline]
 
-contamination_sweep: [0.01, 0.02, 0.05, 0.10, 0.20]
+contamination_sweep: [0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.10, 0.20]

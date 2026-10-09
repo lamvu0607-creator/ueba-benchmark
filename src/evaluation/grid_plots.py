@@ -14,11 +14,13 @@ import pandas as pd  # noqa: E402
 
 LABELS = {
     "isolation_forest": "Isolation Forest", "local_outlier_factor": "LOF", "one_class_svm": "One-Class SVM",
-    "zscore_baseline": "Z-score (global)", "rule_threshold_baseline": "Rule", "random_baseline": "Random",
+    "zscore_baseline": "Z-score (global)", "rule_threshold_baseline": "Rule (6 luật)",
+    "failure_count_baseline": "Rule (thất bại ≥ 5)", "random_baseline": "Random",
 }
 COLORS = {
     "isolation_forest": "#1f77b4", "local_outlier_factor": "#2ca02c", "one_class_svm": "#d62728",
-    "zscore_baseline": "#7f7f7f", "rule_threshold_baseline": "#bcbd22", "random_baseline": "#c7c7c7",
+    "zscore_baseline": "#7f7f7f", "rule_threshold_baseline": "#bcbd22",
+    "failure_count_baseline": "#8c564b", "random_baseline": "#c7c7c7",
 }
 
 

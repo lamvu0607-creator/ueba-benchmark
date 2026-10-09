@@ -5,7 +5,7 @@
 # anchor YAML (&scenarios / *scenarios) để khối test chạy ĐÚNG bộ tham số đã chốt trên dev; hai khối
 # chỉ khác ngày và seed. Muốn tách hẳn thì thay `*scenarios` bằng một bản sao đầy đủ.
 #
-# Kỷ luật: chỉnh tham số trên `dev` (ngày 43–51). Chạy `test` (52–60) MỘT lần ở cuối.
+# Kỷ luật: chỉnh tham số trên `dev` (ngày 36–42, fit 1–35). Chạy `test` (43–60, fit 1–42) MỘT lần ở cuối.
 #
 # Quy ước khoảng: một tham số dạng [a, b] = số nguyên rút đều trong [a, b] (cả hai đầu) cho MỖI lần
 # tiêm bằng RNG có seed; dạng một số = cố định. Giá trị thực tế được ghi vào injection_manifest.csv.
@@ -86,14 +86,22 @@ scenarios: &scenarios
     source_mode: "unseen"
     source_popularity_quantile: [0.0, 0.9]
     target_loghost: "victim_known" # mỗi nạn nhân bị thử trên một LogHost quen của chính nó
+    time_scope: "campaign"         # cả chiến dịch chung MỘT cửa sổ 30–90 phút (đề cương 5.2 "khung thời gian ngắn");
+                                   # "victim" = bản trước 2026-10-09: mỗi nạn nhân một cửa sổ -> chiến dịch trải 9–23 giờ
     time_profile: {mode: "burst", n_days: 1, hour_window: [0, 24], burst_duration_s: [1800, 5400]}
 
   off_hours:                       # T1078
     enabled: true
     n_victims: 15
-    n_events: [10, 40]             # độ dài chuỗi 4624 thật (liên tiếp) lấy từ một ngày train của nạn nhân
+    mode: "shift"                  # đề cương 5.2 "dịch chuyển TOÀN BỘ hoạt động sang khung giờ đêm": cấy cả một ngày
+                                   # điển hình của nạn nhân vào 0–7h của một ngày nó không hoạt động ban ngày.
+                                   # "add" = bản trước 2026-10-09 (thêm 10–40 sự kiện đêm vào ngày có hoạt động)
+    source_day: "closest_to_median"  # ngày train được dời: gần median_daily_events nhất (khối lượng điển hình)
+    max_idle_gap_days: 3           # ngày tiêm cách ngày hoạt động gần nhất < 3 ngày lịch -> không lẫn ngủ đông
     max_train_off_hours_ratio: 0.2 # chỉ chọn người thường làm ban ngày (off_hours_ratio train)
-    time_profile: {mode: "replay", n_days: 1, hour_window: [0, 6]}
+    n_events: [10, 40]             # chỉ dùng ở mode "add"
+    # [0, 7) nằm trọn trong "ngoài giờ" của bộ đặc trưng (18h–7h); ngày dài hơn 7 giờ được co tuyến tính
+    time_profile: {mode: "replay", n_days: 1, hour_window: [0, 7], replay_fit: "compress"}
 
   new_workstation_burst:           # T1078 / T1021
     enabled: true
@@ -110,24 +118,49 @@ scenarios: &scenarios
                                    # fixed = khoảng trống ≥ min_gap_days
     min_gap_days: 7                # sàn cho cả hai luật (xem số ứng viên in bởi scripts/injection_candidates.py)
     source_day: "closest_to_median"  # ngày train nào của nạn nhân được cấy: gần median_daily_events nhất
-    time_profile: {mode: "replay", n_days: 1, hour_window: [0, 24]}   # giữ nguyên giờ trong ngày
+    # replay_anchor keep: GIỮ giờ trong ngày (trước 2026-10-09 thiếu khoá này -> cả ngày bị dời tới vị trí ngẫu nhiên,
+    # một ngày làm việc 9–18h có thể rơi vào 0–9h và lẫn tín hiệu ngoài giờ)
+    time_profile: {mode: "replay", n_days: 1, hour_window: [0, 24], replay_anchor: "keep"}
 
   logon_type_switch:               # T1021
     enabled: true
     n_victims: 15
-    target_logon_types: [10, 2]    # chỉ chọn type nạn nhân CHƯA dùng trong train; thứ tự = ưu tiên
+    # Hướng đổi, xét theo thứ tự; trong mỗi hướng chỉ chọn type nạn nhân CHƯA dùng trong train (thứ tự = ưu tiên).
+    # Hướng 1 = đề cương 5.2 (vốn tương tác type 2 -> mạng/dịch vụ 3/5) được dùng hết trước, nhưng LANL chỉ có
+    # ~35 tài khoản User chủ yếu dùng type 2 -> phần còn lại bù bằng hướng 2 (vốn mạng type 3 -> RDP 10 / tại máy 2).
+    directions:
+      - {from: [2], to: [5, 3]}
+      - {from: [3], to: [10, 2]}
+    target_logon_types: [10, 2]    # chỉ dùng khi không có directions (bản trước 2026-10-09)
+    mode: "shift"                  # đề cương "CHUYỂN sang": cấy cả một ngày 4624 điển hình của nạn nhân (giữ giờ,
+                                   # Source/LogHost) vào ngày nó không hoạt động, mọi lần đăng nhập mang type mới.
+                                   # "add" = bản trước 2026-10-09: thêm n_events (3–10) vào ngày có hàng trăm sự kiện
+    source_day: "closest_to_median"
+    max_idle_gap_days: 3           # như off_hours: ngày tiêm cách ngày hoạt động gần nhất < 3 ngày lịch
     min_dominant_share: 0.8        # LogonType chiếm ưu thế của nạn nhân phải ≥ ngưỡng này
-    n_events: [3, 10]
-    time_profile: {mode: "spread", n_days: 1, hour_window: [8, 18]}
+    n_events: [3, 10]              # chỉ dùng ở mode "add"
+    time_profile: {mode: "replay", n_days: 1, hour_window: [0, 24], replay_anchor: "keep"}   # shift: giữ giờ trong ngày
+    # mode "add" dùng: {mode: "spread", n_days: 1, hour_window: [8, 18]}
 
 blocks:
+  # Chia tập (đề cương 5.1, quyết định 2026-10-09): TEST = toàn bộ 30% thời gian (ngày 43–60, mô hình fit trên 1–42);
+  # DEV để tinh chỉnh nằm TRONG train: ngày 36–42, mô hình fit trên 1–35. Mọi thứ dev dùng (hồ sơ, kho khuôn,
+  # luật loại trừ) đều dựng từ ≤ 35 -> khối `common` của dev ghi đè mốc chia và đường dẫn.
+  # (Trước 2026-10-09: dev 43–51 / test 52–60 dưới cùng mốc 42 -> test chỉ còn 15% thời gian.)
   dev:
-    days: [43, 44, 45, 46, 47, 48, 49, 50, 51]
-    seed: 20261043
+    days: [36, 37, 38, 39, 40, 41, 42]
+    seed: 20261036
     run_id_prefix: "dev"
+    common:
+      split_day: 35
+      profiles_dir: "data/features/train_profiles_d35"       # scripts/injection_profiles_summary.py --train-end-day 35
+      rule_exclusion:                                         # main.py --stage baselines --split-day 35
+        baseline_scores: "experiments/results/baselines_d35/baseline_scores.parquet"
+        thresholds: "experiments/results/baselines_d35/thresholds.json"
+        event_stats_meta: "experiments/results/baselines_d35/rule_event_stats.json"
     scenarios: *scenarios
   test:
-    days: [52, 53, 54, 55, 56, 57, 58, 59, 60]
-    seed: 20261052
+    days: [43, 44, 45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56, 57, 58, 59, 60]
+    seed: 20261061
     run_id_prefix: "test"
     scenarios: *scenarios

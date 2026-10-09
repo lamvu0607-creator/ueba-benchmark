@@ -25,7 +25,7 @@ from typing import Any, Dict, List, Optional, Sequence, Type
 import yaml
 
 from src.models.base import BaseAnomalyModel
-from src.models.baselines import RandomBaseline, RuleThresholdBaseline, ZScoreBaseline
+from src.models.baselines import FailureCountBaseline, RandomBaseline, RuleThresholdBaseline, ZScoreBaseline
 from src.models.detectors import (
     IsolationForestDetector,
     LocalOutlierFactorDetector,
@@ -37,6 +37,7 @@ logger = logging.getLogger("ueba_benchmark.models.registry")
 
 __all__ = [
     "DEFAULT_MODEL_NAMES",
+    "EXTRA_MODEL_CLASSES",
     "MODEL_CLASSES",
     "MODEL_REGISTRY",
     "available_models",
@@ -60,10 +61,13 @@ MODEL_CLASSES = (
 #: Tên canonical dùng cho CLI ``--models`` và tên cột trong artifact.
 DEFAULT_MODEL_NAMES: List[str] = [cls.name for cls in MODEL_CLASSES]
 
+#: Mô hình tạo được qua registry nhưng KHÔNG nằm trong bảng benchmark mặc định (dùng trong lưới tuần 4).
+EXTRA_MODEL_CLASSES = (FailureCountBaseline,)
+
 
 def _build_registry() -> Dict[str, Type[BaseAnomalyModel]]:
     registry: Dict[str, Type[BaseAnomalyModel]] = {}
-    for cls in MODEL_CLASSES:
+    for cls in (*MODEL_CLASSES, *EXTRA_MODEL_CLASSES):
         for key in (cls.name, *cls.aliases, cls.__name__):
             normalized = str(key).lower()
             existing = registry.get(normalized)
@@ -141,7 +145,7 @@ def create_model(
             else (params.get("training") or {}).get("max_train_samples")
         )
 
-    if cls is RuleThresholdBaseline and feature_names is not None:
+    if cls in (RuleThresholdBaseline, FailureCountBaseline) and feature_names is not None:
         model_kwargs["feature_names"] = list(feature_names)
 
     model = cls(

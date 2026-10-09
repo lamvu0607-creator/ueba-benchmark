@@ -41,6 +41,7 @@ __all__ = ["load_grid_config", "load_run_data", "fit_and_score", "run_grid", "su
 METRICS = [
     "pr_auc", "roc_auc", "precision_at_10", "precision_at_50", "precision_at_100", "recall_at_budget",
     "recall_at_10_per_day", "recall_at_50_per_day", "recall_at_100_per_day",
+    "precision_at_10_per_day", "precision_at_50_per_day", "precision_at_100_per_day",
     "alert_rate", "precision", "recall", "f1", "fit_seconds", "score_seconds",
 ]
 
@@ -56,14 +57,27 @@ def load_grid_config(path: Path | str) -> Dict[str, Any]:
     return cfg
 
 
-def load_run_data(run_dir: Path | str, segment: Optional[str], split_day: int,
+def run_split_day(run_dir: Path | str) -> int:
+    """``split_day`` đóng băng trong ``run_config.json`` của run (dev 36–42 dùng 35, test 43–60 dùng 42)."""
+    return int(json.loads((Path(run_dir) / "run_config.json").read_text(encoding="utf-8"))["split_day"])
+
+
+def load_run_data(run_dir: Path | str, segment: Optional[str], split_day: Optional[int] = None,
                   segment_col: str = "entity_type") -> Dict[str, Any]:
-    """Ma trận + nhãn của MỘT run: train (day ≤ split_day) và eval (đúng ``eval_days`` của run)."""
+    """
+    Ma trận + nhãn của MỘT run: train (day ≤ split_day) và eval (đúng ``eval_days`` của run).
+
+    ``split_day`` = None -> dùng mốc của run; có giá trị -> phải khớp mốc của run (chống fit nhầm ngày tiêm).
+    """
     root = Path(run_dir)
     meta = json.loads((root / "run_config.json").read_text(encoding="utf-8"))
     eval_days = sorted(int(d) for d in meta["eval_days"])
+    if split_day is None:
+        split_day = int(meta["split_day"])
     if int(meta["split_day"]) != int(split_day):
         raise ValueError(f"{root}: split_day của run ({meta['split_day']}) khác cấu hình ({split_day}).")
+    if min(eval_days) <= int(split_day):
+        raise ValueError(f"{root}: ngày đánh giá {eval_days} chạm train (≤ {split_day}).")
     df = pl.read_parquet(root / "processed" / "feature_matrix_processed.parquet")
     if segment:
         df = df.filter(pl.col(segment_col) == segment)
@@ -100,7 +114,29 @@ def fit_and_score(data: Dict[str, Any], model: str, params: Dict[str, Any], scal
     scores = np.asarray(pipe.score(data["eval"]), dtype=np.float64)
     t2 = time.perf_counter()
     flags = scores >= float(pipe.model.threshold_)  # cùng quy ước với BaseAnomalyModel.predict
-    return {"scores": scores, "flags": flags, "fit_seconds": t1 - t0, "score_seconds": t2 - t1}
+    return {"scores": scores, "flags": flags, "fit_seconds": t1 - t0, "score_seconds": t2 - t1,
+            "threshold": float(pipe.model.threshold_), "n_fit": int(pipe.n_train_rows_),
+            "n_features": len(pipe.feature_names)}
+
+
+def _log_row(data: Dict[str, Any], res: Dict[str, Any], m: Dict[str, float], *, experiment: str, model: str,
+             config_id: str, scaler: Optional[str], params: str, seed: int, contamination: float, split_day: int,
+             segment: Optional[str], commit: Optional[str]) -> Dict[str, Any]:
+    """Một dòng của nhật ký thí nghiệm chung (mục 5.6: thời điểm, commit, cấu hình, seed, kết quả)."""
+    import sklearn
+
+    from src.evaluation.experiment_log import build_log_row
+
+    summary = {"n_fit": res["n_fit"], "n_train_partition": len(data["train"]), "n_eval": int(data["y"].size),
+               "fit_seconds": res["fit_seconds"], "score_seconds": res["score_seconds"],
+               "contamination": contamination, "n_features": res["n_features"], "imputer": "median",
+               "scaler": scaler or "none", "threshold": res["threshold"],
+               "alert_rate_pct": 100.0 * float(m["alert_rate"]), "sklearn_version": sklearn.__version__}
+    row = build_log_row(model, res["scores"], summary, {"strategy": "time", "split_day": split_day}, seed=seed,
+                        git_commit=commit, segment=segment or "all")
+    row.update(experiment=experiment, config_id=config_id, run_id=data["run_id"], params=params,
+               pr_auc=round(float(m["pr_auc"]), 6), roc_auc=round(float(m["roc_auc"]), 6))
+    return row
 
 
 def _metrics(data: Dict[str, Any], res: Dict[str, Any], cfg: Dict[str, Any]) -> Dict[str, float]:
@@ -149,16 +185,26 @@ def select_best(summary: pd.DataFrame, metric: str = "pr_auc_mean") -> Dict[str,
 def run_grid(config_path: Path | str = "configs/benchmark_grid.yaml",
              params_path: Path | str = "configs/model_params.yaml",
              system_config_path: Path | str = "configs/system_config.yaml",
-             output_dir: Optional[Path | str] = None, formats: Sequence[str] = ("png", "pdf")) -> Dict[str, Any]:
+             output_dir: Optional[Path | str] = None, formats: Sequence[str] = ("png", "pdf"),
+             experiment_log: Optional[Path | str] = "experiments/logs/experiment_log.csv") -> Dict[str, Any]:
     from src.evaluation.manifest import file_sha256, git_state, library_versions
 
     cfg = load_grid_config(config_path)
     params = load_params(params_path)
-    sys_cfg = yaml.safe_load(Path(system_config_path).read_text(encoding="utf-8")) or {}
-    split_day = int((sys_cfg.get("evaluation") or {}).get("split_day", 42))
+    # Mốc chia = mốc đóng băng của các run (mọi run của một lưới phải chung mốc); ``split_day`` trong cấu hình
+    # lưới (tuỳ chọn) chỉ để kiểm tra. system config không còn quyết định: khối dev nằm trong train (mốc 35).
+    splits = {run_split_day(r) for r in cfg["runs"]}
+    if len(splits) != 1:
+        raise ValueError(f"Các run của lưới có mốc chia khác nhau: {sorted(splits)}.")
+    split_day = splits.pop()
+    if cfg.get("split_day") is not None and int(cfg["split_day"]) != split_day:
+        raise ValueError(f"split_day của lưới ({cfg['split_day']}) khác mốc của run ({split_day}).")
     out = Path(output_dir or cfg["output_dir"])
     out.mkdir(parents=True, exist_ok=True)
     c0 = float(cfg.get("contamination", 0.05))
+    commit = (git_state() or {}).get("commit")
+    exp_name = f"grid_{cfg.get('block', 'block')}"
+    log_rows: List[Dict[str, Any]] = []
 
     rows: List[Dict[str, Any]] = []
     scen_rows: List[Dict[str, Any]] = []
@@ -182,8 +228,11 @@ def run_grid(config_path: Path | str = "configs/benchmark_grid.yaml",
             base = {"seed_index": i, "run_id": data["run_id"], "injection_seed": data["seed"],
                     "model_seed": int(mseed), "kind": kind, "model": model, "config_id": cid,
                     "scaler": scaler or "none", "params": json.dumps(override, sort_keys=True)}
-            rows.append({**base, "n_eval": int(data["y"].size), "n_positive": int(data["y"].sum()),
-                         **_metrics(data, res, cfg)})
+            m = _metrics(data, res, cfg)
+            rows.append({**base, "n_eval": int(data["y"].size), "n_positive": int(data["y"].sum()), **m})
+            log_rows.append(_log_row(data, res, m, experiment=exp_name, model=model, config_id=cid, scaler=scaler,
+                                     params=base["params"], seed=int(mseed), contamination=c0, split_day=split_day,
+                                     segment=cfg.get("segment"), commit=commit))
             scen_rows += _scenario_rows(data, res["scores"], base)
             if i == 0:
                 pr_scores[f"{model}|{cid}"] = res["scores"]
@@ -210,6 +259,11 @@ def run_grid(config_path: Path | str = "configs/benchmark_grid.yaml",
                 m = _metrics(data, res, cfg)
                 c_rows.append({"seed_index": i, "run_id": data["run_id"], "model": model, "config_id": cid,
                                "contamination": float(cont), **m})
+                log_rows.append(_log_row(data, res, m, experiment=f"{exp_name}_contamination", model=model,
+                                         config_id=cid, scaler=c.get("scaler", "robust"),
+                                         params=json.dumps(c.get("params") or {}, sort_keys=True), seed=int(mseed),
+                                         contamination=float(cont), split_day=split_day,
+                                         segment=cfg.get("segment"), commit=commit))
                 logger.info("[grid] contamination %-22s c=%.2f  alert %.3f  P %.3f  R %.3f  PR-AUC %.4f",
                             cid, cont, m["alert_rate"], m["precision"], m["recall"], m["pr_auc"])
     cont_df = pd.DataFrame(c_rows)
@@ -251,5 +305,9 @@ def run_grid(config_path: Path | str = "configs/benchmark_grid.yaml",
     }
     (out / "grid_manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2, default=str),
                                             encoding="utf-8")
+    if experiment_log:
+        from src.evaluation.experiment_log import append_experiment_log
+
+        append_experiment_log(experiment_log, log_rows)
     return {"summary": summary, "best": best, "contamination": cont_summary, "output_dir": out,
             "figures": figures}

@@ -4,20 +4,21 @@
 #
 # Một "seed" = MỘT cặp (run tiêm, random_state mô hình): run thứ i dùng model_seeds[i]. Độ lệch chuẩn vì vậy
 # phản ánh cả biến động của dữ liệu tiêm (nạn nhân, sự kiện) lẫn của mô hình.
-# Chọn cấu hình trên khối DEV (ngày 43–51); khối TEST chỉ chạy một lần với cấu hình đã chốt.
+# Chọn cấu hình trên khối DEV (ngày 36–42, fit 1–35); khối TEST (43–60, fit 1–42) chỉ chạy một lần với cấu hình đã chốt.
 # Chỉ phân khúc User có nhãn dương (mẫu số 1% = dòng User) nên lưới chỉ đánh giá User.
 # =============================================================================
 
 block: dev
 segment: User
 output_dir: "experiments/grid/dev"
+split_day: 35          # dev 36–42 nằm trong train: mô hình fit trên ngày 1–35 (kiểm tra với run_config.json)
 
 runs:
-  - "data/injection_runs/dev_seed20261043"
-  - "data/injection_runs/dev_seed20261044"
-  - "data/injection_runs/dev_seed20261045"
-  - "data/injection_runs/dev_seed20261046"
-  - "data/injection_runs/dev_seed20261047"
+  - "data/injection_runs/dev_seed20261036"
+  - "data/injection_runs/dev_seed20261037"
+  - "data/injection_runs/dev_seed20261038"
+  - "data/injection_runs/dev_seed20261039"
+  - "data/injection_runs/dev_seed20261040"
 model_seeds: [42, 7, 2024, 1, 2]
 
 # Ngân sách cảnh báo của lưới (ngưỡng = phân vị 1 − contamination của điểm TRAIN).
@@ -49,8 +50,9 @@ models:
     - {id: ocsvm_standard_g01, scaler: standard, params: {gamma: 0.1}}
 
 # Mốc so sánh (không scale, tham số mặc định của model_params.yaml).
-baselines: [zscore_baseline, rule_threshold_baseline, random_baseline]
+baselines: [zscore_baseline, rule_threshold_baseline, failure_count_baseline, random_baseline]
 
 # Độ nhạy contamination: chạy lại CẤU HÌNH TỐT NHẤT của mỗi mô hình (PR-AUC trung bình cao nhất trên lưới)
-# với từng mức. IF/LOF: chỉ ngưỡng đổi; OCSVM: nu = contamination nên chính mô hình cũng đổi.
-contamination_sweep: [0.01, 0.02, 0.05, 0.10, 0.20]
+# với từng mức: 0,1–5% theo mục 5.6 đề cương, thêm 10% và 20%. IF/LOF: chỉ ngưỡng đổi; OCSVM: nu = contamination
+# nên chính mô hình cũng đổi.
+contamination_sweep: [0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.10, 0.20]

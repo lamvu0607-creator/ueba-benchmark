@@ -224,6 +224,9 @@ def run_pipeline(args):
         evaluation_cfg = sys_cfg.get("evaluation", {}) or {}
         labels_path = args.labels if args.labels is not None else evaluation_cfg.get("labels_path")
         data_dir, out_dir = processed_dir, None
+        if args.split_day is not None and run_layout is None:
+            # mốc chia khác mặc định (vd. 35 cho khối dev 36–42) -> thư mục riêng, không đè kết quả mốc chính
+            out_dir = Path("experiments/results") / f"baselines_d{args.split_day}"
         if run_layout is not None:
             # Log đè: ma trận + nhãn của run, kết quả ghi vào experiments/injection_runs/<run_id>/results/baselines (run sau không đè run trước).
             data_dir, out_dir = run_layout.processed_dir, run_layout.results_dir / "baselines"
@@ -240,6 +243,7 @@ def run_pipeline(args):
             output_dir=out_dir,
             eval_days=run_eval_days,
             use_segments=False if args.no_segments else None,
+            split_day=args.split_day,
         )
         logger.info("--> [Stage Baselines] Điểm: %s | ước lượng L: %s", result["scores_path"], result["lockout"])
 

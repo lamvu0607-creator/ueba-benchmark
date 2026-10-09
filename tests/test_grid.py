@@ -73,7 +73,8 @@ def test_load_run_data_uses_frozen_eval_days_and_segment(grid_setup):
 
 def test_run_grid_end_to_end(grid_setup):
     cpath, sys_path, _ = grid_setup
-    res = run_grid(cpath, system_config_path=sys_path, formats=["png"])
+    log_path = cpath.parent / "experiment_log.csv"
+    res = run_grid(cpath, system_config_path=sys_path, formats=["png"], experiment_log=log_path)
     out = Path(res["output_dir"])
     runs = pd.read_csv(out / "grid_runs.csv")
     assert len(runs) == 2 * (3 + 2)  # 2 seed × (3 cấu hình ML + 2 baseline)
@@ -91,6 +92,12 @@ def test_run_grid_end_to_end(grid_setup):
         p.name for p in (out / "figures").iterdir()}
     manifest = json.loads((out / "grid_manifest.json").read_text(encoding="utf-8"))
     assert manifest["best_configs"] == res["best"] and len(manifest["inputs"]) == 2
+    # mục 5.6: mọi lần fit của lưới (và quét contamination) vào nhật ký chung, kèm cấu hình + kết quả
+    log = pd.read_csv(log_path)
+    assert len(log) == len(runs) + 2 * 2 * 2      # lưới + 2 mô hình × 2 mức × 2 seed
+    assert {"config_id", "run_id", "pr_auc", "experiment"} <= set(log.columns) and log["pr_auc"].notna().all()
+    run_grid(cpath, system_config_path=sys_path, formats=["png"], experiment_log=log_path)
+    assert len(pd.read_csv(log_path)) == len(log)  # chạy lại cùng commit/cấu hình: không ghi trùng
 
 
 def test_summarize_and_select_best():

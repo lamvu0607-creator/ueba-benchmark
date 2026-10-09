@@ -36,8 +36,8 @@ def test_feature_schema_contract():
     assert schema.label_key == "entity_type"
 
     core_feats = schema.core_features
-    assert len(core_feats) == 39, (
-        f"Hợp đồng Schema v4.0 phải có đúng 39 core features, hiện có {len(core_feats)}"
+    assert len(core_feats) == 41, (
+        f"Hợp đồng Schema v4.1 phải có đúng 41 core features, hiện có {len(core_feats)}"
     )
 
     expected_core = [
@@ -82,7 +82,7 @@ def test_feature_schema_contract():
 
     # v4.0: biến dự bị (qua 4 cổng, chưa vào core) và biến bị loại ở vòng 2 không được lọt vào core
     reserve = {entry["name"] for entry in schema.raw_schema.get("reserve", [])}
-    assert len(reserve) == 11 and not reserve & set(core_feats)
+    assert len(reserve) == 9 and not reserve & set(core_feats)   # v4.1: 2 biến dự bị vào core
     for name in ("count_fail_15m", "fanout_fail_source", "recency_host_hist", "count_night"):
         assert name in removed and name not in core_feats
 
@@ -107,7 +107,12 @@ def test_injection_config_blocks_are_disjoint_test_only_and_seeded():
     assert set(blocks) == {"dev", "test"}
     dev, test = blocks["dev"], blocks["test"]
     assert set(dev["days"]).isdisjoint(test["days"])
-    assert min(dev["days"] + test["days"]) > split_day, "không được tiêm vào train"
+    # mỗi khối chỉ tiêm SAU mốc chia của chính nó (dev nằm trong train chính: mốc 35, ghi đè ở blocks.dev.common)
+    for blk in (dev, test):
+        own_split = int((blk.get("common") or {}).get("split_day") or split_day)
+        assert min(blk["days"]) > own_split, "không được tiêm vào train của khối"
+    assert max(dev["days"]) <= split_day < min(test["days"]), "dev trong train chính, test = phần sau mốc chia"
+    assert sorted(test["days"]) == list(range(split_day + 1, 61)), "test = toàn bộ 30% thời gian (mục 5.1)"
     assert dev["seed"] != test["seed"]
 
     expected = {"brute_force", "password_spraying", "off_hours", "new_workstation_burst",

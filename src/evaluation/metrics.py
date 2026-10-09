@@ -54,6 +54,7 @@ __all__ = [
     "campaign_recall",
     "daily_budget_flags",
     "labeled_metric_columns",
+    "precision_at_k_per_day",
     "labeled_metrics",
     "operating_point",
     "pairwise_stability",
@@ -262,6 +263,20 @@ def recall_at_daily_budget(labels: Any, scores: Any, days: Any, alerts_per_day: 
     return float(arr_l[flags == 1].sum() / arr_l.sum())
 
 
+def precision_at_k_per_day(labels: Any, scores: Any, days: Any, k: int) -> float:
+    """
+    Precision@k THEO NGÀY (mục 5.4: "khi analyst chỉ xử lý được k cảnh báo mỗi ngày"): trung bình qua các
+    ngày của tỷ lệ dị biệt thật trong k dòng điểm cao nhất của ngày đó (ngày ít hơn k dòng: chia cho số dòng).
+    """
+    arr_s = _as_1d(scores, "scores")
+    arr_l = _as_labels(labels, arr_s)
+    arr_d = np.asarray(days).ravel()
+    flags = daily_budget_flags(arr_s, arr_d, k)
+    per_day = [arr_l[(arr_d == d) & (flags == 1)].sum() / max(int(((arr_d == d) & (flags == 1)).sum()), 1)
+               for d in np.unique(arr_d)]
+    return float(np.mean(per_day))
+
+
 def labeled_metric_columns(
     ks: Sequence[int] = DEFAULT_PRECISION_KS,
     daily_budgets: Sequence[int] = DEFAULT_DAILY_BUDGETS,
@@ -272,6 +287,7 @@ def labeled_metric_columns(
         + [f"precision_at_{int(k)}" for k in ks]
         + ["recall_at_budget"]
         + [f"recall_at_{int(n)}_per_day" for n in daily_budgets]
+        + [f"precision_at_{int(k)}_per_day" for k in ks]
     )
 
 
@@ -288,7 +304,8 @@ def labeled_metrics(
 
     Trả NaN (không raise) khi chỉ số không xác định được, để benchmark vẫn ghi đủ các dòng:
     tập không có nhãn dương ⇒ mọi chỉ số NaN; ``k`` > số dòng ⇒ ``precision_at_k`` NaN;
-    không có ``days`` ⇒ ``recall_at_N_per_day`` NaN.
+    không có ``days`` ⇒ ``recall_at_N_per_day`` và ``precision_at_k_per_day`` NaN. ``precision_at_k`` tính
+    trên TOÀN khối; ``precision_at_k_per_day`` là định nghĩa của mục 5.4 (k cảnh báo mỗi ngày).
     """
     arr_s = _as_1d(scores, "scores")
     arr_l = np.asarray(labels).ravel()
@@ -310,6 +327,8 @@ def labeled_metrics(
     if days is not None:
         for n in daily_budgets:
             out[f"recall_at_{int(n)}_per_day"] = recall_at_daily_budget(arr_l, arr_s, days, int(n))
+        for k in ks:
+            out[f"precision_at_{int(k)}_per_day"] = precision_at_k_per_day(arr_l, arr_s, days, int(k))
     return out
 
 
