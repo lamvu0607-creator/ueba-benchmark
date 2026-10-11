@@ -1,4 +1,39 @@
-# Nơi lưu kết quả Tuần 4
+# Tuần 4: Tổng kết công việc và nơi lưu kết quả
+
+## Những gì đã hoàn thành trong tuần (05–10/10/2026)
+
+1. **Bộ đặc trưng 41 chiều (schema v4.1).**
+   - Mở rộng lên 39 đặc trưng core bằng template engine và phễu chọn lọc v4 (schema v4.0).
+   - Thêm 2 đặc trưng dự bị vào core (`delta_mean_share_night_7d`, `novelty_logontype_7d`), nâng lên 41, để bắt kịch bản ngoài giờ và đổi LogonType.
+2. **LOF và One-Class SVM bản nhanh, fit được toàn bộ train.** Bản chuẩn của sklearn không chạy nổi trên dữ liệu lớn, trước đây phải lấy mẫu 20–50 nghìn dòng.
+   - **LOF dùng láng giềng xấp xỉ HNSW** (`hnswlib`). Index dựng trên các dòng duy nhất, nhờ đó sửa lỗi điểm LOF bùng nổ do dòng trùng (từ khoảng 2·10¹⁰ xuống khoảng 12).
+   - **OCSVM dùng nhân RBF xấp xỉ** (Nystroem → SGDOneClassSVM). Với ma trận lớn hơn 2 GB thì biến đổi theo khối.
+   - Cả ba mô hình dùng giao diện PyOD và chạy riêng theo phân khúc Machine/User.
+   - Thời gian fit trên khoảng 315 nghìn dòng User: OCSVM khoảng 43 giây, IF khoảng 14 giây, LOF khoảng 13 giây.
+3. **Các mốc so sánh (baseline).**
+   - Ngẫu nhiên, z-score toàn cục, luật ECDF, luật 6 điều kiện.
+   - Luật đếm số lần thất bại ≥ 5 với ngưỡng cố định (đề cương mục 5.3 và tiêu chí 4.1 #6).
+   - Mọi ngưỡng chỉ học từ train.
+4. **Bộ sinh bất thường (tiêm vào log thô).**
+   - 6 kịch bản: brute-force, password spraying, ngoài giờ, bùng nổ máy trạm mới, ngủ đông thức dậy, đổi LogonType.
+   - Mọi sự kiện tiêm là bản sao của sự kiện thật trong train. Lượng tiêm đúng 1% số dòng (tài khoản, ngày) User.
+   - Đã đối chiếu với đề cương mục 5.2 và sửa 4 chỗ: spraying dồn trong 30–90 phút, ngoài giờ dời cả ngày sang đêm, đổi LogonType cả ngày theo chiều 2 → 5/3, ngủ đông giữ giờ gốc.
+5. **Chia tập đúng đề cương mục 5.1.**
+   - Test là ngày 43–60 (30% thời gian), mô hình fit trên ngày 1–42.
+   - Dev là ngày 36–42, nằm trong train, fit trên ngày 1–35. Dev dùng để chọn cấu hình, test chỉ chạy một lần.
+6. **Benchmark.**
+   - **Lưới chạy:** 3 mô hình × 13 cấu hình (IF 3, LOF 4, OCSVM 6) × 5 seed, cộng 4 baseline.
+   - **Chỉ số:** đủ theo mục 5.4, gồm P@k theo ngày. Có quét contamination 0,1–20%.
+   - **Ghi nhận:** mọi lần fit được ghi vào nhật ký chung.
+   - **Kết quả test:** OCSVM đạt PR-AUC **0,182 ± 0,023** và ROC-AUC **0,917**, gấp khoảng 7 lần luật thất bại và 18 lần ngẫu nhiên. Thứ hạng: OCSVM > IF > LOF > z-score > các luật > ngẫu nhiên.
+7. **Phân tích.**
+   - Vì sao OCSVM hơn IF: tấn công tiêm vượt khỏi phạm vi train; IF chỉ đo độ hiếm, OCSVM đo độ mới.
+   - Vì sao OCSVM hơn LOF: train có 601 dòng thật giống brute-force, làm LOF coi nạn nhân tiêm là bình thường.
+   - RobustScaler làm hỏng OCSVM: PR-AUC 0,036 so với 0,167 khi dùng StandardScaler.
+   - Spraying cần thêm đặc trưng fan-out theo nguồn (tuần 5).
+8. **Báo cáo:** báo cáo tóm tắt, slide Beamer (25 trang, gồm trang bìa) và hướng dẫn chạy lại (xem mục 1 bên dưới).
+
+---
 
 Bản đồ thư mục cho toàn bộ đầu ra tuần 4 (bản chạy lại: dev ngày 36–42, test ngày 43–60, schema v4.1, 41 đặc trưng).
 Đường dẫn tính từ gốc repo. Cột **Git** cho biết file có được commit hay chỉ nằm trên máy chạy.
