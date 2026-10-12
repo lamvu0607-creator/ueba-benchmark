@@ -28,11 +28,11 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
+from src.evaluation.feature_groups import ABLATION_GROUPS, FEATURE_GROUP, schema_origin  # noqa: E402
 from src.evaluation.grid import _params_with, fit_and_score, load_grid_config, load_run_data  # noqa: E402
 from src.models.registry import load_params  # noqa: E402
 
@@ -42,31 +42,6 @@ logging.getLogger("shap").setLevel(logging.WARNING)
 
 ML = ["one_class_svm", "isolation_forest", "local_outlier_factor"]
 SHORT = {"one_class_svm": "OCSVM", "isolation_forest": "IF", "local_outlier_factor": "LOF"}
-
-# Nhóm theo NGHĨA để ablation (nhóm `group` trong schema gộp 17 đặc trưng template vào một nhóm `template_v4`).
-ABLATION_GROUPS = {
-    "volume": ["log_total_logons", "volume_robust_z_7d", "delta_mean_count_7d"],
-    "failure": ["failure_ratio", "failure_locked_out_share", "delta_mean_share_fail_7d",
-                "delta_mean_distinct_fail_host_7d", "novelty_fail_host_7d", "novelty_fail_failreason_7d"],
-    "time": ["off_hours_ratio", "activity_peak_hour_sin", "activity_peak_hour_cos", "hour_entropy",
-             "dist_shift_hour_7d", "jaccard_hour_7d", "peer_z_share_night", "delta_mean_share_night_7d"],
-    "rhythm": ["interarrival_dt_mean", "delta_t_cv", "same_second_share", "is_single_event"],
-    "logon_type": ["interactive_ratio", "rare_logon_type_count_log", "ntlm_ratio", "dist_shift_logontype_7d",
-                   "jaccard_logontype_7d", "novelty_logontype_7d"],
-    "fanout": ["log_distinct_hosts", "distinct_sources_count", "dst_host_entropy", "delta_mean_distinct_source_7d",
-               "peer_z_distinct_source", "delta_mean_distinct_pair_7d"],
-    "novelty": ["new_source_count_7d", "new_host_count_7d", "days_since_last_activity", "jaccard_source_7d",
-                "novelty_share_pair_7d"],
-    "context": ["missing_source_ratio", "remote_logon_ratio", "custom_proc_share"],
-}
-FEATURE_GROUP = {f: g for g, fs in ABLATION_GROUPS.items() for f in fs}
-
-
-def schema_origin(path: Path) -> dict:
-    """core_v3 (nhóm schema thường) hay template_v4 (sinh từ template ở vòng v4)."""
-    schema = yaml.safe_load(path.read_text(encoding="utf-8"))
-    return {f["name"]: "template_v4" if f.get("group") == "template_v4" else "core_v3"
-            for f in schema["features"] if f.get("core")}
 
 
 def score_fn(pipe):

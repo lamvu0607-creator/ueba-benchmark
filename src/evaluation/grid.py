@@ -108,13 +108,18 @@ def _params_with(base: Dict[str, Any], model: str, override: Dict[str, Any]) -> 
 
 
 def fit_and_score(data: Dict[str, Any], model: str, params: Dict[str, Any], scaler: Optional[str],
-                  random_state: int, contamination: float) -> Dict[str, Any]:
-    """Fit pipeline trên train của run rồi chấm eval -> điểm, cờ (ngưỡng train) và thời gian."""
+                  random_state: int, contamination: float,
+                  feature_names: Optional[Sequence[str]] = None) -> Dict[str, Any]:
+    """
+    Fit pipeline trên train của run rồi chấm eval -> điểm, cờ (ngưỡng train) và thời gian.
+
+    ``feature_names``: tập con đặc trưng (ablation); None = toàn bộ đặc trưng core của schema.
+    """
     if model == "one_class_svm":  # nu là ngân sách cảnh báo của OCSVM -> đồng bộ với contamination
         params = _params_with(params, model, {"nu": float(contamination)})
     est = create_model(model, params=params, contamination=contamination, random_state=random_state)
     pipe = AnomalyPipeline(est, scaler=scaler, imputer=(params.get("preprocessing") or {}).get("imputer", "median"),
-                           random_state=random_state)
+                           feature_names=feature_names, random_state=random_state)
     t0 = time.perf_counter()
     pipe.fit(data["train"])
     t1 = time.perf_counter()
