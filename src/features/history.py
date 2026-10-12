@@ -98,7 +98,7 @@ def _entity_novelty(
         (
             pl.col("_prev_day").is_null()
             | (pl.col("_prev_day") < pl.col(day_col) - window)
-        ).sum().cast(pl.Int32).alias(f"new_{suffix}_count_{window}d"),
+        ).sum().cast(pl.Int32).alias(f"new_{suffix}_count_7d"),  # tên cố định theo schema kể cả khi thử window khác 7
     ])
 
 
@@ -265,10 +265,10 @@ def add_history_features(
         return df.hstack(pl.DataFrame(schema=schema).select(HISTORY_V3_FEATURES))
 
     source = _entity_novelty(entities, keys, "Source", "source", window, day_col).select(
-        keys + [day_col, f"new_source_count_{window}d"]
+        keys + [day_col, "new_source_count_7d"]
     )
     host = _entity_novelty(entities, keys, "LogHost", "host", window, day_col).select(
-        keys + [day_col, f"new_host_count_{window}d"]
+        keys + [day_col, "new_host_count_7d"]
     )
     activity = _days_since_last_activity(df, keys, day_col)
     volume_z = _volume_robust_z(df, keys, window, day_col)

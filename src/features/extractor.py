@@ -496,6 +496,7 @@ def build_account_day_matrix(
     output_dir: Optional[Path | str] = None,
     config: Optional[Dict[str, Any]] = None,
     events_dir: Optional[Path | str] = None,
+    history_window_days: int = 7,
 ) -> pl.DataFrame:
     """
     Điều phối trích xuất ma trận đặc trưng cho dải ngày [start_day, end_day].
@@ -586,7 +587,7 @@ def build_account_day_matrix(
     # sau khi đã ghép các ngày. Hàm bảo đảm chỉ dùng dữ liệu ≤ t−1 (xem src/features/history.py).
     t_hist = time.time()
     entities_full = pl.concat(entity_dfs, how="vertical") if entity_dfs else None
-    df_full = add_history_features(df_full, entities=entities_full)
+    df_full = add_history_features(df_full, entities=entities_full, window=history_window_days)
     if v4_specs:
         # Schema v4.0: tầng lịch sử/peer của engine template (chỉ dùng ngày ≤ t−1 / cắt ngang ngày t)
         intraday = pl.concat([t.intraday for t in template_days])
@@ -596,6 +597,7 @@ def build_account_day_matrix(
         v4 = compute_history(
             intraday, profiles, v4_specs,
             entity_type=df_full.select(["DomainName", "UserName", "day", "entity_type"]),
+            hist_days=history_window_days,
         ).select(["DomainName", "UserName", "day"] + list(TEMPLATE_V4_FEATURES))
         df_full = df_full.join(v4, on=["DomainName", "UserName", "day"], how="left")
     df_full = df_full.select(MATRIX_ORDERED_COLS)

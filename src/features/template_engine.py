@@ -214,12 +214,16 @@ def compute_history(
     profiles: Dict[Tuple[str, str], pl.DataFrame],
     specs: Sequence[Candidate],
     entity_type: Optional[pl.DataFrame] = None,
+    hist_days: Optional[int] = None,
 ) -> pl.DataFrame:
     """
     Ghép mọi ngày: trả về ``intraday`` + cột của các ``specs`` cần lịch sử / peer.
 
     ``entity_type`` = khung ``(DomainName, UserName, day, entity_type)`` cho nhóm peer;
     bắt buộc khi có ``peer_z``.
+
+    ``hist_days`` (chỉ cho thí nghiệm độ dài cửa sổ): cửa sổ ``7d`` được tính trên ``hist_days`` ngày
+    nhưng GIỮ tên cột ``*_7d`` để schema / lưới không đổi. None = 7 ngày như schema.
     """
     out = intraday
     key = [_ACCT, "day"]
@@ -227,9 +231,9 @@ def compute_history(
 
     for c in specs:
         if c.measure in ("novelty", "novelty_share", "jaccard", "dist_shift", "recency"):
-            out = out.join(_entity_history(profiles[(c.obj, c.entity)], c, day_min), on=key, how="left")
+            out = out.join(_entity_history(profiles[(c.obj, c.entity)], c, day_min, hist_days), on=key, how="left")
         elif c.measure in ("delta_mean", "active_days"):
-            out = out.join(_daily_history(intraday, c, day_min), on=key, how="left")
+            out = out.join(_daily_history(intraday, c, day_min, hist_days), on=key, how="left")
 
     # novelty / fanout: không có thực thể ⇒ 0 (đúng nghĩa đếm)
     zero_fill = [c.name for c in specs if c.measure == "novelty"]
@@ -260,7 +264,13 @@ def _robust_z(x: pl.Expr, over: List[str]) -> pl.Expr:
     )
 
 
-def _entity_history(prof: pl.DataFrame, c: Candidate, day_min: int) -> pl.DataFrame:
+def _window_days(c: Candidate, hist_days: Optional[int]) -> int:
+    """Số ngày của cửa sổ lịch sử; ``hist_days`` ghi đè riêng cửa sổ ``7d`` (thí nghiệm độ dài cửa sổ)."""
+    return int(hist_days) if hist_days and c.window == "7d" else _HIST_DAYS[c.window]
+
+
+def _entity_history(prof: pl.DataFrame, c: Candidate, day_min: int,
+                    hist_days: Optional[int] = None) -> pl.DataFrame:
     """novelty / novelty_share / jaccard / dist_shift / recency trên hồ sơ ``(acct, day, v, n)``."""
     key = [_ACCT, "day"]
     p = (
@@ -272,7 +282,7 @@ def _entity_history(prof: pl.DataFrame, c: Candidate, day_min: int) -> pl.DataFr
             (pl.col("day") - pl.col("_prev")).min().cast(pl.Float64).alias(c.name)
         )
 
-    w = _HIST_DAYS[c.window]
+    w = _window_days(c, hist_days)
     p = p.with_columns(
         (pl.col("_prev").is_null() | (pl.col("_prev") < pl.col("day") - w)).alias("_new")
     )
@@ -322,10 +332,11 @@ def _entity_history(prof: pl.DataFrame, c: Candidate, day_min: int) -> pl.DataFr
     )
 
 
-def _daily_history(intraday: pl.DataFrame, c: Candidate, day_min: int) -> pl.DataFrame:
+def _daily_history(intraday: pl.DataFrame, c: Candidate, day_min: int,
+                   hist_days: Optional[int] = None) -> pl.DataFrame:
     """delta_mean / active_days trên LƯỚI DÀY nội bộ (ngày trống = 0 với nền đếm)."""
     key = [_ACCT, "day"]
-    w = _HIST_DAYS[c.window]
+    w = _window_days(c, hist_days)
     day_max = int(intraday["day"].max())
     grid = (
         intraday.select(_ACCT).unique()
