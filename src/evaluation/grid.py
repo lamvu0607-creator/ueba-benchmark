@@ -65,11 +65,14 @@ def run_split_day(run_dir: Path | str) -> int:
 
 
 def load_run_data(run_dir: Path | str, segment: Optional[str], split_day: Optional[int] = None,
-                  segment_col: str = "entity_type") -> Dict[str, Any]:
+                  segment_col: str = "entity_type", sort_rows: bool = False) -> Dict[str, Any]:
     """
     Ma trận + nhãn của MỘT run: train (day ≤ split_day) và eval (đúng ``eval_days`` của run).
 
     ``split_day`` = None -> dùng mốc của run; có giá trị -> phải khớp mốc của run (chống fit nhầm ngày tiêm).
+
+    ``sort_rows``: sắp dòng theo (day, DomainName, UserName). Thứ tự dòng polars ghi ra không tất định giữa các lần
+    tính ma trận, mà IF (lấy mẫu con) và OCSVM (SGD) phụ thuộc thứ tự dòng.
     """
     root = Path(run_dir)
     meta = json.loads((root / "run_config.json").read_text(encoding="utf-8"))
@@ -81,6 +84,8 @@ def load_run_data(run_dir: Path | str, segment: Optional[str], split_day: Option
     if min(eval_days) <= int(split_day):
         raise ValueError(f"{root}: ngày đánh giá {eval_days} chạm train (≤ {split_day}).")
     df = pl.read_parquet(root / "processed" / "feature_matrix_processed.parquet")
+    if sort_rows:
+        df = df.sort(["day", "DomainName", "UserName"])
     if segment:
         df = df.filter(pl.col(segment_col) == segment)
     train = df.filter(pl.col("day") <= split_day)

@@ -1,0 +1,20 @@
+{
+  "config": "configs/benchmark_grid_test.yaml",
+  "runs": [
+    "data/injection_runs/test_seed20261061",
+    "data/injection_runs/test_seed20261062",
+    "data/injection_runs/test_seed20261063",
+    "data/injection_runs/test_seed20261064",
+    "data/injection_runs/test_seed20261065"
+  ],
+  "model_seeds": [
+    42,
+    7,
+    2024,
+    1,
+    2
+  ],
+  "daily_k": 100,
+  "sorted_rows": true,
+  "n_scores": 5375041
+}
