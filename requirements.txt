@@ -23,6 +23,10 @@ hnswlib>=0.8.0
 # Visualization & EDA (Biểu đồ phân bố 24h, PR-Curve, Phân tích độ nhạy)
 matplotlib>=3.7.0
 seaborn>=0.12.0
+
+# Giải thích mô hình (tuần 5: SHAP/LIME chuẩn bị ablation)
+shap>=0.46
+lime>=0.2.0.1
 ipykernel>=6.0.0
 
 # Testing & Quality Assurance

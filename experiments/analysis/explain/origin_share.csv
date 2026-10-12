@@ -1,0 +1,4 @@
+﻿model,core_v3,template_v4
+isolation_forest,0.495,0.505
+local_outlier_factor,0.542,0.458
+one_class_svm,0.557,0.443

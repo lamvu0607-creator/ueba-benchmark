@@ -1,0 +1,4 @@
+﻿model,spearman_global,top5_overlap_mean,n_rows,lime_r2_mean
+one_class_svm,0.444,0.219,105,0.347
+isolation_forest,0.373,0.171,105,0.543
+local_outlier_factor,0.234,0.318,105,0.059

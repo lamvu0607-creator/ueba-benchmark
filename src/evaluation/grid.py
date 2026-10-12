@@ -123,7 +123,7 @@ def fit_and_score(data: Dict[str, Any], model: str, params: Dict[str, Any], scal
     flags = scores >= float(pipe.model.threshold_)  # cùng quy ước với BaseAnomalyModel.predict
     return {"scores": scores, "flags": flags, "fit_seconds": t1 - t0, "score_seconds": t2 - t1,
             "threshold": float(pipe.model.threshold_), "n_fit": int(pipe.n_train_rows_),
-            "n_features": len(pipe.feature_names)}
+            "n_features": len(pipe.feature_names), "pipeline": pipe}
 
 
 def _log_row(data: Dict[str, Any], res: Dict[str, Any], m: Dict[str, float], *, experiment: str, model: str,
