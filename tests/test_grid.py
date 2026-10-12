@@ -9,7 +9,7 @@ import polars as pl
 import pytest
 import yaml
 
-from src.evaluation.grid import load_grid_config, load_run_data, run_grid, select_best, summarize
+from src.evaluation.grid import load_grid_config, load_run_data, mean_pr_curve, run_grid, select_best, summarize
 from src.features.schema import FeatureSchema
 
 FEATURES = list(FeatureSchema().core_features)
@@ -117,3 +117,13 @@ def test_grid_config_validation(temp_artifact_dir: Path):
         "x": [{"id": "dup"}], "y": [{"id": "dup"}]}}), encoding="utf-8")
     with pytest.raises(ValueError, match="trùng"):
         load_grid_config(p)
+
+
+def test_mean_pr_curve_averages_precision_on_common_recall_grid():
+    y = np.array([1, 0, 1, 0])
+    grid = np.array([0.5, 1.0])
+    # seed 1: dương xếp 1, 3 -> P(r=0,5)=1, P(r=1)=2/3; seed 2: dương xếp 2, 3 -> 1/2, 2/3
+    df = mean_pr_curve([y, y], [np.array([4, 3, 2, 1.0]), np.array([3, 4, 2, 1.0])], grid)
+    assert df["precision"].tolist() == pytest.approx([0.75, 2 / 3])
+    assert df["precision_std"].iloc[0] == pytest.approx(np.std([1, 0.5], ddof=1))
+    assert (df["n_seeds"] == 2).all()

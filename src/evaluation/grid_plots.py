@@ -35,6 +35,65 @@ def _save(fig, out: Path, name: str, formats: Sequence[str]) -> List[Path]:
     return paths
 
 
+def plot_pr_curves(pr_df: pd.DataFrame, summary: pd.DataFrame, best: Dict[str, str], out: Path,
+                   positive_rate: float, formats: Sequence[str] = ("png", "pdf")) -> List[Path]:
+    """Đường PR trung bình qua các seed (dải ±1 std cho mô hình ML); chú thích gọn, đặt dưới khung vẽ."""
+    fig, ax = plt.subplots(figsize=(8, 5.4))
+    n_seeds = int(pr_df["n_seeds"].max()) if "n_seeds" in pr_df else 1
+    for (model, cid), g in pr_df.groupby(["model", "config_id"], sort=False):
+        auc = summary.loc[(summary["model"] == model) & (summary["config_id"] == cid), "pr_auc_mean"]
+        is_ml = model in best
+        color = COLORS.get(model)
+        ax.plot(g["recall"], g["precision"], color=color, lw=1.8 if is_ml else 1.1, ls="-" if is_ml else "--",
+                label=f"{LABELS.get(model, model)} ({float(auc.iloc[0]):.3f})")
+        if is_ml and "precision_std" in g and g["precision_std"].notna().any():
+            lo = np.clip(g["precision"] - g["precision_std"], positive_rate / 3, 1.0)
+            hi = np.clip(g["precision"] + g["precision_std"], positive_rate / 3, 1.0)
+            ax.fill_between(g["recall"], lo, hi, color=color, alpha=0.15, lw=0)
+    ax.axhline(positive_rate, ls=":", color="k", lw=1, label=f"Tỷ lệ dương ({positive_rate:.2%})")
+    ax.set_xlabel("Recall")
+    ax.set_ylabel("Precision (thang log)")
+    ax.set_yscale("log")
+    ax.set_xlim(0, 1)
+    ax.set_ylim(max(positive_rate / 3, 1e-4), 1.0)
+    ax.grid(True, which="major", alpha=0.3)
+    ax.set_title(f"Đường Precision–Recall, trung bình {n_seeds} seed (dải = ±1 std)")
+    ax.legend(fontsize=8, loc="upper center", bbox_to_anchor=(0.5, -0.13), ncol=4, frameon=False,
+              title="Mô hình (PR-AUC trung bình)", title_fontsize=8)
+    return _save(fig, out, "pr_curves", formats)
+
+
+SHORT = {"isolation_forest": "IF", "local_outlier_factor": "LOF", "one_class_svm": "OCSVM"}
+
+
+def plot_contamination(cont_summary: pd.DataFrame, out: Path, formats: Sequence[str] = ("png", "pdf")) -> List[Path]:
+    """Lưới 2×2 (tỷ lệ cảnh báo, precision, recall, PR-AUC) theo contamination; chú thích chung dưới hình."""
+    metrics = [("alert_rate", "Tỷ lệ cảnh báo thực tế"), ("precision", "Precision tại ngưỡng"),
+               ("recall", "Recall tại ngưỡng"), ("pr_auc", "PR-AUC")]
+    c = np.sort(cont_summary["contamination"].unique())
+    fig, axes = plt.subplots(2, 2, figsize=(9, 6.2), sharex=True)
+    for ax, (m, title) in zip(axes.flat, metrics):
+        for model, g in cont_summary.groupby("model"):
+            g = g.sort_values("contamination")
+            ax.errorbar(g["contamination"], g[f"{m}_mean"], yerr=g[f"{m}_std"].fillna(0), marker="o", ms=4,
+                        capsize=3, color=COLORS.get(model), label=SHORT.get(model, LABELS.get(model, model)))
+        if m == "alert_rate":
+            ax.plot(c, c, ls=":", color="k", lw=1, label="= contamination")
+        ax.set_xscale("log")
+        ax.set_xticks(c, [f"{v:.1%}".replace(".0%", "%") for v in c], fontsize=8)
+        ax.minorticks_off()
+        ax.grid(True, alpha=0.3)
+        ax.set_title(title, fontsize=11)
+    for ax in axes[1]:
+        ax.set_xlabel("contamination (ngân sách cảnh báo trên train)")
+    handles, labels = axes.flat[0].get_legend_handles_labels()
+    fig.legend(handles, labels, loc="lower center", ncol=len(labels), frameon=False, fontsize=9,
+               bbox_to_anchor=(0.5, -0.01))
+    fig.suptitle("Độ nhạy contamination (trung bình ± std qua các seed)", fontsize=12)
+    fig.tight_layout(rect=(0, 0.05, 1, 1))
+    return _save(fig, out, "contamination_sensitivity", formats)
+
+
 def plot_grid(summary: pd.DataFrame, scen_summary: pd.DataFrame, cont_summary: pd.DataFrame, pr_df: pd.DataFrame,
               best: Dict[str, str], out: Path, positive_rate: float,
               formats: Sequence[str] = ("png", "pdf")) -> List[Path]:
@@ -55,41 +114,11 @@ def plot_grid(summary: pd.DataFrame, scen_summary: pd.DataFrame, cont_summary: p
     ax.legend(loc="lower right")
     figures += _save(fig, out, "grid_pr_auc", formats)
 
-    # 2. Đường PR của cấu hình tốt nhất + baseline (seed đầu)
-    fig, ax = plt.subplots(figsize=(6.5, 5))
-    for (model, cid), g in pr_df.groupby(["model", "config_id"], sort=False):
-        auc = summary.loc[(summary["model"] == model) & (summary["config_id"] == cid), "pr_auc_mean"]
-        ax.plot(g["recall"], g["precision"], color=COLORS.get(model), lw=1.6 if model in best else 1.1,
-                ls="-" if model in best else "--",
-                label=f"{LABELS.get(model, model)} [{cid}] (PR-AUC TB {float(auc.iloc[0]):.3f})")
-    ax.axhline(positive_rate, ls=":", color="k", lw=1, label=f"ngẫu nhiên ≈ {positive_rate:.3%}")
-    ax.set_xlabel("Recall")
-    ax.set_ylabel("Precision")
-    ax.set_yscale("log")
-    ax.set_ylim(max(positive_rate / 3, 1e-4), 1.0)
-    ax.set_title("Đường Precision–Recall (seed đầu, User)")
-    ax.legend(fontsize=7, loc="upper right")
-    figures += _save(fig, out, "pr_curves", formats)
+    # 2. Đường PR trung bình ± std của cấu hình tốt nhất + baseline
+    figures += plot_pr_curves(pr_df, summary, best, out, positive_rate, formats)
 
-    # 3. Độ nhạy contamination: alert rate thực tế, precision, recall, F1 tại ngưỡng train
-    metrics = [("alert_rate", "Tỷ lệ cảnh báo thực tế"), ("precision", "Precision tại ngưỡng"),
-               ("recall", "Recall tại ngưỡng"), ("pr_auc", "PR-AUC")]
-    fig, axes = plt.subplots(1, len(metrics), figsize=(4.2 * len(metrics), 3.8))
-    for ax, (m, title) in zip(axes, metrics):
-        for model, g in cont_summary.groupby("model"):
-            g = g.sort_values("contamination")
-            ax.errorbar(g["contamination"], g[f"{m}_mean"], yerr=g[f"{m}_std"].fillna(0), marker="o", capsize=3,
-                        color=COLORS.get(model), label=f"{LABELS.get(model, model)} [{g['config_id'].iloc[0]}]")
-        if m == "alert_rate":
-            c = np.sort(cont_summary["contamination"].unique())
-            ax.plot(c, c, ls=":", color="k", lw=1, label="= contamination")
-        ax.set_xscale("log")
-        ax.set_xlabel("contamination")
-        ax.set_title(title)
-    axes[0].legend(fontsize=7)
-    fig.suptitle("Độ nhạy contamination (trung bình ± std qua các seed)")
-    fig.tight_layout()
-    figures += _save(fig, out, "contamination_sensitivity", formats)
+    # 3. Độ nhạy contamination: alert rate thực tế, precision, recall, PR-AUC tại ngưỡng train
+    figures += plot_contamination(cont_summary, out, formats)
 
     # 4. ROC-AUC theo kịch bản của cấu hình tốt nhất + baseline
     keep = [(m, c) for m, c in best.items()] + [(m, "default") for m in scen_summary.loc[

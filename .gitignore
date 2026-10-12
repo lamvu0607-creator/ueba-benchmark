@@ -94,3 +94,6 @@ experiments/results/*
 .lof_shape.txt
 # Kết quả benchmark trên run tiêm (paths.injection_results_dir): commit results/ + labels/run_config, bỏ mô hình .joblib
 experiments/injection_runs/*/models/
+# Tuần 5: điểm từng dòng (~43 MB, sinh lại bằng scenario_analysis.py) và ma trận thí nghiệm cửa sổ
+experiments/analysis/scenario/scores.parquet
+data/window_ablation/
