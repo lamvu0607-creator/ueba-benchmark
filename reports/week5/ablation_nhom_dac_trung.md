@@ -90,11 +90,47 @@ Mốc đủ 41 đặc trưng:
   - `interarrival_dt_mean`, `delta_t_cv`, `same_second_share`, `is_single_event`;
   - `activity_peak_hour_sin`, `log_distinct_hosts`, `missing_source_ratio`, `log_total_logons`;
   - `dst_host_entropy`, `volume_robust_z_7d`, `peer_z_share_night`.
-- **Bước tiếp theo, chưa làm:** kiểm tra bộ 30 đặc trưng trên khối **test** **một lần**, giống quy trình chốt cấu hình, để xác nhận rằng mức tăng không phải do chọn trên dev. Chưa đổi `feature_schema.yaml` trước khi có kết quả test.
+- **Đã kiểm tra trên khối test một lần, xem mục 5.** Mức tăng được xác nhận. Chưa đổi `feature_schema.yaml`.
 - **Điểm mù không giải được bằng cách bớt đặc trưng:** off_hours (cần đặc trưng giờ mới) và password_spraying (cần đặc trưng fan-out theo nguồn). Hai việc này giữ trong đề xuất cho tuần sau.
+
+## 5. Kiểm tra một lần trên khối test
+
+- **Thiết lập:** 5 run test (`test_seed20261061`–`065`), fit ngày 1–42, chấm 43–60, cùng model seed và cấu hình chốt.
+- **Chỉ chạy 3 cấu hình:** đủ 41 đặc trưng, bộ 30 đặc trưng, và đối chứng xáo dòng. Không chọn lại gì trên test.
+- **Chạy lại:**
+
+  ```
+  python scripts/evaluation/feature_ablation.py --dev-grid configs/benchmark_grid_test.yaml --only full drop_rhythm_low_shap10 control_shuffle_rows --out experiments/ablation/feature_groups_test
+  ```
+
+| Mô hình | PR-AUC 41 → 30 | ΔPR-AUC (đối chứng) | Recall top-100/ngày 41 → 30 | ΔRecall (đối chứng) | P@50 41 → 30 |
+|---|---|---|---|---|---|
+| OCSVM | 0,170 → **0,192** | +0,023 ± 0,006 (+0,005 ± 0,015) | 0,32 → **0,38** | +0,055 ± 0,020 (+0,019 ± 0,029) | 0,20 → 0,26 |
+| IF | 0,066 → **0,089** | +0,023 ± 0,005 (−0,001 ± 0,007) | 0,16 → **0,21** | +0,047 ± 0,010 (−0,003 ± 0,013) | 0,17 → 0,20 |
+| LOF | 0,048 → **0,064** | +0,017 ± 0,006 (0,000 ± 0,002) | 0,13 → **0,15** | +0,021 ± 0,009 (0,000 ± 0,003) | 0,09 → 0,12 |
+
+Δ recall top-100/ngày theo kịch bản trên test:
+
+| Mô hình | brute_force | logon_type_switch | new_workstation_burst | dormant_wakeup | off_hours | password_spraying |
+|---|---|---|---|---|---|---|
+| OCSVM | **+0,17** (0,68 → 0,85) | +0,08 | +0,07 | +0,01 | +0,01 | 0,00 |
+| IF | +0,03 | **+0,20** (0,42 → 0,61) | +0,02 | +0,03 | +0,02 | −0,01 |
+| LOF | 0,00 | **+0,15** (0,51 → 0,66) | +0,01 | −0,03 ± 0,03 | −0,01 | +0,01 |
+
+**Kết luận:**
+
+- **Bộ 30 đặc trưng tốt hơn trên test ở cả ba mô hình**, và mức tăng vượt rõ mức nhiễu đối chứng:
+  - PR-AUC tăng khoảng 13% ở OCSVM, khoảng 35% ở IF và LOF;
+  - recall top-100/ngày tăng 0,02–0,06.
+- **Mức tăng của OCSVM trên test nhỏ hơn trên dev** (PR-AUC +0,023 so với +0,064). Đúng như dự đoán: dev hơi lạc quan vì bộ 30 được chọn trên chính dev. Recall thì giữ gần nguyên (+0,055 so với +0,064).
+- **Không kịch bản nào tụt rõ.** Lần giảm duy nhất là dormant_wakeup của LOF, −0,03 ± 0,03, nằm trong nhiễu.
+- **Đề xuất:** chuyển 11 đặc trưng bị bỏ sang `reserve:` trong `configs/feature_schema.yaml` (schema v4.2, 30 core).
+  - Sau đó chạy lại lưới test với bộ mới để có bảng benchmark chính thức.
+  - Dò lại tham số (k của LOF, số thành phần OCSVM) trên dev nếu còn thời gian.
 
 ## Hạn chế
 
+- Mọi chỉ số tính trên nhãn tổng hợp (lớp 1, §5.2 đề cương), nên là **cận trên lạc quan**: bộ 30 đặc trưng được xác nhận tốt hơn với 6 kiểu tấn công tiêm, chưa phải với tấn công thật.
 - Bộ 30 đặc trưng được chọn trên chính 5 run dev đã dùng để đo. Mức tăng trên dev có thể hơi lạc quan, nên bắt buộc phải kiểm tra trên test.
 - Danh sách 10 đặc trưng SHAP thấp lấy từ một run dev (`dev_seed20261036`), cũng là một trong 5 run ablation.
 - Tham số mô hình giữ nguyên theo bản 41 đặc trưng. Với ít chiều hơn, OCSVM (số thành phần Nystroem) và LOF (k) có thể có cấu hình tốt hơn, nhưng chưa dò lại.
