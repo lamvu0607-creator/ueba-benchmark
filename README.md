@@ -4,6 +4,19 @@ Hệ thống pipeline benchmark các mô hình phát hiện bất thường (Ano
 
 **Tuần 4:** xem [Hướng dẫn tiêm bất thường và kiểm tra tiến độ](docs/huong_dan_tiem_bat_thuong_tuan4.md) để hiểu 6 kịch bản, chạy từng bước, kiểm tra nhãn/tỷ lệ tiêm và đối chiếu các đầu ra cần nghiệm thu.
 
+**Tuần 5:** xem [tóm tắt tuần 5](reports/week5/tom_tat_tuan5.md) (phân tích theo kịch bản, review top 50, SHAP/LIME,
+ablation nhóm đặc trưng, bảng benchmark cuối với 30 đặc trưng). Lệnh chạy lại:
+
+```bash
+python -X utf8 scripts/experiments/window_ablation.py --run data/injection_runs/test_seed20261061 --windows 7 14 21
+python scripts/evaluation/scenario_analysis.py             # theo kịch bản -> experiments/analysis/scenario/
+python scripts/evaluation/build_review_set.py              # bộ review top 50 làm mù -> experiments/analysis/review_top50/
+python scripts/evaluation/review_agreement.py              # Cohen's kappa sau khi hai người chấm xong
+python scripts/evaluation/explain_models.py                # SHAP/LIME -> experiments/analysis/explain/
+python scripts/evaluation/feature_ablation.py              # ablation trên dev -> experiments/ablation/feature_groups/
+python scripts/evaluation/run_grid.py --config configs/benchmark_grid_test_30f.yaml   # benchmark cuối
+```
+
 ---
 
 ## 1. Cấu trúc thư mục dự án

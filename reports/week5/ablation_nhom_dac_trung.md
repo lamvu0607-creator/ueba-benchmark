@@ -125,7 +125,7 @@ Mốc đủ 41 đặc trưng:
 - **Mức tăng của OCSVM trên test nhỏ hơn trên dev** (PR-AUC +0,023 so với +0,064). Đúng như dự đoán: dev hơi lạc quan vì bộ 30 được chọn trên chính dev. Recall thì giữ gần nguyên (+0,055 so với +0,064).
 - **Không kịch bản nào tụt rõ.** Lần giảm duy nhất là dormant_wakeup của LOF, −0,03 ± 0,03, nằm trong nhiễu.
 - **Đề xuất:** chuyển 11 đặc trưng bị bỏ sang `reserve:` trong `configs/feature_schema.yaml` (schema v4.2, 30 core).
-  - Sau đó chạy lại lưới test với bộ mới để có bảng benchmark chính thức.
+  - Lưới test chính thức với bộ 30 đã chạy: `reports/week5/benchmark_30_dac_trung.md`.
   - Dò lại tham số (k của LOF, số thành phần OCSVM) trên dev nếu còn thời gian.
 
 ## Hạn chế
