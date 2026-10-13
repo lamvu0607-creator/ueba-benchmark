@@ -1,0 +1,139 @@
+{
+  "full": {
+    "dropped": [],
+    "n_features": 41
+  },
+  "drop_rhythm": {
+    "dropped": [
+      "interarrival_dt_mean",
+      "delta_t_cv",
+      "same_second_share",
+      "is_single_event"
+    ],
+    "n_features": 37
+  },
+  "drop_volume_context": {
+    "dropped": [
+      "log_total_logons",
+      "volume_robust_z_7d",
+      "delta_mean_count_7d",
+      "missing_source_ratio",
+      "remote_logon_ratio",
+      "custom_proc_share"
+    ],
+    "n_features": 35
+  },
+  "drop_template_v4": {
+    "dropped": [
+      "delta_mean_share_fail_7d",
+      "delta_mean_distinct_fail_host_7d",
+      "novelty_fail_host_7d",
+      "novelty_fail_failreason_7d",
+      "delta_mean_distinct_source_7d",
+      "jaccard_source_7d",
+      "peer_z_distinct_source",
+      "dist_shift_hour_7d",
+      "jaccard_hour_7d",
+      "peer_z_share_night",
+      "delta_mean_distinct_pair_7d",
+      "novelty_share_pair_7d",
+      "delta_mean_count_7d",
+      "dist_shift_logontype_7d",
+      "jaccard_logontype_7d",
+      "delta_mean_share_night_7d",
+      "novelty_logontype_7d"
+    ],
+    "n_features": 24
+  },
+  "drop_failure": {
+    "dropped": [
+      "failure_ratio",
+      "failure_locked_out_share",
+      "delta_mean_share_fail_7d",
+      "delta_mean_distinct_fail_host_7d",
+      "novelty_fail_host_7d",
+      "novelty_fail_failreason_7d"
+    ],
+    "n_features": 35
+  },
+  "drop_time": {
+    "dropped": [
+      "off_hours_ratio",
+      "activity_peak_hour_sin",
+      "activity_peak_hour_cos",
+      "hour_entropy",
+      "dist_shift_hour_7d",
+      "jaccard_hour_7d",
+      "peer_z_share_night",
+      "delta_mean_share_night_7d"
+    ],
+    "n_features": 33
+  },
+  "drop_logon_type": {
+    "dropped": [
+      "interactive_ratio",
+      "rare_logon_type_count_log",
+      "ntlm_ratio",
+      "dist_shift_logontype_7d",
+      "jaccard_logontype_7d",
+      "novelty_logontype_7d"
+    ],
+    "n_features": 35
+  },
+  "drop_fanout": {
+    "dropped": [
+      "log_distinct_hosts",
+      "distinct_sources_count",
+      "dst_host_entropy",
+      "delta_mean_distinct_source_7d",
+      "peer_z_distinct_source",
+      "delta_mean_distinct_pair_7d"
+    ],
+    "n_features": 35
+  },
+  "drop_novelty": {
+    "dropped": [
+      "new_source_count_7d",
+      "new_host_count_7d",
+      "days_since_last_activity",
+      "jaccard_source_7d",
+      "novelty_share_pair_7d"
+    ],
+    "n_features": 36
+  },
+  "drop_low_shap10": {
+    "dropped": [
+      "is_single_event",
+      "activity_peak_hour_sin",
+      "log_distinct_hosts",
+      "missing_source_ratio",
+      "log_total_logons",
+      "dst_host_entropy",
+      "delta_t_cv",
+      "volume_robust_z_7d",
+      "peer_z_share_night",
+      "same_second_share"
+    ],
+    "n_features": 31
+  },
+  "drop_rhythm_low_shap10": {
+    "dropped": [
+      "interarrival_dt_mean",
+      "delta_t_cv",
+      "same_second_share",
+      "is_single_event",
+      "activity_peak_hour_sin",
+      "log_distinct_hosts",
+      "missing_source_ratio",
+      "log_total_logons",
+      "dst_host_entropy",
+      "volume_robust_z_7d",
+      "peer_z_share_night"
+    ],
+    "n_features": 30
+  },
+  "control_shuffle_rows": {
+    "dropped": [],
+    "n_features": 41
+  }
+}

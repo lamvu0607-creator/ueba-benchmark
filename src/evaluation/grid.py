@@ -108,13 +108,18 @@ def _params_with(base: Dict[str, Any], model: str, override: Dict[str, Any]) -> 
 
 
 def fit_and_score(data: Dict[str, Any], model: str, params: Dict[str, Any], scaler: Optional[str],
-                  random_state: int, contamination: float) -> Dict[str, Any]:
-    """Fit pipeline trên train của run rồi chấm eval -> điểm, cờ (ngưỡng train) và thời gian."""
+                  random_state: int, contamination: float,
+                  feature_names: Optional[Sequence[str]] = None) -> Dict[str, Any]:
+    """
+    Fit pipeline trên train của run rồi chấm eval -> điểm, cờ (ngưỡng train) và thời gian.
+
+    ``feature_names``: tập con đặc trưng (ablation); None = toàn bộ đặc trưng core của schema.
+    """
     if model == "one_class_svm":  # nu là ngân sách cảnh báo của OCSVM -> đồng bộ với contamination
         params = _params_with(params, model, {"nu": float(contamination)})
     est = create_model(model, params=params, contamination=contamination, random_state=random_state)
     pipe = AnomalyPipeline(est, scaler=scaler, imputer=(params.get("preprocessing") or {}).get("imputer", "median"),
-                           random_state=random_state)
+                           feature_names=feature_names, random_state=random_state)
     t0 = time.perf_counter()
     pipe.fit(data["train"])
     t1 = time.perf_counter()
@@ -229,6 +234,20 @@ def run_grid(config_path: Path | str = "configs/benchmark_grid.yaml",
     out.mkdir(parents=True, exist_ok=True)
     c0 = float(cfg.get("contamination", 0.05))
     commit = (git_state() or {}).get("commit")
+    # Tuỳ chọn ablation (tuần 5): ``drop_features`` bỏ đặc trưng core khỏi mô hình ML (baseline giữ nguyên),
+    # ``sort_rows`` sắp dòng cố định trước khi fit (xem load_run_data).
+    drop = list(cfg.get("drop_features") or [])
+    ml_features = None
+    if drop:
+        from src.features.schema import FeatureSchema
+
+        core = list(FeatureSchema().core_features)
+        unknown = sorted(set(drop) - set(core))
+        if unknown:
+            raise ValueError(f"drop_features không phải đặc trưng core: {unknown}")
+        ml_features = [f for f in core if f not in set(drop)]
+        logger.info("[grid] bỏ %d đặc trưng -> mô hình ML dùng %d đặc trưng.", len(drop), len(ml_features))
+    sort_rows = bool(cfg.get("sort_rows", False))
     exp_name = f"grid_{cfg.get('block', 'block')}"
     log_rows: List[Dict[str, Any]] = []
 
@@ -239,7 +258,7 @@ def run_grid(config_path: Path | str = "configs/benchmark_grid.yaml",
     inputs = []
     ref = None
     for i, (run_dir, mseed) in enumerate(zip(cfg["runs"], cfg["model_seeds"])):
-        data = load_run_data(run_dir, cfg.get("segment"), split_day)
+        data = load_run_data(run_dir, cfg.get("segment"), split_day, sort_rows=sort_rows)
         ref = ref or data
         pr_labels.append(data["y"])
         inputs.append({"run": str(run_dir), "injection_seed": data["seed"], "model_seed": int(mseed),
@@ -252,7 +271,8 @@ def run_grid(config_path: Path | str = "configs/benchmark_grid.yaml",
                 for m, confs in cfg["models"].items() for c in confs]
         jobs += [("baseline", b, "default", None, {}) for b in cfg.get("baselines") or []]
         for kind, model, cid, scaler, override in jobs:
-            res = fit_and_score(data, model, _params_with(params, model, override), scaler, int(mseed), c0)
+            res = fit_and_score(data, model, _params_with(params, model, override), scaler, int(mseed), c0,
+                                feature_names=ml_features if kind == "ml" else None)
             base = {"seed_index": i, "run_id": data["run_id"], "injection_seed": data["seed"],
                     "model_seed": int(mseed), "kind": kind, "model": model, "config_id": cid,
                     "scaler": scaler or "none", "params": json.dumps(override, sort_keys=True)}
@@ -277,12 +297,12 @@ def run_grid(config_path: Path | str = "configs/benchmark_grid.yaml",
     conf_by_id = {c["id"]: (m, c) for m, confs in cfg["models"].items() for c in confs}
     c_rows = []
     for i, (run_dir, mseed) in enumerate(zip(cfg["runs"], cfg["model_seeds"])):
-        data = ref if i == 0 else load_run_data(run_dir, cfg.get("segment"), split_day)
+        data = ref if i == 0 else load_run_data(run_dir, cfg.get("segment"), split_day, sort_rows=sort_rows)
         for model, cid in best.items():
             _, c = conf_by_id[cid]
             for cont in cfg.get("contamination_sweep") or []:
                 res = fit_and_score(data, model, _params_with(params, model, c.get("params") or {}),
-                                    c.get("scaler", "robust"), int(mseed), float(cont))
+                                    c.get("scaler", "robust"), int(mseed), float(cont), feature_names=ml_features)
                 m = _metrics(data, res, cfg)
                 c_rows.append({"seed_index": i, "run_id": data["run_id"], "model": model, "config_id": cid,
                                "contamination": float(cont), **m})

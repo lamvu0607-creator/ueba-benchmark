@@ -1,7 +1,16 @@
-# Tuần 5: Tóm tắt những gì cần đọc (12/10/2026)
+# Tuần 5: Tóm tắt những gì cần đọc (13/10/2026)
 
-Ba việc đã làm: thí nghiệm độ dài cửa sổ lịch sử, phân tích theo loại bất thường, review top 50 cảnh báo.
-Mỗi mục gồm kết luận chính và file chi tiết cần đọc.
+Tuần 5 gồm sáu việc:
+1. thí nghiệm độ dài cửa sổ lịch sử;
+2. phân tích theo loại bất thường;
+3. review top 50 cảnh báo;
+4. giải thích mô hình bằng SHAP/LIME;
+5. ablation theo nhóm đặc trưng;
+6. bảng benchmark cuối với bộ 30 đặc trưng.
+
+Mỗi mục gồm kết luận chính và file chi tiết cần đọc. Cuối file là bảng đối chiếu với sản phẩm tuần 5 trong đề cương.
+
+Mọi số liệu tính trên nhãn tiêm tổng hợp (lớp 1, §5.2 đề cương), nên là **cận trên lạc quan**. Review top 50 (mục 3) là lớp đánh giá định tính trên log thật.
 
 ## 1. Cửa sổ lịch sử 7 / 14 / 21 ngày → giữ 7 ngày
 
@@ -22,7 +31,7 @@ Thí nghiệm chạy trên một run tiêm test (test_seed20261061), mỗi cửa
 
 ## 2. Mô hình nào bắt tốt loại nào → OCSVM là mô hình chính, có 2 điểm mù
 
-Chỉ số chính là **recall trong 100 cảnh báo/ngày** (5 run test, cấu hình chốt từ dev):
+Chỉ số chính là **recall trong 100 cảnh báo/ngày**. Bảng dưới là 5 run test, cấu hình chốt từ dev, 41 đặc trưng; số với bộ 30 đặc trưng ở mục 6.
 
 | Kịch bản | OCSVM | IF | LOF |
 |---|---|---|---|
@@ -54,21 +63,104 @@ Lấy 50 cảnh báo điểm cao nhất của mỗi mô hình (OCSVM, IF, LOF), 
 - **OCSVM:** gần như không báo nhiễu. Phát hiện đáng giá nhất là User272607: 0,1–1,9 triệu đăng nhập NTLM/ngày tới 600–1.600 máy mới.
 - **IF:** tìm được nhiều tài khoản đáng ngờ khác nhau nhất nhưng một nửa danh sách là nhiễu. **LOF:** chủ yếu là nhiễu.
 - **Nhiễu lặp lại** đến từ hai nguồn: tỷ lệ tính trên rất ít sự kiện (1–6 sự kiện/ngày), và tài khoản mới chưa có lịch sử.
+- Bộ review dùng 41 đặc trưng. Chưa làm lại với bộ 30, để giữ nguyên bộ thẻ cho hai bạn chấm.
 
 📄 Đọc sau (đã lưu lại, chưa cần đọc ngay):
 - `reports/week5/review_top50.md`: báo cáo review, bản của Claude (một người chấm).
 - `experiments/analysis/review_top50/claude_review.csv`: nhãn và lý do của Claude cho từng cảnh báo.
   ⚠️ **Chỉ mở sau khi hai bạn đã tự chấm xong**, để giữ tính độc lập. Tương tự với `answer_key.csv`.
 
-## Việc còn lại của tuần 5
+## 4. SHAP và LIME → mỗi kịch bản được giải thích đúng bằng nhóm đặc trưng thiết kế cho nó
+
+Giải thích điểm của ba mô hình chốt trên một run dev, gồm 30 nạn nhân mỗi kịch bản và 30 báo nhầm của mỗi mô hình. 41 đặc trưng được chia thành 8 nhóm theo nghĩa: volume, failure, time, rhythm, logon_type, fanout, novelty, context.
+
+- **Mỗi nhóm đẩy điểm của đúng kịch bản thiết kế cho nó:**
+  - failure → brute_force (tỷ phần 0,51–0,76);
+  - time → off_hours;
+  - logon_type → logon_type_switch;
+  - novelty và fanout → burst;
+  - `days_since_last_activity` → dormant_wakeup.
+- **novelty và failure gánh nhiều nhất.** rhythm, volume và context thấp hơn mức chia đều ở mọi kịch bản.
+- **rhythm là nguồn chính của báo nhầm ở OCSVM:** `delta_t_cv` chiếm 0,22 tỷ phần ở báo nhầm.
+- **Đặc trưng template v4 gánh 44–51% tỷ phần ở nạn nhân,** trong khi chỉ chiếm 41% số chiều.
+- **SHAP và LIME khớp ở mức nhóm, kém ở từng dòng.** R² cục bộ của LIME với LOF chỉ 0,06. Vì vậy **SHAP là căn cứ chính**, còn LIME chỉ để minh hoạ.
+
+📄 Đọc: `reports/week5/shap_lime.md`. Số liệu và hình ở `experiments/analysis/explain/`.
+
+## 5. Ablation theo nhóm đặc trưng (dev, 5 run) → bỏ 11 đặc trưng, còn 30
+
+Bỏ từng nhóm rồi so với bản đủ 41 đặc trưng bằng hiệu ghép cặp trên cùng run và seed. Có thêm đối chứng xáo thứ tự dòng: OCSVM nhiễu khoảng 0,02 PR-AUC chỉ vì thứ tự dòng.
+
+| Cấu hình | ΔPR-AUC OCSVM / IF / LOF |
+|---|---|
+| **bỏ rhythm + 7 đặc trưng SHAP thấp (còn 30)** | **+0,064 / +0,034 / +0,037** |
+| bỏ rhythm (còn 37) | +0,050 / +0,019 / +0,029 |
+| bỏ failure | −0,056 / −0,007 / +0,002 |
+| bỏ novelty | −0,039 / −0,018 / −0,028 |
+| bỏ khối template v4 (17) | −0,048 / −0,030 / −0,020 |
+| bỏ time | −0,002 / +0,012 / −0,012 |
+
+- **Giữ** failure, novelty, logon_type, fanout và khối template v4. Bỏ nhóm nào thì hại đúng kịch bản của nhóm đó, khớp với SHAP.
+- **Bỏ rhythm giúp cả ba mô hình,** đúng như SHAP dự đoán.
+- **Bỏ cả 8 đặc trưng time mà off_hours không đổi.** Điểm mù này cần đặc trưng mới, không chữa được bằng cách chỉnh bộ hiện có.
+- **Kiểm tra một lần trên test xác nhận bộ 30** ở cả ba mô hình, và mức tăng vượt đối chứng:
+  - PR-AUC OCSVM 0,170 → 0,192, IF 0,066 → 0,089, LOF 0,048 → 0,064;
+  - không kịch bản nào tụt rõ.
+
+📄 Đọc: `reports/week5/ablation_nhom_dac_trung.md`. Số liệu ở `experiments/ablation/feature_groups/` (dev) và `experiments/ablation/feature_groups_test/` (test).
+
+## 6. Bảng benchmark cuối (lưới test chính thức, 30 đặc trưng)
+
+5 run test, cấu hình chốt từ dev, dòng sắp cố định. Lưới tuần 4 với 41 đặc trưng giữ nguyên để so sánh.
+
+| Mô hình | PR-AUC | ROC-AUC | Recall top-100/ngày | PR-AUC 41 đặc trưng (tuần 4) |
+|---|---|---|---|---|
+| **OCSVM** | **0,192 ± 0,016** | 0,911 | **0,376** | 0,182 ± 0,023 |
+| IF | 0,089 ± 0,006 | 0,913 | 0,209 | 0,065 ± 0,003 |
+| LOF | 0,062 ± 0,004 | 0,701 | 0,147 | 0,047 ± 0,004 |
+| z-score (baseline tốt nhất) | 0,032 ± 0,003 | 0,743 | 0,075 | — |
+| ngẫu nhiên | 0,010 | 0,503 | 0,014 | — |
+
+- **Thứ hạng giữ nguyên:** OCSVM > IF > LOF > mọi baseline.
+- **IF và LOF tăng khoảng 35% PR-AUC.**
+- **Mức tăng PR-AUC của OCSVM so với bảng tuần 4 nằm trong 1 std.** Lý do: lưới tuần 4 chưa sắp dòng. So cùng quy trình thì OCSVM tăng 0,170 → 0,192.
+- **Recall top-100/ngày tăng ở cả ba mô hình.** Ở ngân sách cảnh báo 1–2%, OCSVM bắt thêm khoảng 4 điểm % nạn nhân mà precision không đổi.
+- **Thiệt hại duy nhất đáng kể:** dormant_wakeup của LOF, ROC-AUC 0,60 → 0,52.
+- **off_hours và password_spraying vẫn là điểm mù.**
+- `configs/feature_schema.yaml` **chưa đổi.** Bộ 30 đặc trưng được chọn qua `drop_features` trong `configs/benchmark_grid_test_30f.yaml`.
+
+📄 Đọc: `reports/week5/benchmark_30_dac_trung.md`. Kết quả ở `experiments/grid/test_30f/`.
+
+## 7. Kiểm tra chạy lại
+
+- **Clone sạch nhánh `feature/target-rate-1pct` vào thư mục mới rồi chạy `pytest`:** 252 passed, 2 skipped.
+  - Hai test bị bỏ qua cần `data/processed/feature_matrix_processed.parquet`. File này tải từ Google Drive (README §6), không nằm trong Git.
+  - Bản clone không cần file nào ngoài Git để chạy test.
+- **Giới hạn:** lần này dùng lại môi trường Python của máy hiện tại, chưa phải máy sạch thật. Cần một bạn cài lại theo README §2 (conda hoặc venv) trên máy khác.
+- **README** đã thêm mục "Tuần 5" với lệnh chạy lại từng thí nghiệm.
+
+## Đối chiếu sản phẩm tuần 5 (đề cương, mục 4)
+
+| Sản phẩm | Trạng thái |
+|---|---|
+| Bảng phân tích theo loại bất thường | ✅ Mục 2 và mục 6 |
+| Báo cáo review top 50 | ⏳ Đã có bộ thẻ làm mù và bản chấm của Claude. **Còn thiếu hai bạn chấm độc lập và Cohen's κ** |
+| Kết quả ablation | ✅ Mục 4–6, kèm kiểm tra trên test và bảng benchmark cuối |
+| Xác nhận chạy lại được trên môi trường mới | ⚠️ Clone sạch chạy được toàn bộ test. Còn thiếu cài trên máy sạch thật |
+| Dọn mã, bổ sung README | ⚠️ Đã thêm mục tuần 5 vào README. Phần mô tả đặc trưng trong README vẫn ghi schema v4.0 với 39 đặc trưng, cần cập nhật |
+
+## Việc còn lại
 
 1. **Review top 50:** hai bạn chấm độc lập.
    - Đọc `docs/huong_dan_review_top50.md` và các thẻ trong `experiments/analysis/review_top50/alert_cards.html`.
    - Ghi nhãn vào `review_sheet.csv`.
    - Chạy `python scripts/evaluation/review_agreement.py` để có Cohen's κ, thống nhất các cảnh báo hai bạn chấm khác nhau, rồi cập nhật `review_top50.md`.
-2. **Ablation theo nhóm đặc trưng** (bỏ từng nhóm, đo đóng góp): chỉ cần 10 ma trận đặc trưng sẵn có.
-3. **Dọn mã, bổ sung README, kiểm tra chạy lại trên máy sạch.**
-4. **Đề xuất cho tuần sau:**
+2. **Cài lại trên máy sạch** theo README §2, chạy `pytest` và một lệnh thí nghiệm, rồi ghi kết quả vào mục 7.
+3. **Chờ quyết định:** chuyển 11 đặc trưng sang `reserve:` trong `feature_schema.yaml` (schema v4.2, 30 core).
+   - Khi đó mọi pipeline dùng bộ 30 mà không cần `drop_features`.
+   - Cập nhật luôn bảng đặc trưng trong README.
+4. **Đề xuất cho tuần 6** (báo cáo kỹ thuật dùng bảng ở mục 6):
    - đặc trưng fan-out theo nguồn cho spraying;
-   - đặc trưng giờ tách khỏi khối lượng cho off_hours;
-   - làm mượt tỷ lệ khi khối lượng nhỏ, để giảm nhiễu trong top cảnh báo.
+   - đặc trưng giờ so với lịch sử giờ của chính tài khoản, cho off_hours;
+   - làm mượt tỷ lệ khi khối lượng nhỏ, để giảm nhiễu trong top cảnh báo;
+   - dò lại k của LOF và số thành phần OCSVM với 30 đặc trưng, nếu còn thời gian.

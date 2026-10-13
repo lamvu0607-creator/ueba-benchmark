@@ -127,3 +127,20 @@ def test_mean_pr_curve_averages_precision_on_common_recall_grid():
     assert df["precision"].tolist() == pytest.approx([0.75, 2 / 3])
     assert df["precision_std"].iloc[0] == pytest.approx(np.std([1, 0.5], ddof=1))
     assert (df["n_seeds"] == 2).all()
+
+
+def test_run_grid_drop_features_only_for_ml(grid_setup):
+    cpath, sys_path, _ = grid_setup
+    cfg = yaml.safe_load(cpath.read_text(encoding="utf-8"))
+    cfg.update(drop_features=FEATURES[:3], sort_rows=True, contamination_sweep=[0.2])
+    cpath.write_text(yaml.safe_dump(cfg), encoding="utf-8")
+    log_path = cpath.parent / "log_drop.csv"
+    run_grid(cpath, system_config_path=sys_path, formats=["png"], experiment_log=log_path)
+    log = pd.read_csv(log_path)
+    ml = log["model_key"].isin(["isolation_forest", "one_class_svm"])
+    assert (log.loc[ml, "n_features"] == len(FEATURES) - 3).all()
+    assert (log.loc[~ml, "n_features"] != len(FEATURES) - 3).all()  # baseline không bị bỏ đặc trưng
+    cfg["drop_features"] = ["khong_co_dac_trung_nay"]
+    cpath.write_text(yaml.safe_dump(cfg), encoding="utf-8")
+    with pytest.raises(ValueError, match="drop_features"):
+        run_grid(cpath, system_config_path=sys_path, formats=["png"], experiment_log=None)
