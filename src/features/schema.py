@@ -58,12 +58,18 @@ class FeatureSchema:
     def feature_definitions(self) -> Dict[str, Dict[str, Any]]:
         return {f["name"]: f for f in self.raw_schema.get("features", [])}
 
+    @property
+    def feature_dtypes(self) -> Dict[str, str]:
+        """Tên đặc trưng -> kiểu dữ liệu khai báo trong schema (float64 / int32 / uint32 / uint8)."""
+        return {f["name"]: f["dtype"] for f in self.raw_schema.get("features", []) if "dtype" in f}
+
     def validate_features(self, df: pl.DataFrame) -> Dict[str, Any]:
         """
         Kiểm tra ma trận đặc trưng đối chiếu với hợp đồng:
         - Có đủ khoá danh tính không?
         - Có đủ các đặc trưng cốt lõi (hoặc biến thể thô tương ứng) không?
         - Các tỷ lệ (ratios) có nằm trong khoảng [0, 1] không?
+        - Cột có mặt có đúng họ kiểu khai báo (số thực / số nguyên) không?
         """
         cols = set(df.columns)
         missing_keys = [k for k in self.identity_keys if k not in cols]
@@ -80,11 +86,23 @@ class FeatureSchema:
                 if min_v < -1e-6 or max_v > 1.0 + 1e-6:
                     invalid_ratios[rc] = {"min": min_v, "max": max_v}
 
+        # Kiểu dữ liệu: so theo họ (số thực / số nguyên), không so độ rộng bit
+        dtype_mismatch = {}
+        for name, want in self.feature_dtypes.items():
+            if name not in cols:
+                continue
+            got = df.schema[name]
+            ok = got.is_float() if want.startswith("float") else got.is_integer()
+            if not ok:
+                dtype_mismatch[name] = {"expected": want, "actual": str(got)}
+
         return {
-            "is_valid": len(missing_keys) == 0 and len(missing_label) == 0 and len(invalid_ratios) == 0,
+            "is_valid": (len(missing_keys) == 0 and len(missing_label) == 0 and len(invalid_ratios) == 0
+                         and len(dtype_mismatch) == 0),
             "missing_keys": missing_keys,
             "missing_label": missing_label,
             "invalid_ratios": invalid_ratios,
+            "dtype_mismatch": dtype_mismatch,
             "row_count": df.height,
             "column_count": df.width,
         }

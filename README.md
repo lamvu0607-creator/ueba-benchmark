@@ -34,7 +34,7 @@ ueba-benchmark/
 ├── main.py                         # Entrypoint điều phối toàn bộ pipeline
 ├── configs/
 │   ├── system_config.yaml          # Cấu hình đường dẫn 4 tầng data, seed, bộ lọc account
-│   ├── feature_schema.yaml         # Hợp đồng đặc trưng v4 (39 core features, transforms)
+│   ├── feature_schema.yaml         # Hợp đồng đặc trưng v4.1 (41 core features, dtype, transforms)
 │   └── model_params.yaml           # Siêu tham số cho IForest, LOF, OCSVM & Baselines
 ├── data/                           # Quản lý 4 tầng dữ liệu theo chuẩn Data Lakehouse
 │   ├── raw/                        # Tầng 1: Log sự kiện gốc (EVTX / CSV / Parquet / JSON)
@@ -161,6 +161,19 @@ python main.py --stage baselines               # -> experiments/results/baseline
 python main.py --stage benchmark               # tuỳ chọn: chạy lại các mô hình ML
 ```
 
+**Tái lập benchmark cuối bằng một lệnh** (gồm các bước trên, tiêm 5 run test, lưới bộ 22 đặc trưng và đối chiếu số):
+
+```bash
+python scripts/reproduce.py                  # đầy đủ; --skip-existing bỏ qua bước đã có đầu ra
+```
+
+Kết quả ghi vào `experiments/reproduce/test_22f/`, kèm `reproduce_check.csv` so từng chỉ số với
+`experiments/grid/test_22f/grid_summary.csv` (đạt khi sai lệch tương đối ≤ 1%). Lệnh tốn nhiều giờ (tính lại đặc
+trưng 60 ngày, 5 run tiêm, lưới khoảng 50 phút). **LOF không tất định:** chỉ mục HNSW dựng đa luồng
+(`n_jobs: -1` trong `configs/model_params.yaml`), fit lại lệch khoảng ±0,003 recall top-100/ngày trên test (khoảng 2%
+tương đối), nên LOF được so với ngưỡng 5%; OCSVM, IF và các baseline tất định. Muốn LOF tất định thì đặt `n_jobs: 1`
+(chậm hơn) và chạy lại lưới.
+
 Hai con số để đối chiếu với máy khác:
 - bản tóm tắt hồ sơ train ra **29.830 tài khoản, 15.946 máy, L = 5**;
 - `experiments/results/baselines/rule_event_stats.json` có `"injected_events_dir": null`.
@@ -185,7 +198,7 @@ python main.py --stage all
 # 1. Chỉ làm sạch dữ liệu thô (raw -> interim)
 python main.py --stage clean
 
-# 2. Trích xuất và chuẩn hóa 39 đặc trưng hành vi cốt lõi (interim -> features -> processed)
+# 2. Trích xuất và chuẩn hóa 41 đặc trưng hành vi cốt lõi (interim -> features -> processed)
 python main.py --stage features
 
 # 2b. Trích xuất đặc trưng cho dải ngày cụ thể (ví dụ: Day 1 đến Day 10)
@@ -234,7 +247,7 @@ Xem [hướng dẫn vẽ biểu đồ tuần 4](docs/week4_result_plots.md).
 
 ---
 
-## 4. Danh sách 39 Đặc trưng hành vi cốt lõi (Feature Schema v4.0)
+## 4. Danh sách 41 Đặc trưng hành vi cốt lõi (Feature Schema v4.1)
 
 Bộ đặc trưng được chuẩn hóa theo hợp đồng [`configs/feature_schema.yaml`](configs/feature_schema.yaml) sau quá trình phân tích tương quan Spearman, kiểm soát đa cộng tuyến (VIF) và phễu lọc 2 vòng.
 
@@ -246,51 +259,55 @@ Bộ đặc trưng được chuẩn hóa theo hợp đồng [`configs/feature_sc
   * **Cổng B (Thông tin):** Loại bỏ biến có tỷ lệ NULL $> 50\%$ hoặc hằng số $> 99\%$.
   * **Cổng A (Đa cộng tuyến):** Yêu cầu $\max(|\text{Pearson}|, |\text{Spearman}|) < 0,85$ với 24 core và các biến đã chọn.
   * **Cổng C (Phân tách kịch bản):** Kiểm tra khả năng phát hiện trên 7 kịch bản tiêm bất thường ($\text{AUC} \ge 0,70$).
-* **Chốt quy mô (VIF $\le 10$):** Chốt **15 đặc trưng mới** vào core (nâng từ 24 lên **39 core features**) và 11 biến vào danh sách dự bị (`reserve:`). Chi tiết phương pháp luận: [`docs/reports/bao_cao_bo_dac_trung_v4.md`](docs/reports/bao_cao_bo_dac_trung_v4.md).
+* **Chốt quy mô (VIF $\le 10$):** Chốt **15 đặc trưng mới** vào core (nâng từ 24 lên 39, schema v4.0) và 11 biến vào danh sách dự bị (`reserve:`). **v4.1** đưa thêm 2 biến dự bị vào core (`delta_mean_share_night_7d`, `novelty_logontype_7d`), thành **41 core**. Chi tiết phương pháp luận: [`docs/reports/bao_cao_bo_dac_trung_v4.md`](docs/reports/bao_cao_bo_dac_trung_v4.md).
 
-| STT | Tên đặc trưng | Nhóm | Mô tả ý nghĩa an toàn thông tin |
-| :---: | :--- | :--- | :--- |
-| 1 | `log_total_logons` | Volume | $\log(1 + \text{tổng sự kiện trong ngày})$, phản ánh cường độ hoạt động tổng thể |
-| 2 | `failure_ratio` | Failure | Tỷ lệ đăng nhập thất bại ($\text{failures} / \text{total}$), chỉ báo brute force/dò mật khẩu |
-| 3 | `failure_locked_out_share` | Failure | Tỷ trọng sự kiện khóa tài khoản trong tổng số lần thất bại (tín hiệu lockout) |
-| 4 | `off_hours_ratio` | Time | Tỷ lệ đăng nhập ngoài giờ hành chính (cửa sổ 18h - 7h sáng) |
-| 5 | `interarrival_dt_mean` | Rhythm | Khoảng cách thời gian trung bình (giây) giữa 2 sự kiện liên tiếp của tài khoản |
-| 6 | `delta_t_cv` | Rhythm | Hệ số biến thiên khoảng cách thời gian ($\text{std} / \text{mean}$), đo tính tuần hoàn/đều đặn |
-| 7 | `same_second_share` | Rhythm | Tỷ lệ sự kiện diễn ra cùng giây ($\Delta t = 0$), phát hiện đăng nhập tự động dạng script/bot |
-| 8 | `is_single_event` | Rhythm | Cờ nhị phân đánh dấu tài khoản chỉ có duy nhất 1 sự kiện trong ngày |
-| 9 | `interactive_ratio` | Logon Type | Tỷ lệ đăng nhập tương tác cục bộ (`LogonType 2`) |
-| 10 | `rare_logon_type_count_log` | Logon Type | $\log(1 + \text{số sự kiện có kiểu hiếm})$, bao gồm Remote Desktop (Type 10), RunAs (Type 9) |
-| 11 | `ntlm_ratio` | Auth | Tỷ lệ sử dụng giao thức xác thực NTLM (thường tương quan cao với các bất thường) |
-| 12 | `log_distinct_hosts` | Fan-out | $\log(1 + \text{số máy trạm đích duy nhất})$, phát hiện dò quét mạng (lateral movement) |
-| 13 | `distinct_sources_count` | Fan-out | Số lượng máy nguồn duy nhất thực hiện đăng nhập vào tài khoản |
-| 14 | `missing_source_ratio` | Context | Tỷ lệ sự kiện khuyết thông tin Source (chỉ báo chất lượng dữ liệu / nguồn ẩn danh) |
-| 15 | `remote_logon_ratio` | Context | Tỷ lệ đăng nhập từ xa ($\text{Source} \neq \text{LogHost}$) |
-| 16 | `custom_proc_share` | Context | Tỷ lệ đăng nhập phát sinh từ tiến trình ẩn danh / ứng dụng tùy biến |
-| 17 | `activity_peak_hour_sin` | Rhythm (v3.0) | $\sin(2\pi \cdot h_{\text{peak}} / 24)$ — giờ cao điểm mã hoá chu kỳ |
-| 18 | `activity_peak_hour_cos` | Rhythm (v3.0) | $\cos(2\pi \cdot h_{\text{peak}} / 24)$ — cặp với #17 (sin/cos phải đi cùng nhau) |
-| 19 | `hour_entropy` | Rhythm (v3.0) | Pielou evenness $H / \ln(S)$ của phân bố sự kiện trên các khung giờ có mặt (độ trải đều nhịp) |
-| 20 | `dst_host_entropy` | Fan-out (v3.0) | Pielou evenness của phân bố sự kiện theo `LogHost` (độ tập trung/trải đều đích kết nối) |
-| 21 | `new_source_count_7d` | Novelty (v3.0) | Số máy nguồn ngày t chưa từng thấy trong 7 ngày lịch trước đó |
-| 22 | `new_host_count_7d` | Novelty (v3.0) | Số máy đích ngày t chưa từng thấy trong 7 ngày lịch trước đó |
-| 23 | `days_since_last_activity` | Novelty (v3.0) | Số ngày kể từ phiên hoạt động trước đó (bắt tài khoản ngủ đông thức dậy) |
-| 24 | `volume_robust_z_7d` | Deviation (v3.0) | z bền vững của $\ln(1+\text{volume})$ so với 7 ngày trước (winsorize $\pm 10$) |
-| **25** | **`delta_mean_share_fail_7d`** | **Failure (v4.0)** | Tỷ lệ thất bại hôm nay trừ trung bình 7 ngày trước (Brute-force, AUC 0,999) |
-| **26** | **`delta_mean_distinct_fail_host_7d`** | **Failure (v4.0)** | $\log(1 + \text{đích thất bại})$ hôm nay trừ trung bình 7 ngày trước (Spraying, AUC 0,990) |
-| **27** | **`novelty_fail_host_7d`** | **Failure (v4.0)** | Số máy đích bị đăng nhập thất bại mới xuất hiện so với 7 ngày trước (Spraying, AUC 0,987) |
-| **28** | **`novelty_fail_failreason_7d`** | **Failure (v4.0)** | Số lý do thất bại mới xuất hiện so với 7 ngày trước (Brute-force, AUC 0,728) |
-| **29** | **`delta_mean_distinct_source_7d`** | **Fan-out (v4.0)** | $\log(1 + \text{số máy nguồn})$ hôm nay trừ trung bình 7 ngày trước (Burst, AUC 1,000) |
-| **30** | **`jaccard_source_7d`** | **Novelty (v4.0)** | Độ trùng Jaccard giữa tập máy nguồn hôm nay và 7 ngày trước (Burst, AUC 0,995) |
-| **31** | **`peer_z_distinct_source`** | **Peer (v4.0)** | z bền vững số máy nguồn so với các tài khoản cùng loại trong ngày (Burst, AUC 1,000) |
-| **32** | **`dist_shift_hour_7d`** | **Time (v4.0)** | Khoảng cách Total Variation của phân bố giờ hôm nay so với 7 ngày trước (Off-hours, AUC 0,987) |
-| **33** | **`jaccard_hour_7d`** | **Time (v4.0)** | Độ trùng Jaccard giữa tập giờ hoạt động hôm nay và 7 ngày trước (Off-hours, AUC 0,984) |
-| **34** | **`peer_z_share_night`** | **Peer (v4.0)** | z bền vững tỷ lệ ngoài giờ so với các tài khoản cùng loại trong ngày (Off-hours, AUC 0,980) |
-| **35** | **`delta_mean_distinct_pair_7d`** | **Lateral (v4.0)** | $\log(1 + \text{số cặp nguồn-đích})$ hôm nay trừ trung bình 7 ngày trước (Lateral fan-out, AUC 1,000) |
-| **36** | **`novelty_share_pair_7d`** | **Lateral (v4.0)** | Tỷ lệ sự kiện đi qua cặp nguồn-đích mới so với 7 ngày trước (Lateral fan-out, AUC 0,990) |
-| **37** | **`delta_mean_count_7d`** | **Volume (v4.0)** | $\log(1 + \text{volume})$ hôm nay trừ trung bình 7 ngày trước (Dormant wakeup, AUC 0,999) |
-| **38** | **`dist_shift_logontype_7d`** | **Logon Type (v4.0)**| Total Variation của cơ cấu loại logon hôm nay so với 7 ngày trước (Logon switch, AUC 1,000) |
-| **39** | **`jaccard_logontype_7d`** | **Logon Type (v4.0)**| Độ trùng Jaccard của tập loại logon hôm nay so với 7 ngày trước (Logon switch, AUC 1,000) |
+Cột **Nhóm** là 8 nhóm theo nghĩa dùng trong phân tích SHAP tuần 5 (`src/evaluation/feature_groups.py`). Cột **Kiểu** là kiểu dữ liệu khai báo trong schema (trường `dtype`), được `FeatureSchema.validate_features` kiểm tra. Cột **Bộ 22** đánh dấu 22 đặc trưng mô hình ML dùng trong benchmark cuối tuần 5 (K = 18): 19 đặc trưng còn lại bị bỏ qua `drop_features` trong [`configs/benchmark_grid_test_22f.yaml`](configs/benchmark_grid_test_22f.yaml), schema vẫn giữ đủ 41 core. Căn cứ: [`reports/week5/bao_cao_tuan5.md`](reports/week5/bao_cao_tuan5.md) mục 3–5.
 
-> **Ghi chú về thiết kế:** Bộ 39 đặc trưng v4.0 bảo đảm tính nhân quả (causality) tuyệt đối khi chỉ sử dụng dữ liệu $\le t-1$ cho các đặc trưng lịch sử (riêng `peer_z` tính lát cắt ngang trong ngày $t$ theo `entity_type`). Toàn bộ 39 đặc trưng đều đạt VIF $\le 8,52$ (không còn đa cộng tuyến), max $|\rho| < 0,85$, và phủ kín 7 kịch bản tấn công UEBA với AUC $\ge 0,98$.
+| STT | Tên đặc trưng | Nhóm | Kiểu | Bộ 22 | Mô tả ý nghĩa an toàn thông tin |
+| :---: | :--- | :--- | :--- | :---: | :--- |
+| 1 | `log_total_logons` | volume | float64 | — | $\log(1 + \text{tổng sự kiện trong ngày})$, phản ánh cường độ hoạt động tổng thể |
+| 2 | `failure_ratio` | failure | float64 | ✓ | Tỷ lệ đăng nhập thất bại ($\text{failures} / \text{total}$), chỉ báo brute force/dò mật khẩu |
+| 3 | `failure_locked_out_share` | failure | float64 | ✓ | Tỷ trọng sự kiện khóa tài khoản trong tổng số lần thất bại (tín hiệu lockout) |
+| 4 | `off_hours_ratio` | time | float64 | — | Tỷ lệ đăng nhập ngoài giờ hành chính (cửa sổ 18h - 7h sáng) |
+| 5 | `interarrival_dt_mean` | rhythm | float64 | — | Khoảng cách thời gian trung bình (giây) giữa 2 sự kiện liên tiếp của tài khoản |
+| 6 | `delta_t_cv` | rhythm | float64 | — | Hệ số biến thiên khoảng cách thời gian ($\text{std} / \text{mean}$), đo tính tuần hoàn/đều đặn |
+| 7 | `same_second_share` | rhythm | float64 | — | Tỷ lệ sự kiện diễn ra cùng giây ($\Delta t = 0$), phát hiện đăng nhập tự động dạng script/bot |
+| 8 | `is_single_event` | rhythm | uint8 | — | Cờ nhị phân đánh dấu tài khoản chỉ có duy nhất 1 sự kiện trong ngày |
+| 9 | `activity_peak_hour_sin` | time | float64 | — | $\sin(2\pi \cdot h_{\text{peak}} / 24)$ — giờ cao điểm mã hoá chu kỳ |
+| 10 | `activity_peak_hour_cos` | time | float64 | ✓ | $\cos(2\pi \cdot h_{\text{peak}} / 24)$ — cặp với #17 (sin/cos phải đi cùng nhau) |
+| 11 | `hour_entropy` | time | float64 | ✓ | Pielou evenness $H / \ln(S)$ của phân bố sự kiện trên các khung giờ có mặt (độ trải đều nhịp) |
+| 12 | `interactive_ratio` | logon_type | float64 | ✓ | Tỷ lệ đăng nhập tương tác cục bộ (`LogonType 2`) |
+| 13 | `rare_logon_type_count_log` | logon_type | float64 | — | $\log(1 + \text{số sự kiện có kiểu hiếm})$, bao gồm Remote Desktop (Type 10), RunAs (Type 9) |
+| 14 | `ntlm_ratio` | logon_type | float64 | ✓ | Tỷ lệ sử dụng giao thức xác thực NTLM (thường tương quan cao với các bất thường) |
+| 15 | `log_distinct_hosts` | fanout | float64 | — | $\log(1 + \text{số máy trạm đích duy nhất})$, phát hiện dò quét mạng (lateral movement) |
+| 16 | `distinct_sources_count` | fanout | uint32 | ✓ | Số lượng máy nguồn duy nhất thực hiện đăng nhập vào tài khoản |
+| 17 | `dst_host_entropy` | fanout | float64 | — | Pielou evenness của phân bố sự kiện theo `LogHost` (độ tập trung/trải đều đích kết nối) |
+| 18 | `missing_source_ratio` | context | float64 | — | Tỷ lệ sự kiện khuyết thông tin Source (chỉ báo chất lượng dữ liệu / nguồn ẩn danh) |
+| 19 | `remote_logon_ratio` | context | float64 | — | Tỷ lệ đăng nhập từ xa ($\text{Source} \neq \text{LogHost}$) |
+| 20 | `new_source_count_7d` | novelty | int32 | ✓ | Số máy nguồn ngày t chưa từng thấy trong 7 ngày lịch trước đó |
+| 21 | `new_host_count_7d` | novelty | int32 | — | Số máy đích ngày t chưa từng thấy trong 7 ngày lịch trước đó |
+| 22 | `days_since_last_activity` | novelty | int32 | ✓ | Số ngày kể từ phiên hoạt động trước đó (bắt tài khoản ngủ đông thức dậy) |
+| 23 | `volume_robust_z_7d` | volume | float64 | — | z bền vững của $\ln(1+\text{volume})$ so với 7 ngày trước (winsorize $\pm 10$) |
+| 24 | `custom_proc_share` | context | float64 | — | Tỷ lệ đăng nhập phát sinh từ tiến trình ẩn danh / ứng dụng tùy biến |
+| 25 | `delta_mean_share_fail_7d` | failure | float64 | ✓ | Tỷ lệ thất bại hôm nay trừ trung bình 7 ngày trước (Brute-force, AUC 0,999) |
+| 26 | `delta_mean_distinct_fail_host_7d` | failure | float64 | — | $\log(1 + \text{đích thất bại})$ hôm nay trừ trung bình 7 ngày trước (Spraying, AUC 0,990) |
+| 27 | `novelty_fail_host_7d` | failure | float64 | ✓ | Số máy đích bị đăng nhập thất bại mới xuất hiện so với 7 ngày trước (Spraying, AUC 0,987) |
+| 28 | `novelty_fail_failreason_7d` | failure | float64 | ✓ | Số lý do thất bại mới xuất hiện so với 7 ngày trước (Brute-force, AUC 0,728) |
+| 29 | `delta_mean_distinct_source_7d` | fanout | float64 | ✓ | $\log(1 + \text{số máy nguồn})$ hôm nay trừ trung bình 7 ngày trước (Burst, AUC 1,000) |
+| 30 | `jaccard_source_7d` | novelty | float64 | ✓ | Độ trùng Jaccard giữa tập máy nguồn hôm nay và 7 ngày trước (Burst, AUC 0,995) |
+| 31 | `peer_z_distinct_source` | fanout | float64 | ✓ | z bền vững số máy nguồn so với các tài khoản cùng loại trong ngày (Burst, AUC 1,000) |
+| 32 | `dist_shift_hour_7d` | time | float64 | ✓ | Khoảng cách Total Variation của phân bố giờ hôm nay so với 7 ngày trước (Off-hours, AUC 0,987) |
+| 33 | `jaccard_hour_7d` | time | float64 | ✓ | Độ trùng Jaccard giữa tập giờ hoạt động hôm nay và 7 ngày trước (Off-hours, AUC 0,984) |
+| 34 | `peer_z_share_night` | time | float64 | — | z bền vững tỷ lệ ngoài giờ so với các tài khoản cùng loại trong ngày (Off-hours, AUC 0,980) |
+| 35 | `delta_mean_distinct_pair_7d` | fanout | float64 | — | $\log(1 + \text{số cặp nguồn-đích})$ hôm nay trừ trung bình 7 ngày trước (Lateral fan-out, AUC 1,000) |
+| 36 | `novelty_share_pair_7d` | novelty | float64 | ✓ | Tỷ lệ sự kiện đi qua cặp nguồn-đích mới so với 7 ngày trước (Lateral fan-out, AUC 0,990) |
+| 37 | `delta_mean_count_7d` | volume | float64 | ✓ | $\log(1 + \text{volume})$ hôm nay trừ trung bình 7 ngày trước (Dormant wakeup, AUC 0,999) |
+| 38 | `dist_shift_logontype_7d` | logon_type | float64 | ✓ | Total Variation của cơ cấu loại logon hôm nay so với 7 ngày trước (Logon switch, AUC 1,000) |
+| 39 | `jaccard_logontype_7d` | logon_type | float64 | — | Độ trùng Jaccard của tập loại logon hôm nay so với 7 ngày trước (Logon switch, AUC 1,000) |
+| 40 | `delta_mean_share_night_7d` | time | float64 | ✓ | Tỷ lệ sự kiện ban đêm hôm nay trừ trung bình 7 ngày trước (Off-hours, v4.1) |
+| 41 | `novelty_logontype_7d` | logon_type | float64 | ✓ | Số loại logon mới xuất hiện so với 7 ngày trước (Logon switch, v4.1) |
+
+> **Ghi chú về thiết kế:** Các đặc trưng lịch sử chỉ dùng dữ liệu $\le t-1$ (riêng `peer_z` tính lát cắt ngang trong ngày $t$ theo `entity_type`). Bộ 39 đặc trưng v4.0 đạt VIF $\le 8,52$ và max $|\rho| < 0,85$; chi tiết phễu chọn ở [`docs/reports/bao_cao_bo_dac_trung_v4.md`](docs/reports/bao_cao_bo_dac_trung_v4.md).
 
 ---
 
