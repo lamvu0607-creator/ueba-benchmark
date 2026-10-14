@@ -601,35 +601,13 @@ Hướng dẫn chấm: [`docs/huong_dan_review_top50.md`](../../docs/huong_dan_r
 
 | Bộ | Mô hình | Số cảnh báo | Người chấm | Trạng thái |
 |---|---|---|---|---|
-| `review_top50` | 41 đặc trưng, OCSVM `nc1000` | 137 | 1 (bản chấm mốc) | Đã chấm |
 | **`review_top50_22f`** | **22 đặc trưng, OCSVM `g01`** | **148** | **2 thực tập sinh, độc lập** | **Chưa chấm** |
 
 > ⚠️ **Mục này chưa hoàn chỉnh.** Đề cương yêu cầu hai thực tập sinh chấm độc lập rồi đo đồng thuận (Cohen's κ, chạy
-> `python scripts/evaluation/review_agreement.py`). Khi có nhãn của bộ 22 đặc trưng, bảng 6.1 cần được thay bằng nhãn
-> thống nhất và bổ sung κ. Kết quả dưới đây là của bộ 41 đặc trưng, một người chấm, chỉ dùng làm mốc đối chiếu.
+> `python scripts/evaluation/review_agreement.py`). Khi có nhãn của hai người, mục này cần bổ sung bảng
+> phân loại a/b/c theo mô hình, κ và nhận xét.
 
-### 6.3. Kết quả mốc (41 đặc trưng, một người chấm)
-
-**Bảng 6.1: Phân loại top 50 cảnh báo của mỗi mô hình trên log gốc**
-
-| Mô hình | a — đáng ngờ | b — giải thích được | c — nhiễu | Số tài khoản khác nhau |
-|---|---|---|---|---|
-| **OCSVM** | **19** (11 tài khoản) | 29 | **2** | 23 |
-| IF | 19 (19 tài khoản) | 5 | 26 | 50 |
-| LOF | 10 (3 tài khoản) | 1 | 39 | 43 |
-
-**Nhận xét:**
-1. **OCSVM gần như không báo nhiễu (2/50)**; nửa đầu danh sách giàu cảnh báo đáng ngờ nhất (15/25). Đổi lại cảnh báo dồn
-   vào ít tài khoản. Cảnh báo đáng giá nhất là một tài khoản đăng nhập NTLM 0,1–1,9 triệu lần/ngày tới 600–1.600 máy mới,
-   có hàng nghìn lỗi "Unknown user name": hoặc máy quét được phép, hoặc di chuyển ngang diện rộng.
-2. **IF tìm được nhiều tài khoản đáng ngờ khác nhau nhất** (19 tài khoản) nhưng một nửa là nhiễu: các ngày có 1–6 sự kiện
-   mà phần lớn thất bại (`failure_ratio` = 1).
-3. **LOF chủ yếu là nhiễu (39/50)**: các ngày 1–3 sự kiện của tài khoản mới (cold start).
-4. **Khớp với nhãn tổng hợp:** OCSVM tốt nhất cả trên dữ liệu tiêm lẫn trên log thật (tỷ lệ nhiễu thấp nhất); IF hữu ích như mô hình phụ.
-5. **Hai mẫu nhiễu gợi ý sửa đặc trưng:** tỷ lệ trên khối lượng rất nhỏ (nên co tỷ lệ về trung bình khi số sự kiện ít) và
-   cold start (tài khoản ≤ 4 ngày lịch sử nên gắn cờ riêng).
-
-📁 [`reports/week5/review_top50.md`](../week5/review_top50.md) · [`experiments/analysis/review_top50_22f/`](../../experiments/analysis/review_top50_22f/)
+📁 [`experiments/analysis/review_top50_22f/`](../../experiments/analysis/review_top50_22f/)
 
 ---
 
@@ -648,7 +626,7 @@ Hướng dẫn chấm: [`docs/huong_dan_review_top50.md`](../../docs/huong_dan_r
 9. **Train dùng chung cho mọi run:** chỉ ngày chấm bị tiêm, nên độ lệch chuẩn không gồm biến động của train.
 10. **Ngưỡng theo phân vị train không giữ ngân sách** khi hành vi trôi: tỷ lệ cảnh báo thực tế cao hơn contamination 1,4–2,5 lần.
 11. **Đổi LogonType** chỉ có 5–8 nạn nhân/run theo đúng chiều 2 → 3/5 của đề cương.
-12. **Review thủ công** của bộ 22 đặc trưng chưa có nhãn của hai người; kết quả định tính hiện chỉ là bản mốc một người chấm.
+12. **Review thủ công** của bộ 22 đặc trưng chưa có nhãn của hai người, nên báo cáo chưa có kết quả định tính trên log thật.
 13. **Tái lập trên máy sạch chưa được thực hiện** (mục 9).
 
 ---
@@ -669,9 +647,8 @@ Hướng dẫn chấm: [`docs/huong_dan_review_top50.md`](../../docs/huong_dan_r
 1. **OCSVM StandardScaler, 1.000 thành phần Nystroem (`nc1000`)**, 22 đặc trưng. Lý do: recall top-100/ngày 0,373 ± 0,022,
    ổn định nhất trong các cấu hình OCSVM tốt; `g01` nhanh hơn 9 lần nhưng dao động lớn (mục 5.6). Nếu ràng buộc thời gian
    fit quan trọng hơn, dùng `g01` và theo dõi chặt chỉ số hằng ngày.
-2. **IF 300 cây, max_samples 1024** làm mô hình phụ: tìm được nhiều tài khoản đáng ngờ khác nhau hơn OCSVM trong review;
-   tốt hơn OCSVM ở dormant_wakeup và off_hours về ROC-AUC.
-3. **Không dùng LOF** ở cấu hình hiện tại: kém nhất trên nhãn tổng hợp, 39/50 cảnh báo là nhiễu trên log thật, và không tất định.
+2. **IF 300 cây, max_samples 1024** làm mô hình phụ: tốt hơn OCSVM ở dormant_wakeup và off_hours về ROC-AUC.
+3. **Không dùng LOF** ở cấu hình hiện tại: kém nhất trên nhãn tổng hợp và không tất định.
 4. **Kiểm tra thang đo sau tiền xử lý** mỗi khi đổi bộ đặc trưng (mục 5.2).
 
 ### 8.3. Ngân sách cảnh báo và chi phí vận hành
@@ -689,12 +666,9 @@ Khuyến nghị khởi đầu ở **khoảng 100 cảnh báo/ngày** (một anal
 ### 8.4. Vận hành và theo dõi
 
 1. **Huấn luyện lại định kỳ** (gợi ý hằng tuần) trên cửa sổ trượt; theo dõi tỷ lệ cảnh báo và phân bố điểm theo ngày để phát hiện trôi dữ liệu.
-2. **Loại trừ có kiểm soát:** tài khoản dịch vụ khối lượng lớn và chuỗi khoá tài khoản lặp lại hằng ngày (nhóm b trong review)
-   nên đưa vào danh sách loại trừ có hạn dùng, để không chiếm ngân sách.
-3. **Gắn cờ cold start:** tài khoản ≤ 4 ngày lịch sử nên được xử lý riêng.
-4. **Giải thích từng cảnh báo bằng SHAP** theo nhóm đặc trưng giúp analyst biết cảnh báo thuộc loại nào (thất bại, nguồn mới, loại logon, …).
-5. **Ưu tiên cải tiến tiếp theo:** đặc trưng fan-out theo máy nguồn (spraying), đặc trưng giờ so với lịch sử cá nhân (off_hours),
-   co tỷ lệ khi số sự kiện nhỏ (giảm nhiễu), rồi đánh giá trên tấn công thật nếu có (ví dụ `redteam.txt` của LANL).
+2. **Giải thích từng cảnh báo bằng SHAP** theo nhóm đặc trưng giúp analyst biết cảnh báo thuộc loại nào (thất bại, nguồn mới, loại logon, …).
+3. **Ưu tiên cải tiến tiếp theo:** đặc trưng fan-out theo máy nguồn (spraying), đặc trưng giờ so với lịch sử cá nhân (off_hours),
+   rồi đánh giá trên tấn công thật nếu có (ví dụ `redteam.txt` của LANL).
 
 ---
 
@@ -807,5 +781,5 @@ Công thức đầy đủ của cả 41 đặc trưng: [`configs/feature_schema.
 | Lưới dev / test (22 đặc trưng) | `experiments/grid/dev_22f/`, `experiments/grid/test_22f/`, `experiments/grid/test_22f_nc1000/` |
 | Lưới 41 đặc trưng (tuần 4) | `experiments/grid/dev/`, `experiments/grid/test/`, `reports/week4/tom_tat_tuan4.md` |
 | Theo kịch bản, SHAP, ablation, chọn K | `reports/week5/` (`bao_cao_tuan5.md` và các file chi tiết), `experiments/analysis/`, `experiments/ablation/` |
-| Review top 50 | `reports/week5/review_top50.md`, `experiments/analysis/review_top50*/` |
+| Review top 50 | `experiments/analysis/review_top50_22f/` (chưa chấm) |
 | Nhật ký thí nghiệm | `experiments/logs/experiment_log.csv` |
