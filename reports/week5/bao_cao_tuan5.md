@@ -78,7 +78,7 @@ ROC-AUC dùng ở đây vì bảng theo kịch bản của thí nghiệm cửa s
 | Thời gian bước ghép lịch sử | mốc | ~200 s | ~570 s |
 | RAM | mốc | gần gấp đôi (lần đầu chạy bị dừng vì thiếu RAM) | cao hơn nữa |
 
-![So sánh 3 cửa sổ](figures/window_comparison.png)
+![So sánh 3 cửa sổ](figures/01-window_comparison.png)
 
 **Đọc biểu đồ:** trục ngang là độ dài cửa sổ, mỗi đường là một mô hình, thanh sai số là ±1 std qua 5 seed. OCSVM và IF gần như nằm ngang rồi đi xuống ở 21 ngày; LOF rơi mạnh ngay từ 14 ngày.
 
@@ -114,7 +114,7 @@ Không chạy 28 ngày vì xu hướng đã đi xuống từ 21 ngày, và khi �
 
 Mô hình ngẫu nhiên đạt khoảng 0,014 ở mọi kịch bản.
 
-![Recall theo kịch bản](figures/scenario_recall_heatmap.png)
+![Recall theo kịch bản](figures/02-scenario_recall_heatmap.png)
 
 **Đọc biểu đồ:** mỗi ô là recall top-100/ngày (cùng số với bảng 2.1), màu càng đậm thì bắt được càng nhiều. Hàng OCSVM đậm nhất ở 4/6 cột. Cột off_hours nhạt ở mọi hàng.
 
@@ -126,7 +126,7 @@ Hạng tính theo % từ trên xuống của danh sách xếp hạng; càng nh�
 |---|---|---|---|---|---|
 | top 0,8% | top 1,2% | top 1,8% | top 4,0% | top 7,7% | top 26% |
 
-![Hạng của nạn nhân](figures/victim_rank_boxplot.png)
+![Hạng của nạn nhân](figures/03-victim_rank_boxplot.png)
 
 **Đọc biểu đồ:** mỗi hộp là phân bố hạng của nạn nhân một kịch bản theo một mô hình, trục dọc theo thang log, **càng cao càng tốt**. Vạch giữa hộp là trung vị. Ngân sách 100 cảnh báo/ngày tương đương khoảng top 1,2%: hộp nào nằm phía trên mức đó thì phần lớn nạn nhân đã lọt top-100.
 - brute_force: hộp OCSVM nằm cao và hẹp, trong khi hộp LOF nằm sát đáy.
@@ -158,7 +158,7 @@ Phần này dùng lưới test chính thức với **bộ 30 đặc trưng** (m�
 - Vì vậy mức ngẫu nhiên chỉ khoảng **0,0018**, bằng tỷ lệ nạn nhân của một kịch bản. Mức này thấp hơn nhiều so với khoảng 0,01 của PR-AUC tổng.
 - Để so giữa các kịch bản, mỗi ô ghi thêm **bội số so với ngẫu nhiên**: lift = PR-AUC / PR-AUC của mô hình ngẫu nhiên ở cùng kịch bản.
 
-![PR-AUC theo kịch bản](figures/scenario_pr_auc_heatmap.png)
+![PR-AUC theo kịch bản](figures/04-scenario_pr_auc_heatmap.png)
 
 **Đọc biểu đồ:**
 - **Hình trái:**
@@ -221,6 +221,7 @@ Chạy lại hình: `python scripts/evaluation/plot_scenario_heatmap.py`.
 **Thiết lập:**
 - Run **dev** `dev_seed20261036`: fit ngày 1–35, chấm ngày 36–42. Không dùng khối test để tránh rò rỉ, vì kết quả sẽ được dùng để chọn đặc trưng.
 - Giải thích ba mô hình chốt (seed 42) trên 180 nạn nhân (30 mỗi kịch bản) và 30 báo nhầm điểm cao nhất của mỗi mô hình.
+- **Báo nhầm không phải kịch bản tiêm.** Đó là 30 dòng tài khoản–ngày **bình thường** (không bị tiêm) mà mô hình chấm điểm cao nhất. Nhóm này được giải thích song song với nạn nhân để biết đặc trưng nào khiến mô hình **báo sai**, khác với đặc trưng giúp mô hình **bắt đúng**. Trong bảng và hình, nó luôn đứng ở cột cuối, tách khỏi 6 kịch bản.
 - **SHAP** (KernelSHAP): nền 50 dòng train, 1.000 mẫu. Tổng đóng góp cộng với giá trị nền khớp đúng điểm (sai số ≤ 3·10⁻¹⁴).
 - **LIME:** 105 dòng mỗi mô hình, 2.000 mẫu nhiễu.
 - Ba mô hình có thang điểm khác nhau, nên mỗi dòng được chuẩn hoá thành **tỷ phần |SHAP|** (xem mục 0).
@@ -249,7 +250,7 @@ Chạy lại hình: `python scripts/evaluation/plot_scenario_heatmap.py`.
 | logon_type_switch | logon_type 0,44 / 0,38 / 0,22 |
 | new_workstation_burst | novelty 0,44 / 0,34 / 0,39 và fanout 0,35 / 0,36 / 0,18 |
 | dormant_wakeup | novelty 0,49 / 0,40 / 0,30, chủ yếu là `days_since_last_activity` |
-| **Báo nhầm** | OCSVM: **rhythm 0,27** · IF: failure 0,26 · LOF: failure 0,29 |
+| **Báo nhầm** (dòng bình thường, không phải kịch bản) | OCSVM: **rhythm 0,27** · IF: failure 0,26 · LOF: failure 0,29 |
 
 **Bảng 3.2: Tỷ phần |SHAP| trên toàn bộ nạn nhân, so với mức chia đều (số đặc trưng của nhóm / 41)**
 
@@ -264,13 +265,17 @@ Chạy lại hình: `python scripts/evaluation/plot_scenario_heatmap.py`.
 | volume | 0,07 | 0,05 | 0,04 | 0,04 |
 | context | 0,07 | 0,03 | 0,04 | 0,04 |
 
-![SHAP theo nhóm và kịch bản](figures/shap_group_by_scenario.png)
+![SHAP theo nhóm và kịch bản](figures/05-shap_group_by_scenario.png)
 
-**Đọc biểu đồ:** mỗi bảng nhiệt là một mô hình. Hàng là nhóm đặc trưng, cột là kịch bản (hai cột cuối là toàn bộ nạn nhân và báo nhầm), số trong ô là tỷ phần |SHAP|. Ô đậm nằm gần như trên một "đường chéo": mỗi kịch bản có đúng một nhóm nổi bật. Riêng OCSVM có ô rhythm × false_alarm đậm (0,27), trong khi hàng rhythm nhạt ở mọi cột nạn nhân.
+**Đọc biểu đồ:**
+- Mỗi bảng nhiệt là một mô hình. Hàng là nhóm đặc trưng, số trong ô là tỷ phần |SHAP|.
+- 6 cột đầu là 6 kịch bản. Sau vạch đen là hai cột không phải kịch bản: "tất cả nạn nhân" (gộp 180 nạn nhân) và "BÁO NHẦM" (30 dòng bình thường điểm cao nhất, xem phần thiết lập).
+- Ô đậm nằm gần như trên một "đường chéo": mỗi kịch bản có đúng một nhóm nổi bật.
+- Riêng OCSVM có ô rhythm × BÁO NHẦM đậm (0,27), trong khi hàng rhythm nhạt ở mọi cột nạn nhân: rhythm làm OCSVM báo sai chứ không giúp bắt đúng.
 
 ### 3.2 So sánh SHAP và LIME
 
-![Top 15 đặc trưng theo SHAP và LIME](figures/top_features_shap_lime.png)
+![Top 15 đặc trưng theo SHAP và LIME](figures/06-top_features_shap_lime.png)
 
 **Đọc biểu đồ:** 15 đặc trưng có tỷ phần SHAP cao nhất của mỗi mô hình (thanh xanh), đặt cạnh tỷ phần LIME của cùng đặc trưng (thanh cam). Hai thanh dài gần bằng nhau nghĩa là hai phương pháp đồng ý.
 - Đặc trưng mạnh nhất khớp nhau ở LOF: `delta_mean_share_fail_7d` đứng đầu theo cả hai.
@@ -329,7 +334,7 @@ Spearman = tương quan hạng giữa hai bảng xếp hạng đặc trưng (1 l
 | Nhóm theo nghĩa (8) | 0,97 | 0,98 | 0,98 | top-3: 1,00 |
 | Cụm tương quan (33) | 0,92 | 0,99 | 0,97 | top-5: 0,87 |
 
-![Tỷ phần SHAP từng đặc trưng qua 3 run](figures/feature_shap_stability.png)
+![Tỷ phần SHAP từng đặc trưng qua 3 run](figures/07-feature_shap_stability.png)
 
 **Đọc biểu đồ:**
 - Mỗi cột là một mô hình; mỗi thanh là tỷ phần |SHAP| trung bình trên nạn nhân của một đặc trưng. Râu là min–max qua 3 run, màu là nhóm theo nghĩa.
@@ -337,11 +342,11 @@ Spearman = tương quan hạng giữa hai bảng xếp hạng đặc trưng (1 l
 - Râu ngắn nghĩa là thứ hạng gần như không đổi giữa các run.
 - Hầu hết các thanh đỏ nằm ở nửa dưới, bên trái nét đứt.
 
-![Tỷ phần SHAP theo từng đặc trưng và kịch bản](figures/feature_shap_by_scenario.png)
+![Tỷ phần SHAP theo từng đặc trưng và kịch bản](figures/08-feature_shap_by_scenario.png)
 
-**Đọc biểu đồ:** hàng là 41 đặc trưng xếp theo nhóm (vạch xám tách nhóm), cột là kịch bản và báo nhầm, màu là tỷ phần |SHAP| TB qua 3 run. Mỗi cột thường chỉ có 1–2 ô đậm, không phải cả một khối nhóm.
+**Đọc biểu đồ:** hàng là 41 đặc trưng xếp theo nhóm (vạch xám tách nhóm), màu là tỷ phần |SHAP| TB qua 3 run. 6 cột đầu là 6 kịch bản; cột cuối, sau vạch đen, là **báo nhầm** (30 dòng bình thường điểm cao nhất), không phải kịch bản. Mỗi cột kịch bản thường chỉ có 1–2 ô đậm, không phải cả một khối nhóm. Ở cột báo nhầm của OCSVM, ô đậm nhất là `delta_t_cv` (0,23).
 
-![Cụm tương quan giữa 41 đặc trưng](figures/feature_correlation_clusters.png)
+![Cụm tương quan giữa 41 đặc trưng](figures/09-feature_correlation_clusters.png)
 
 **Đọc biểu đồ:** ma trận |Spearman| đã sắp theo cây phân cụm; khung đỏ là các cụm có |ρ| ≥ 0,7. Nhãn hàng ghi nhóm theo nghĩa trong ngoặc vuông.
 
@@ -355,7 +360,7 @@ Spearman = tương quan hạng giữa hai bảng xếp hạng đặc trưng (1 l
 | logon_type_switch | `dist_shift_logontype_7d` **0,32** | `dist_shift_logontype_7d` 0,18 | `new_source_count_7d` 0,16, `dist_shift_logontype_7d` 0,14 |
 | new_workstation_burst | `new_source_count_7d` **0,41** | `new_source_count_7d` 0,24 | `new_source_count_7d` 0,28 |
 | dormant_wakeup | `days_since_last_activity` **0,46** | `days_since_last_activity` 0,20 | `days_since_last_activity` 0,16 |
-| Báo nhầm | `delta_t_cv` **0,23**, `days_since_last_activity` 0,14 | `dist_shift_logontype_7d` 0,09, `failure_ratio` 0,08 | `failure_ratio` 0,17, `interactive_ratio` 0,12 |
+| Báo nhầm (dòng bình thường) | `delta_t_cv` **0,23**, `days_since_last_activity` 0,14 | `dist_shift_logontype_7d` 0,09, `failure_ratio` 0,08 | `failure_ratio` 0,17, `interactive_ratio` 0,12 |
 
 Danh sách top-5 đầy đủ của từng (mô hình, kịch bản), kèm số run lọt top-5, nằm trong `top5_by_scenario.csv`.
 
@@ -458,7 +463,7 @@ Cột chính là Δ recall top-100/ngày; ΔPR-AUC là chỉ số phụ.
 | bỏ template_v4 (24) | −0,04 / −0,07 / −0,08 | −0,048 ± 0,014 | −0,030 ± 0,005 | −0,020 ± 0,004 |
 | *đối chứng: xáo dòng (41)* | *−0,02 / 0,00 / 0,00* | *−0,020 ± 0,019* | *0,000 ± 0,001* | *−0,005 ± 0,008* |
 
-![Δ recall theo kịch bản trên dev](figures/ablation_delta_recall_dev.png)
+![Δ recall theo kịch bản trên dev](figures/10-ablation_delta_recall_dev.png)
 
 **Đọc biểu đồ:** mỗi bảng nhiệt là một mô hình. Hàng là cấu hình ablation, cột là kịch bản (cột cuối "all" là tổng), số trong ô là Δ recall top-100/ngày.
 - Xanh là tốt hơn bản đủ 41 đặc trưng, đỏ là tệ hơn, trắng là không đổi.
@@ -492,7 +497,7 @@ Bộ 30 đặc trưng được chọn trên dev nên kết quả dev có thể l
 | IF | 0,16 → **0,21** | +0,047 ± 0,010 (−0,003 ± 0,013) | 0,066 → **0,089** | +0,023 ± 0,005 (−0,001 ± 0,007) | 0,17 → 0,20 |
 | LOF | 0,13 → **0,15** | +0,021 ± 0,009 (0,000 ± 0,003) | 0,048 → **0,064** | +0,017 ± 0,006 (0,000 ± 0,002) | 0,09 → 0,12 |
 
-![Δ recall theo kịch bản trên test](figures/ablation_delta_recall_test.png)
+![Δ recall theo kịch bản trên test](figures/11-ablation_delta_recall_test.png)
 
 **Đọc biểu đồ:** cùng cách đọc như hình trên dev. Hàng trên là bộ 30 đặc trưng, hàng dưới là đối chứng xáo dòng. Các ô xanh đậm nhất là:
 - OCSVM ở brute_force: +0,17, tức recall từ 0,68 lên 0,85;
@@ -556,7 +561,7 @@ Mốc bộ 30: recall top-100/ngày OCSVM 0,380, IF 0,228, LOF 0,212; PR-AUC 0,2
 | `dst_host_entropy` | −0,002 / −0,005 / −0,001 | −0,003 ± 0,001 | 0,000 ± 0,012 | −0,007 ± 0,009 |
 | *đối chứng: fit lại bộ 30* | *0,000 / 0,000 / −0,015* | *0,000 ± 0,000* | *0,000 ± 0,000* | *−0,016 ± 0,014* |
 
-![Δ recall theo kịch bản khi thêm lại từng đặc trưng](figures/addback_delta_recall.png)
+![Δ recall theo kịch bản khi thêm lại từng đặc trưng](figures/12-addback_delta_recall.png)
 
 **Đọc biểu đồ:**
 - Mỗi bảng nhiệt là một mô hình; hàng là đặc trưng được thêm lại, cột là kịch bản.

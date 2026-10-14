@@ -159,14 +159,16 @@ def analyze(out: Path, ref: str = "full") -> None:
     dov.round(4).to_csv(out / "delta_overall.csv", index=False, encoding="utf-8-sig")
     dsc = paired_delta(scen, ["model", "scenario"], SCEN, ref=ref)
     dsc.round(4).to_csv(out / "delta_scenario.csv", index=False, encoding="utf-8-sig")
-    plot(dsc, out, ref_label="bộ 30 đặc trưng" if ref == ADDBACK_REF else "đủ 41 đặc trưng")
+    kinds = sorted({r.split("_")[0] for r in runs["run_id"]})
+    plot(dsc, out, ref_label="bộ 30 đặc trưng" if ref == ADDBACK_REF else "đủ 41 đặc trưng",
+         runs_label=f"{runs['run_id'].nunique()} run {'/'.join(kinds)}")
     with pd.option_context("display.width", 220, "display.max_rows", 200):
         print(dov[["ablation", "model", "pr_auc_full", "d_pr_auc_mean", "d_pr_auc_std",
                    "recall_at_100_per_day_full", "d_recall_at_100_per_day_mean", "d_recall_at_100_per_day_std",
                    "d_precision_at_50_mean"]].round(3).to_string(index=False))
 
 
-def plot(dsc: pd.DataFrame, out: Path, ref_label: str = "đủ 41 đặc trưng") -> None:
+def plot(dsc: pd.DataFrame, out: Path, ref_label: str = "đủ 41 đặc trưng", runs_label: str = "5 run dev") -> None:
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -188,9 +190,16 @@ def plot(dsc: pd.DataFrame, out: Path, ref_label: str = "đủ 41 đặc trưng"
             ax.text(c, r, f"{v:+.2f}" + ("*" if clear.iat[r, c] else ""), ha="center", va="center", fontsize=7)
         ax.set_title(f"{SHORT[m]}: Δ recall top-100/ngày so với {ref_label}")
     fig.colorbar(im, ax=axes, fraction=0.015)
-    control = (f"{REPEAT} = fit lại y nguyên bộ 30 (nhiễu không tất định của LOF/HNSW)" if REPEAT in abl
-               else f"{CONTROL} = mức nhiễu do thứ tự dòng")
-    fig.text(0.01, -0.12, f"* = |Δ TB| > 1 std của Δ qua 5 run dev; {control}", fontsize=8)
+    control = (f"{REPEAT} = đối chứng: fit lại y nguyên bộ 30, không đổi đặc trưng. Ô khác 0 ở hàng này là nhiễu "
+               "do LOF không tất định (chỉ mục HNSW dựng đa luồng)." if REPEAT in abl
+               else f"{CONTROL} = đối chứng: giữ đủ 41 đặc trưng, chỉ xáo thứ tự dòng train. "
+                    "Ô khác 0 ở hàng này là nhiễu do thứ tự dòng.")
+    note = [f"Số trong ô = Δ recall top-100/ngày = (cấu hình ở hàng) − ({ref_label}), trung bình qua {runs_label}. "
+            "Xanh = tốt hơn, đỏ = tệ hơn.",
+            "Dấu * = thay đổi rõ: |Δ trung bình| lớn hơn độ lệch chuẩn của Δ giữa các run. "
+            "Cột all = toàn bộ nạn nhân của 6 kịch bản.",
+            control]
+    fig.text(0.01, -0.14, "\n".join(note), fontsize=8.5, va="top", linespacing=1.5)
     fig.savefig(out / "figures" / "delta_recall_by_scenario.png", dpi=150, bbox_inches="tight")
     plt.close(fig)
 

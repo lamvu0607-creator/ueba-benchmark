@@ -9,7 +9,7 @@ Heatmap PR-AUC theo (mô hình × kịch bản) từ ``grid_scenarios_summary.cs
 - Hình phải: Δ PR-AUC (bộ 30 − bộ 41 của lưới tuần 4) cho 3 mô hình ML; baseline không đổi đặc trưng.
 - Viền đen: mô hình tốt nhất của từng kịch bản.
 
-Đầu ra: ``<main>/figures/scenario_pr_auc_heatmap.png`` + ``scenario_pr_auc_table.csv``, và bản sao trong ``--copy-to``.
+Đầu ra: ``<main>/figures/scenario_pr_auc_heatmap.png`` + ``scenario_pr_auc_table.csv``, và bản sao ``--copy-to`` (đường dẫn file).
 """
 
 from __future__ import annotations
@@ -45,7 +45,7 @@ def main() -> None:
     p = argparse.ArgumentParser(description=__doc__.split("\n")[1])
     p.add_argument("--main", default="experiments/grid/test_30f", help="lưới chính (bộ 30 đặc trưng)")
     p.add_argument("--ref", default="experiments/grid/test", help="lưới so sánh (41 đặc trưng, tuần 4)")
-    p.add_argument("--copy-to", default="reports/week5/figures")
+    p.add_argument("--copy-to", default="reports/week5/figures/04-scenario_pr_auc_heatmap.png")
     args = p.parse_args()
     main_dir, ref_dir = Path(args.main), Path(args.ref)
 
@@ -94,8 +94,8 @@ def main() -> None:
     fig.savefig(out, dpi=150, bbox_inches="tight")
     plt.close(fig)
     if args.copy_to:
-        Path(args.copy_to).mkdir(parents=True, exist_ok=True)
-        shutil.copy2(out, Path(args.copy_to) / out.name)
+        Path(args.copy_to).parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(out, args.copy_to)
     print(table.loc["pr_auc_mean"].round(3).to_string())
     print(table.loc["lift_vs_random"].round(0).to_string())
     print(table.loc["delta_vs_41f"].loc[ML].round(3).to_string())

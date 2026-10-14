@@ -42,6 +42,7 @@ logging.getLogger("shap").setLevel(logging.WARNING)
 
 ML = ["one_class_svm", "isolation_forest", "local_outlier_factor"]
 SHORT = {"one_class_svm": "OCSVM", "isolation_forest": "IF", "local_outlier_factor": "LOF"}
+COL_LABEL = {"false_alarm": "BÁO NHẦM\n(bình thường, điểm cao)", "all_victims": "tất cả nạn nhân"}
 
 
 def score_fn(pipe):
@@ -171,12 +172,16 @@ def plot(groups: pd.DataFrame, feats: pd.DataFrame, out: Path) -> None:
         cols = [c for c in piv.columns if c not in ("all_victims", "false_alarm")] + ["all_victims", "false_alarm"]
         piv = piv[cols]
         im = ax.imshow(piv.to_numpy(), cmap="Oranges", vmin=0, vmax=0.5, aspect="auto")
-        ax.set_xticks(range(len(cols)), cols, rotation=35, ha="right", fontsize=8)
+        ax.set_xticks(range(len(cols)), [COL_LABEL.get(c, c) for c in cols], rotation=35, ha="right", fontsize=8)
+        for x in (len(cols) - 2.5, len(cols) - 1.5):
+            ax.axvline(x, color="black", lw=1.5)
         ax.set_yticks(range(len(order)), order)
         for (r, c), v in np.ndenumerate(piv.to_numpy()):
             ax.text(c, r, f"{v:.2f}", ha="center", va="center", fontsize=7, color="white" if v > 0.3 else "black")
         ax.set_title(f"{SHORT[m]}: tỷ phần |SHAP| theo nhóm")
     fig.colorbar(im, ax=axes, fraction=0.015)
+    fig.text(0.01, -0.25, "Báo nhầm không phải kịch bản: 30 dòng bình thường (không tiêm) có điểm cao nhất của mỗi "
+             "mô hình — cho biết nhóm nào làm mô hình báo sai.", fontsize=8)
     fig.savefig(fig_dir / "shap_group_by_scenario.png", dpi=150, bbox_inches="tight")
     plt.close(fig)
 
@@ -208,7 +213,12 @@ def main() -> None:
     p.add_argument("--lime-every", type=int, default=2, help="LIME trên 1/N số dòng của SHAP (LIME chậm hơn)")
     p.add_argument("--skip-lime", action="store_true")
     p.add_argument("--out", default="experiments/analysis/explain")
+    p.add_argument("--replot", action="store_true", help="chỉ vẽ lại hình từ CSV đã có trong --out")
     args = p.parse_args()
+    if args.replot:
+        out = Path(args.out)
+        plot(pd.read_csv(out / "group_importance.csv"), pd.read_csv(out / "feature_importance.csv"), out)
+        return
 
     cfg = load_grid_config(args.grid)
     params = load_params("configs/model_params.yaml")

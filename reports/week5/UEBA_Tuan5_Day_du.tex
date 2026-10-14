@@ -477,9 +477,10 @@ Ngoài giờ & 0,008 ($\times$4) & \cellcolor{socteal!10}\textbf{0,010} ($\times
 \begin{columns}[T,onlytextwidth]
 \begin{column}{.53\textwidth}
 \begin{block}{Cách chạy}
-\begin{itemize}\setlength\itemsep{7pt}
+\begin{itemize}\setlength\itemsep{4pt}
 \item 1 run dev, seed mô hình 42 (+2 run dev chỉ SHAP, slide 13).
-\item SHAP: 180 nạn nhân và 30 dòng không tiêm điểm cao / mô hình.
+\item SHAP: 180 nạn nhân (6 kịch bản) và 30 \textbf{báo nhầm} / mô hình.
+\item Báo nhầm \emph{không phải kịch bản}: dòng không tiêm có điểm cao nhất, để xem đặc trưng nào làm mô hình báo sai.
 \item KernelSHAP: nền 50 dòng train, 1.000 mẫu.
 \item LIME: 105 dòng / mô hình, 2.000 mẫu nhiễu.
 \end{itemize}
@@ -594,7 +595,7 @@ Ngoài giờ & \feat{delta_mean_share_night_7d} & 0,34\\[3pt]
 Đổi LogonType & \feat{dist_shift_logontype_7d} & 0,32\\[3pt]
 Bùng nổ máy mới & \feat{new_source_count_7d} & 0,41\\[3pt]
 Thức dậy sau ngủ đông & \feat{days_since_last_activity} & 0,46\\[3pt]
-\textcolor{socred}{Báo nhầm} & \feat{delta_t_cv} & 0,23\\\bottomrule
+\textcolor{socred}{Báo nhầm (dòng không tiêm)} & \feat{delta_t_cv} & 0,23\\\bottomrule
 \end{tabularx}
 \vspace{.3em}
 \begin{itemize}\setlength\itemsep{3pt}

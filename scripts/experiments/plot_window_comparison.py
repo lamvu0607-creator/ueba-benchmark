@@ -1,4 +1,4 @@
-"""Vẽ reports/week5/figures/window_comparison.png từ window_comparison.csv."""
+"""Vẽ reports/week5/figures/01-window_comparison.png từ window_comparison.csv."""
 import pandas as pd, matplotlib
 matplotlib.use("Agg"); import matplotlib.pyplot as plt
 d=pd.read_csv("experiments/grid/window_ablation/window_comparison.csv")
@@ -15,4 +15,4 @@ for ax,(m,title) in zip(axes,[("recall_at_100_per_day","Recall top-100/ngày (ch
     for sp in ["top","right"]: ax.spines[sp].set_visible(False)
 h,l=axes[0].get_legend_handles_labels(); fig.legend(h,l,frameon=False,loc="lower center",ncol=3,bbox_to_anchor=(0.5,0))
 fig.suptitle("Độ dài cửa sổ lịch sử: TB ± std qua 5 model seed, run test_seed20261061",fontsize=12)
-fig.tight_layout(rect=(0,0.07,1,1)); fig.savefig("reports/week5/figures/window_comparison.png",dpi=150)
+fig.tight_layout(rect=(0,0.07,1,1)); fig.savefig("reports/week5/figures/01-window_comparison.png",dpi=150)
