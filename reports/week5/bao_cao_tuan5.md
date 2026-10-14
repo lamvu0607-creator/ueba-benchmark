@@ -449,10 +449,14 @@ Hàng K = 18 không có ô đỏ nào ở cả ba mô hình.
 
 Baseline không dùng `drop_features`, nên giống hệt bộ 30.
 
+**Tham số mô hình:** dùng lại cấu hình chốt trên lưới dev tuần 4 với 41 đặc trưng (3 mô hình × 3–6 cấu hình × 5 run dev; IF 300 cây, max_samples 1024; LOF k = 20, RobustScaler; OCSVM 1.000 thành phần Nystroem, StandardScaler), **không dò lại cho 22 đặc trưng**. Lý do: giữ cùng tham số thì so sánh 41 / 30 / 22 đặc trưng chỉ phản ánh tác động của đặc trưng. Gamma của OCSVM là "scale" nên tự điều chỉnh theo số đặc trưng; LOF (k = 20) là mô hình dễ lệch nhất khi số chiều đổi. Dò lại trên dev chỉ có thể giữ nguyên hoặc cải thiện kết quả dev, nên số ở bảng 5.3 là mức của tham số chưa tối ưu cho bộ 22.
+
 **Nhận xét:**
 1. **Thứ hạng giữ nguyên:** OCSVM > IF > LOF > mọi baseline. OCSVM vẫn bắt gấp khoảng 1,5 lần IF trong ngân sách 100 cảnh báo/ngày, dù ROC-AUC của IF nhỉnh hơn (0,921 so với 0,908). Đây cũng là minh hoạ cho lý do chọn recall@K ở mục 0.
 2. **So với bộ 30:** OCSVM ngang (chênh dưới 1 std), IF +0,033 recall và +0,022 PR-AUC, LOF +0,029 recall. Số của lưới chính thức khớp với thí nghiệm ở bảng 5.1.
 3. **So với 41 đặc trưng ban đầu:** recall top-100/ngày OCSVM 0,32 → 0,37, IF 0,16 → 0,24, LOF 0,13 → 0,18.
+
+**Tái lập:** `python scripts/reproduce.py` chạy lại toàn bộ (đặc trưng, tiêm 5 run test, lưới) và so từng chỉ số với bảng 5.3, đạt khi sai lệch tương đối ≤ 1%. OCSVM, IF và các baseline tất định. **LOF không tất định** (chỉ mục HNSW dựng đa luồng, `n_jobs: -1`): fit lại trên test lệch khoảng ±0,003 recall, khoảng 2% tương đối, nên số LOF chỉ tái lập trong khoảng ±5%. Muốn tất định thì đặt `n_jobs: 1` và chạy lại lưới.
 
 `configs/feature_schema.yaml` chưa đổi; bộ 22 được chọn qua `drop_features` trong [`configs/benchmark_grid_test_22f.yaml`](../../configs/benchmark_grid_test_22f.yaml). Kết quả bộ 30 giữ ở `experiments/grid/test_30f/` để so sánh.
 

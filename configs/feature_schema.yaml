@@ -31,6 +31,12 @@
 #   core: false       -> chỉ giữ để đọc/pivot/báo cáo
 #   model_transform   -> gợi ý tiền xử lý cho mô hình dựa trên khoảng cách (IForest/LOF/OCSVM)
 #   nullable          -> có NULL hợp lệ (KHÔNG được fill bằng 0 một cách mù quáng)
+#   dtype             -> kiểu dữ liệu của cột trong ma trận processed (float64 / int32 / uint32 / uint8);
+#                        FeatureSchema.validate_features kiểm tra theo họ kiểu (số thực / số nguyên).
+#
+# Bộ đặc trưng dùng cho benchmark cuối tuần 5 là 22 trong 41 core: 19 đặc trưng bị bỏ qua `drop_features` trong
+# configs/benchmark_grid_test_22f.yaml (rhythm + 18 đặc trưng SHAP thấp nhất, K = 18; reports/week5/bao_cao_tuan5.md
+# mục 4). Schema vẫn giữ 41 core để các kết quả 41 / 30 / 22 đặc trưng cùng tái lập được.
 
 identity:
   keys: ["DomainName", "UserName", "day"]
@@ -42,6 +48,7 @@ features:
   # ---------------- Nhóm 1: Khối lượng ----------------
   - name: log_total_logons
     group: volume
+    dtype: float64
     definition: "log1p(số sự kiện 4624 + 4625 của khoá trong ngày)"
     core: true
     model_transform: none
@@ -50,6 +57,7 @@ features:
   # ---------------- Nhóm 2: Thất bại ----------------
   - name: failure_ratio
     group: failure
+    dtype: float64
     definition: "failure_count / total_logons"
     core: true
     model_transform: none
@@ -57,6 +65,7 @@ features:
 
   - name: failure_locked_out_share
     group: failure
+    dtype: float64
     definition: "count(FailureReason ~ 'account locked out') / failure_count"
     core: true
     model_transform: none
@@ -71,6 +80,7 @@ features:
   # ---------------- Nhóm 3: Thời gian / nhịp ----------------
   - name: off_hours_ratio
     group: time
+    dtype: float64
     definition: "số sự kiện có (hour >= off_hours_start) hoặc (hour <= off_hours_end) / total_logons"
     core: true
     model_transform: none
@@ -78,6 +88,7 @@ features:
 
   - name: interarrival_dt_mean
     group: rhythm
+    dtype: float64
     definition: "trung bình delta_t (giây) giữa hai sự kiện liên tiếp của cùng khoá"
     core: true
     model_transform: log1p
@@ -86,6 +97,7 @@ features:
 
   - name: delta_t_cv
     group: rhythm
+    dtype: float64
     definition: "std(delta_t) / mean(delta_t)"
     core: true
     model_transform: none
@@ -94,6 +106,7 @@ features:
 
   - name: same_second_share
     group: rhythm
+    dtype: float64
     definition: "số sự kiện có delta_t = 0 / total_logons"
     core: true
     model_transform: none
@@ -101,6 +114,7 @@ features:
 
   - name: is_single_event
     group: rhythm
+    dtype: uint8
     definition: "1 nếu khoá chỉ có đúng 1 sự kiện trong ngày"
     core: true
     model_transform: none
@@ -109,6 +123,7 @@ features:
   # --- Nhóm 3b (v3.0): nhịp trong ngày — chỉ dùng trạng thái TRONG NGÀY ----------------
   - name: activity_peak_hour_sin
     group: rhythm
+    dtype: float64
     definition: "sin(2*pi*h_peak/24) với h_peak = khung giờ có nhiều sự kiện nhất (hoà -> giờ nhỏ hơn)"
     core: true
     model_transform: none
@@ -116,6 +131,7 @@ features:
 
   - name: activity_peak_hour_cos
     group: rhythm
+    dtype: float64
     definition: "cos(2*pi*h_peak/24) — cặp với activity_peak_hour_sin"
     core: true
     model_transform: none
@@ -123,6 +139,7 @@ features:
 
   - name: hour_entropy
     group: rhythm
+    dtype: float64
     definition: "Pielou evenness = H / ln(S) của phân bố sự kiện trên các khung giờ có mặt trong ngày"
     core: true
     model_transform: none
@@ -131,12 +148,14 @@ features:
   # ---------------- Nhóm 4: Phương thức truy cập (đóng ràng buộc tổng = 1) ----------------
   - name: interactive_ratio
     group: logon_type
+    dtype: float64
     definition: "count(LogonType = 2) / total_logons"
     core: true
     model_transform: none
 
   - name: rare_logon_type_count_log
     group: logon_type
+    dtype: float64
     definition: "log1p(số sự kiện có LogonType không thuộc {2, 3})"
     core: true
     model_transform: none
@@ -145,6 +164,7 @@ features:
   # ---------------- Nhóm 5: Xác thực ----------------
   - name: ntlm_ratio
     group: authentication
+    dtype: float64
     definition: "count(AuthenticationPackage chứa 'ntlm') / total_logons"
     core: true
     model_transform: none
@@ -153,6 +173,7 @@ features:
   # ---------------- Nhóm 6: Đa dạng thực thể ----------------
   - name: log_distinct_hosts
     group: fanout
+    dtype: float64
     definition: "log1p(số LogHost duy nhất)"
     core: true
     model_transform: none
@@ -160,6 +181,7 @@ features:
 
   - name: distinct_sources_count
     group: fanout
+    dtype: uint32
     definition: "số Source duy nhất (bỏ null)"
     core: true
     model_transform: rank_gaussian
@@ -167,6 +189,7 @@ features:
 
   - name: dst_host_entropy
     group: fanout
+    dtype: float64
     definition: "Pielou evenness = H / ln(S) của phân bố sự kiện theo LogHost (S = số host phân biệt, H = Shannon entropy)"
     core: true
     model_transform: none
@@ -175,6 +198,7 @@ features:
   # ---------------- Nhóm 7: Ngữ cảnh nguồn ----------------
   - name: missing_source_ratio
     group: context
+    dtype: float64
     definition: "số sự kiện thiếu Source / total_logons"
     core: true
     model_transform: none
@@ -182,6 +206,7 @@ features:
 
   - name: remote_logon_ratio
     group: context
+    dtype: float64
     definition: "số sự kiện có Source != LogHost (Source không null) / total_logons"
     core: true
     model_transform: none
@@ -191,6 +216,7 @@ features:
   # new_source_count, new_host_count, source_recency, source_host_pair_novelty.
   - name: new_source_count_7d
     group: novelty
+    dtype: int32
     definition: "số Source của ngày t KHÔNG thấy trong 7 NGÀY LỊCH gần nhất (t−7 … t−1)"
     core: true
     model_transform: log1p
@@ -198,6 +224,7 @@ features:
 
   - name: new_host_count_7d
     group: novelty
+    dtype: int32
     definition: "số LogHost của ngày t không thấy trong 7 ngày lịch gần nhất"
     core: true
     model_transform: log1p
@@ -205,6 +232,7 @@ features:
 
   - name: days_since_last_activity
     group: novelty
+    dtype: int32
     definition: "số ngày kể từ phiên hoạt động gần nhất của tài khoản (t − max ngày < t)"
     core: true
     model_transform: log1p
@@ -213,6 +241,7 @@ features:
 
   - name: volume_robust_z_7d
     group: deviation
+    dtype: float64
     definition: "z bền vững của log1p(volume_t) so với 7 NGÀY LỊCH trước đó (median + IQR/1.349 → std → 0 với dung sai 1e-9), WINSORIZE ở ±10; ngày trống tính là volume 0"
     core: true
     model_transform: none
@@ -221,6 +250,7 @@ features:
 
   - name: custom_proc_share
     group: context
+    dtype: float64
     definition: "số sự kiện có ProcessName bắt đầu bằng 'proc' / total_logons"
     core: true
     model_transform: none
@@ -233,6 +263,7 @@ features:
   # (21 ngày LANL, 7 kịch bản tiêm tại ngày 21). Báo cáo: docs/reports/bao_cao_bo_dac_trung_v4.md
   - name: delta_mean_share_fail_7d
     group: template_v4
+    dtype: float64
     definition: "tỷ lệ đăng nhập thất bại (4625) hôm nay trừ trung bình của 7 ngày lịch trước"
     core: true
     model_transform: none
@@ -243,6 +274,7 @@ features:
 
   - name: delta_mean_distinct_fail_host_7d
     group: template_v4
+    dtype: float64
     definition: "log số máy đích (LogHost) khác nhau (đăng nhập thất bại (4625)) hôm nay trừ trung bình của 7 ngày lịch trước"
     core: true
     model_transform: none
@@ -253,6 +285,7 @@ features:
 
   - name: novelty_fail_host_7d
     group: template_v4
+    dtype: float64
     definition: "số máy đích (LogHost) trong đăng nhập thất bại (4625) hôm nay chưa xuất hiện trong 7 ngày lịch trước"
     core: true
     model_transform: none
@@ -262,6 +295,7 @@ features:
 
   - name: novelty_fail_failreason_7d
     group: template_v4
+    dtype: float64
     definition: "số lý do thất bại trong đăng nhập thất bại (4625) hôm nay chưa xuất hiện trong 7 ngày lịch trước"
     core: true
     model_transform: none
@@ -271,6 +305,7 @@ features:
 
   - name: delta_mean_distinct_source_7d
     group: template_v4
+    dtype: float64
     definition: "log số máy nguồn (Source) khác nhau (mọi sự kiện) hôm nay trừ trung bình của 7 ngày lịch trước"
     core: true
     model_transform: none
@@ -281,6 +316,7 @@ features:
 
   - name: jaccard_source_7d
     group: template_v4
+    dtype: float64
     definition: "độ trùng (Jaccard) giữa tập máy nguồn (Source) hôm nay và tập máy nguồn (Source) của 7 ngày lịch trước (mọi sự kiện)"
     core: true
     model_transform: none
@@ -291,6 +327,7 @@ features:
 
   - name: peer_z_distinct_source
     group: template_v4
+    dtype: float64
     definition: "z bền vững của log số máy nguồn (Source) khác nhau (mọi sự kiện) so với các tài khoản cùng loại (entity_type) trong cùng ngày"
     core: true
     model_transform: none
@@ -300,6 +337,7 @@ features:
 
   - name: dist_shift_hour_7d
     group: template_v4
+    dtype: float64
     definition: "khoảng cách phân bố (total variation) của mọi sự kiện theo khung giờ giữa hôm nay và 7 ngày lịch trước"
     core: true
     model_transform: none
@@ -310,6 +348,7 @@ features:
 
   - name: jaccard_hour_7d
     group: template_v4
+    dtype: float64
     definition: "độ trùng (Jaccard) giữa tập khung giờ hôm nay và tập khung giờ của 7 ngày lịch trước (mọi sự kiện)"
     core: true
     model_transform: none
@@ -320,6 +359,7 @@ features:
 
   - name: peer_z_share_night
     group: template_v4
+    dtype: float64
     definition: "z bền vững của tỷ lệ sự kiện ngoài giờ (18h–7h) so với các tài khoản cùng loại (entity_type) trong cùng ngày"
     core: true
     model_transform: none
@@ -329,6 +369,7 @@ features:
 
   - name: delta_mean_distinct_pair_7d
     group: template_v4
+    dtype: float64
     definition: "log số cặp (Source, LogHost) khác nhau (mọi sự kiện) hôm nay trừ trung bình của 7 ngày lịch trước"
     core: true
     model_transform: none
@@ -339,6 +380,7 @@ features:
 
   - name: novelty_share_pair_7d
     group: template_v4
+    dtype: float64
     definition: "tỷ lệ mọi sự kiện hôm nay thuộc cặp (Source, LogHost) chưa xuất hiện trong 7 ngày lịch trước"
     core: true
     model_transform: none
@@ -349,6 +391,7 @@ features:
 
   - name: delta_mean_count_7d
     group: template_v4
+    dtype: float64
     definition: "log số mọi sự kiện hôm nay trừ trung bình của 7 ngày lịch trước"
     core: true
     model_transform: none
@@ -359,6 +402,7 @@ features:
 
   - name: dist_shift_logontype_7d
     group: template_v4
+    dtype: float64
     definition: "khoảng cách phân bố (total variation) của mọi sự kiện theo loại logon giữa hôm nay và 7 ngày lịch trước"
     core: true
     model_transform: none
@@ -369,6 +413,7 @@ features:
 
   - name: jaccard_logontype_7d
     group: template_v4
+    dtype: float64
     definition: "độ trùng (Jaccard) giữa tập loại logon hôm nay và tập loại logon của 7 ngày lịch trước (mọi sự kiện)"
     core: true
     model_transform: none
@@ -381,6 +426,7 @@ features:
   # trên bộ tiêm đã sửa (off_hours/logon_type_switch mode shift): bộ 39 core để off_hours ở ROC-AUC 0,84 (OCSVM).
   - name: delta_mean_share_night_7d
     group: template_v4
+    dtype: float64
     definition: "tỷ lệ sự kiện ngoài giờ (18h–7h) hôm nay trừ trung bình của 7 ngày lịch trước"
     core: true
     model_transform: none
@@ -391,6 +437,7 @@ features:
 
   - name: novelty_logontype_7d
     group: template_v4
+    dtype: float64
     definition: "số loại logon trong mọi sự kiện hôm nay chưa xuất hiện trong 7 ngày lịch trước"
     core: true
     model_transform: none

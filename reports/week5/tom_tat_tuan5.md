@@ -138,6 +138,7 @@ Bỏ danh sách ứng viên rồi so với bản đủ 41 đặc trưng bằng h
   - Bản clone không cần file nào ngoài Git để chạy test.
 - **Giới hạn:** lần này dùng lại môi trường Python của máy hiện tại, chưa phải máy sạch thật. Cần một bạn cài lại theo README §2 (conda hoặc venv) trên máy khác.
 - **README** đã thêm mục "Tuần 5" với lệnh chạy lại từng thí nghiệm.
+- **Một lệnh tái lập:** `python scripts/reproduce.py` chạy test, đặc trưng, tiêm 5 run test, lưới bộ 22 rồi so từng chỉ số với bảng benchmark (ngưỡng 1%; LOF 5% vì không tất định). Chưa chạy trên máy sạch.
 
 ## Đối chiếu sản phẩm tuần 5 (đề cương, mục 4)
 
@@ -147,7 +148,7 @@ Bỏ danh sách ứng viên rồi so với bản đủ 41 đặc trưng bằng h
 | Báo cáo review top 50 | ⏳ Đã có bộ thẻ làm mù và bản chấm của Claude. **Còn thiếu hai bạn chấm độc lập và Cohen's κ** |
 | Kết quả ablation | ✅ Mục 4–6, kèm kiểm tra trên test và bảng benchmark cuối |
 | Xác nhận chạy lại được trên môi trường mới | ⚠️ Clone sạch chạy được toàn bộ test. Còn thiếu cài trên máy sạch thật |
-| Dọn mã, bổ sung README | ⚠️ Đã thêm mục tuần 5 vào README. Phần mô tả đặc trưng trong README vẫn ghi schema v4.0 với 39 đặc trưng, cần cập nhật |
+| Dọn mã, bổ sung README | ✅ README có mục tuần 5, lệnh tái lập một lần (`scripts/reproduce.py`) và bảng 41 đặc trưng v4.1 kèm kiểu dữ liệu và cột bộ 22 |
 
 ## Việc còn lại
 
@@ -155,7 +156,7 @@ Bỏ danh sách ứng viên rồi so với bản đủ 41 đặc trưng bằng h
    - Đọc `docs/huong_dan_review_top50.md` và các thẻ trong `experiments/analysis/review_top50_22f/alert_cards.html` (bộ mới, 22 đặc trưng, 142 cảnh báo).
    - Ghi nhãn vào `review_sheet.csv`.
    - Chạy `python scripts/evaluation/review_agreement.py` để có Cohen's κ, thống nhất các cảnh báo hai bạn chấm khác nhau, rồi cập nhật `review_top50.md`.
-2. **Cài lại trên máy sạch** theo README §2, chạy `pytest` và một lệnh thí nghiệm, rồi ghi kết quả vào mục 7.
+2. **Cài lại trên máy sạch** theo README §2, chạy `python scripts/reproduce.py`, rồi ghi `reproduce_check.csv` vào mục 7.
 3. **Chờ quyết định:** chuyển 19 đặc trưng bỏ ở K = 18 sang `reserve:` trong `feature_schema.yaml` (schema v4.2, 22 core).
    - Khi đó mọi pipeline dùng bộ 22 mà không cần `drop_features`.
    - Cập nhật luôn bảng đặc trưng trong README.

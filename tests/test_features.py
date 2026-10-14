@@ -106,6 +106,39 @@ def test_feature_schema_validation_invalid_ratio():
     assert "failure_ratio" in res["invalid_ratios"]
 
 
+def test_feature_schema_dtype_declared_for_every_core_feature():
+    schema = FeatureSchema()
+    dtypes = schema.feature_dtypes
+    assert set(schema.core_features) <= set(dtypes)
+    assert set(dtypes.values()) <= {"float64", "int32", "uint32", "uint8"}
+
+
+def test_feature_schema_validation_dtype_mismatch():
+    schema = FeatureSchema()
+    df = pl.DataFrame({
+        "DomainName": ["dom1"],
+        "UserName": ["User1"],
+        "day": [1],
+        "entity_type": ["User"],
+        "failure_ratio": [0.5],
+        "days_since_last_activity": [1.5],  # Sai: schema khai báo int32
+    })
+
+    res = schema.validate_features(df)
+    assert res["is_valid"] is False
+    assert "days_since_last_activity" in res["dtype_mismatch"]
+    assert "failure_ratio" not in res["dtype_mismatch"]
+
+
+def test_processed_matrix_matches_schema_dtypes():
+    path = Path(__file__).resolve().parents[1] / "data/processed/feature_matrix_processed.parquet"
+    if not path.exists():
+        pytest.skip("cần data/processed/feature_matrix_processed.parquet")
+    actual = pl.read_parquet_schema(path)
+    for name, want in FeatureSchema().feature_dtypes.items():
+        assert str(actual[name]).lower() == want, name
+
+
 def test_feature_extraction_columns_and_counts():
     """
     Hợp đồng cột của extractor: ``RAW_ORDERED_COLS`` không trùng lặp, phủ đủ **22 đặc trưng core**
