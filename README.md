@@ -12,7 +12,7 @@ python -X utf8 scripts/experiments/window_ablation.py --run data/injection_runs/
 python scripts/evaluation/scenario_analysis.py             # theo kịch bản -> experiments/analysis/scenario/
 python scripts/evaluation/build_review_set.py              # bộ review top 50 làm mù -> experiments/analysis/review_top50/
 python scripts/evaluation/review_agreement.py              # Cohen's kappa sau khi hai người chấm xong
-python scripts/evaluation/explain_models.py                # SHAP/LIME -> experiments/analysis/explain/
+python scripts/evaluation/explain_models.py                # SHAP/LIME -> experiments/analysis/explain/ (--replot: chỉ vẽ lại hình)
 python scripts/evaluation/shap_feature_stability.py        # SHAP từng đặc trưng qua 3 run dev -> experiments/analysis/explain_stability/
 python scripts/evaluation/feature_ablation.py              # ablation trên dev -> experiments/ablation/feature_groups/
 python scripts/evaluation/feature_ablation.py --mode addback   # thêm lại từng đặc trưng vào bộ 30 -> experiments/ablation/addback/

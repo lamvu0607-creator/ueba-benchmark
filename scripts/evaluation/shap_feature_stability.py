@@ -40,6 +40,7 @@ from src.features.schema import FeatureSchema  # noqa: E402
 
 SHORT = {"one_class_svm": "OCSVM", "isolation_forest": "IF", "local_outlier_factor": "LOF"}
 ML = list(SHORT)
+COL_LABEL = {"false_alarm": "BÁO NHẦM\n(bình thường, điểm cao)", "all_victims": "tất cả nạn nhân"}
 SCEN = ["brute_force", "password_spraying", "off_hours", "logon_type_switch", "new_workstation_burst",
         "dormant_wakeup"]
 GROUP_COLOR = {"volume": "#8c564b", "failure": "#d62728", "time": "#9467bd", "rhythm": "#7f7f7f",
@@ -133,7 +134,8 @@ def plot_feature_by_scenario(scen: pd.DataFrame, order: list, dropped: set, out:
             if v >= 0.05:
                 ax.text(c, r, f"{v:.2f}", ha="center", va="center", fontsize=6,
                         color="white" if v > 0.25 else "black")
-        ax.set_xticks(range(len(cols)), cols, rotation=40, ha="right", fontsize=8)
+        ax.set_xticks(range(len(cols)), [COL_LABEL.get(c, c) for c in cols], rotation=40, ha="right", fontsize=8)
+        ax.axvline(len(SCEN) - 0.5, color="black", lw=1.5)
         ax.set_title(SHORT[m])
         bounds = np.flatnonzero(np.diff([list(ABLATION_GROUPS).index(FEATURE_GROUP[f]) for f in order])) + 0.5
         for b in bounds:
@@ -144,6 +146,8 @@ def plot_feature_by_scenario(scen: pd.DataFrame, order: list, dropped: set, out:
             t.set_color("red")
     fig.colorbar(im, ax=axes, fraction=0.02, label="tỷ phần |SHAP| TB qua run dev")
     fig.suptitle("Tỷ phần |SHAP| theo từng đặc trưng × kịch bản (vạch xám tách 8 nhóm; số ghi khi ≥ 0,05)")
+    fig.text(0.01, -0.06, "Cột cuối (sau vạch đen) không phải kịch bản: 30 dòng bình thường (không tiêm) có điểm cao "
+             "nhất của mỗi mô hình — cho biết đặc trưng nào làm mô hình báo sai.", fontsize=8)
     fig.savefig(out / "figures" / "feature_shap_by_scenario.png", dpi=150, bbox_inches="tight")
     plt.close(fig)
 

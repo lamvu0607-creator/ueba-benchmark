@@ -72,7 +72,7 @@ Lấy 50 cảnh báo điểm cao nhất của mỗi mô hình (OCSVM, IF, LOF), 
 
 ## 4. SHAP và LIME → mỗi kịch bản được giải thích đúng bằng nhóm đặc trưng thiết kế cho nó
 
-Giải thích điểm của ba mô hình chốt trên một run dev, gồm 30 nạn nhân mỗi kịch bản và 30 báo nhầm của mỗi mô hình. 41 đặc trưng được chia thành 8 nhóm theo nghĩa: volume, failure, time, rhythm, logon_type, fanout, novelty, context.
+Giải thích điểm của ba mô hình chốt trên một run dev, gồm 30 nạn nhân mỗi kịch bản và 30 báo nhầm của mỗi mô hình. Báo nhầm không phải kịch bản tiêm: đó là 30 dòng bình thường (không tiêm) có điểm cao nhất, dùng để xem đặc trưng nào làm mô hình báo sai. 41 đặc trưng được chia thành 8 nhóm theo nghĩa: volume, failure, time, rhythm, logon_type, fanout, novelty, context.
 
 - **Mỗi nhóm đẩy điểm của đúng kịch bản thiết kế cho nó:**
   - failure → brute_force (tỷ phần 0,51–0,76);
