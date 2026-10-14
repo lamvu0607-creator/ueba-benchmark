@@ -437,7 +437,7 @@ Hàng K = 18 không có ô đỏ nào ở cả ba mô hình.
 
 ### 5.2 Bảng benchmark cuối: lưới test chính thức với 22 đặc trưng
 
-**Bảng 5.3: TB ± std qua 5 run test, tỷ lệ dương khoảng 1%** (trong ngoặc: bộ 30)
+**Bảng 5.3: TB ± std qua 5 run test, tỷ lệ dương khoảng 1%** (trong ngoặc: bộ 30; đủ bộ chỉ số kèm std ở bảng 5.4)
 
 | Mô hình | **Recall top-100/ngày** | PR-AUC | ROC-AUC |
 |---|---|---|---|
@@ -455,6 +455,26 @@ Baseline không dùng `drop_features`, nên giống hệt bộ 30.
 1. **Thứ hạng giữ nguyên:** OCSVM > IF > LOF > mọi baseline. OCSVM vẫn bắt gấp khoảng 1,5 lần IF trong ngân sách 100 cảnh báo/ngày, dù ROC-AUC của IF nhỉnh hơn (0,921 so với 0,908). Đây cũng là minh hoạ cho lý do chọn recall@K ở mục 0.
 2. **So với bộ 30:** OCSVM ngang (chênh dưới 1 std), IF +0,033 recall và +0,022 PR-AUC, LOF +0,029 recall. Số của lưới chính thức khớp với thí nghiệm ở bảng 5.1.
 3. **So với 41 đặc trưng ban đầu:** recall top-100/ngày OCSVM 0,32 → 0,37, IF 0,16 → 0,24, LOF 0,13 → 0,18.
+
+**Bảng 5.4: Đủ bộ chỉ số của đề cương (mục 4.1, tiêu chí 5), TB ± std qua 5 run test, 22 đặc trưng**
+
+| Mô hình | PR-AUC | ROC-AUC | P@10 | P@50 | P@100 | Recall top-100/ngày | Recall top 5% khối | Tỷ lệ cảnh báo | Fit (s) | Chấm (s) |
+|---|---|---|---|---|---|---|---|---|---|---|
+| OCSVM | 0,189 ± 0,013 | 0,908 ± 0,005 | 0,30 ± 0,19 | 0,29 ± 0,16 | 0,25 ± 0,15 | 0,373 ± 0,022 | 0,639 ± 0,022 | 0,074 ± 0,002 | 47 ± 2 | 3,7 ± 0,1 |
+| IF | 0,111 ± 0,011 | 0,921 ± 0,005 | 0,24 ± 0,17 | 0,19 ± 0,03 | 0,22 ± 0,03 | 0,242 ± 0,016 | 0,468 ± 0,028 | 0,067 ± 0,001 | 13 ± 0 | 2,1 ± 0,1 |
+| LOF | 0,070 ± 0,008 | 0,717 ± 0,006 | 0,34 ± 0,15 | 0,20 ± 0,11 | 0,14 ± 0,07 | 0,176 ± 0,015 | 0,363 ± 0,012 | 0,065 ± 0,000 | 8 ± 0 | 2,6 ± 0,1 |
+| z-score | 0,032 ± 0,003 | 0,743 ± 0,003 | 0,14 ± 0,09 | 0,25 ± 0,10 | 0,23 ± 0,04 | 0,075 ± 0,011 | 0,154 ± 0,010 | 0,072 ± 0,001 | 2 ± 0 | 0,1 ± 0,0 |
+| Luật 6 điều kiện | 0,015 ± 0,001 | 0,536 ± 0,004 | 0,00 ± 0,00 | 0,02 ± 0,03 | 0,04 ± 0,03 | 0,073 ± 0,012 | 0,124 ± 0,011 | 0,361 ± 0,000 | 1 ± 0 | 0,1 ± 0,0 |
+| Luật thất bại ≥ 5 | 0,025 ± 0,000 | 0,623 ± 0,005 | 0,00 ± 0,00 | 0,00 ± 0,00 | 0,01 ± 0,00 | 0,098 ± 0,010 | 0,198 ± 0,002 | 0,050 ± 0,000 | 1 ± 0 | 0,1 ± 0,0 |
+| Ngẫu nhiên | 0,010 ± 0,000 | 0,503 ± 0,013 | 0,02 ± 0,04 | 0,01 ± 0,02 | 0,02 ± 0,01 | 0,014 ± 0,003 | 0,052 ± 0,007 | 0,050 ± 0,001 | 2 ± 0 | 0,3 ± 0,0 |
+
+- P@K: tỷ lệ nạn nhân trong K dòng điểm cao nhất của **cả khối** chấm (18 ngày). Recall top-100/ngày tính theo từng ngày (mục 0).
+- Recall top 5% khối: recall khi cảnh báo 5% dòng điểm cao nhất của cả khối.
+- Tỷ lệ cảnh báo: tỷ lệ dòng vượt ngưỡng vận hành (phân vị 95% điểm train, contamination 5%). Luật 6 điều kiện không có ngưỡng điều chỉnh được nên cờ tới 36% số dòng.
+- Fit / Chấm: thời gian huấn luyện trên 315 nghìn dòng train và chấm 154 nghìn dòng test, trên máy của nhóm (CPU, đa luồng).
+- P@10 và P@50 có std rất lớn (ví dụ OCSVM 0,30 ± 0,19) vì chỉ dựa trên 10–50 dòng; đây là lý do recall top-100/ngày được chọn làm chỉ số chính.
+
+Số theo từng run ở `experiments/grid/test_22f/grid_runs.csv`; độ nhạy theo mức contamination 0,1–20% ở `contamination_summary.csv` và `figures/contamination_sensitivity.png`.
 
 **Tái lập:** `python scripts/reproduce.py` chạy lại toàn bộ (đặc trưng, tiêm 5 run test, lưới) và so từng chỉ số với bảng 5.3, đạt khi sai lệch tương đối ≤ 1%. OCSVM, IF và các baseline tất định. **LOF không tất định** (chỉ mục HNSW dựng đa luồng, `n_jobs: -1`): fit lại trên test lệch khoảng ±0,003 recall, khoảng 2% tương đối, nên số LOF chỉ tái lập trong khoảng ±5%. Muốn tất định thì đặt `n_jobs: 1` và chạy lại lưới.
 
