@@ -4,20 +4,21 @@ Hệ thống pipeline benchmark các mô hình phát hiện bất thường (Ano
 
 **Tuần 4:** xem [Hướng dẫn tiêm bất thường và kiểm tra tiến độ](docs/huong_dan_tiem_bat_thuong_tuan4.md) để hiểu 6 kịch bản, chạy từng bước, kiểm tra nhãn/tỷ lệ tiêm và đối chiếu các đầu ra cần nghiệm thu.
 
-**Tuần 5:** xem [tóm tắt tuần 5](reports/week5/tom_tat_tuan5.md) (phân tích theo kịch bản, review top 50, SHAP/LIME,
-ablation nhóm đặc trưng, bảng benchmark cuối với 30 đặc trưng). Lệnh chạy lại:
+**Tuần 5:** xem [tóm tắt tuần 5](reports/week5/tom_tat_tuan5.md) (phân tích theo kịch bản, review top 50, SHAP,
+chọn số đặc trưng bỏ theo SHAP (K = 18), bảng benchmark cuối với 22 đặc trưng). Lệnh chạy lại:
 
 ```bash
 python -X utf8 scripts/experiments/window_ablation.py --run data/injection_runs/test_seed20261061 --windows 7 14 21
 python scripts/evaluation/scenario_analysis.py             # theo kịch bản -> experiments/analysis/scenario/
-python scripts/evaluation/build_review_set.py              # bộ review top 50 làm mù -> experiments/analysis/review_top50/
+python scripts/evaluation/build_review_set.py --config configs/benchmark_grid_test_22f.yaml --out experiments/analysis/review_top50_22f   # bộ review top 50 làm mù, 22 đặc trưng
 python scripts/evaluation/review_agreement.py              # Cohen's kappa sau khi hai người chấm xong
 python scripts/evaluation/explain_models.py                # SHAP/LIME -> experiments/analysis/explain/ (--replot: chỉ vẽ lại hình)
-python scripts/evaluation/shap_feature_stability.py        # SHAP từng đặc trưng qua 3 run dev -> experiments/analysis/explain_stability/
-python scripts/evaluation/feature_ablation.py              # ablation trên dev -> experiments/ablation/feature_groups/
-python scripts/evaluation/feature_ablation.py --mode addback   # thêm lại từng đặc trưng vào bộ 30 -> experiments/ablation/addback/
-python scripts/evaluation/plot_scenario_heatmap.py         # heatmap PR-AUC theo kịch bản -> reports/week5/figures/
-python scripts/evaluation/run_grid.py --config configs/benchmark_grid_test_30f.yaml   # benchmark cuối
+python scripts/evaluation/plot_shap_41.py                  # 41 đặc trưng xếp theo SHAP -> reports/week5/figures/05-shap_41_dac_trung.png
+python scripts/evaluation/shap_feature_stability.py        # SHAP từng đặc trưng qua 3 run dev (dùng để xếp hạng cho đường cong K)
+python scripts/evaluation/feature_ablation.py              # bộ 30 trên dev -> experiments/ablation/feature_groups/
+python scripts/evaluation/feature_ablation.py --mode kcurve    # đường cong K trên dev -> experiments/ablation/kcurve/
+python scripts/evaluation/plot_kcurve.py                   # hình đường cong K -> reports/week5/figures/06-kcurve.png
+python scripts/evaluation/run_grid.py --config configs/benchmark_grid_test_22f.yaml   # benchmark cuối, 22 đặc trưng
 ```
 
 ---

@@ -44,7 +44,7 @@ def paired_to_best(runs: pd.DataFrame, metric: str) -> pd.DataFrame:
 def main() -> None:
     p = argparse.ArgumentParser(description=__doc__.split("\n")[1])
     p.add_argument("--dir", default="experiments/ablation/kcurve")
-    p.add_argument("--copy-to", default="reports/week5/figures/13-kcurve.png")
+    p.add_argument("--copy-to", default="reports/week5/figures/06-kcurve.png")
     args = p.parse_args()
     d = Path(args.dir)
     runs = pd.read_csv(d / "runs.csv")

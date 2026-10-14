@@ -1,5 +1,7 @@
 # Bỏ nhóm context và kiểm tra trên test: bộ 28, K = 15, K = 18
 
+> **Quyết định cuối (14/10/2026): chốt K = 18, tức bộ 22 đặc trưng**, không dùng bộ 28 đề xuất ở mục 4–4b. Lý do: K = 18 là mức cắt có căn cứ (đúng 18 đặc trưng dưới mức chia đều ở mọi mô hình và mọi run), K = 20 không tốt hơn, và trên test K = 18 ngang bộ 30 với OCSVM, tốt hơn rõ với IF và LOF (bảng C.3). Bộ 22 bao trùm bộ 28: hai đặc trưng context bỏ ở bộ 28 đều nằm trong 19 đặc trưng bỏ của K = 18. Benchmark cuối: [`configs/benchmark_grid_test_22f.yaml`](../../configs/benchmark_grid_test_22f.yaml), báo cáo tuần 5 mục 4–5.
+
 > Tiếp theo [`chon_so_dac_trung_K.md`](chon_so_dac_trung_K.md). Phân khúc User, cấu hình mô hình chốt, model seed 42 / 7 / 2024 / 1 / 2.
 > - **Dev:** 5 run `dev_seed20261036`–`040`, fit ngày 1–35, chấm ngày 36–42.
 > - **Test:** 5 run `test_seed20261061`–`065`, fit ngày 1–42, chấm ngày 43–60.
@@ -113,7 +115,7 @@ Chạy theo yêu cầu: K = 15 (tốt nhất cho OCSVM trên dev), K = 18 (tốt
 
 **Việc cần làm nếu chốt bộ 28:**
 1. Thêm `remote_logon_ratio`, `custom_proc_share` vào `drop_features` trong `configs/benchmark_grid_test_30f.yaml` (hoặc tạo cấu hình lưới mới cho bộ 28) và chạy lại lưới test chính thức. Không đổi `configs/feature_schema.yaml`.
-2. Cập nhật báo cáo tuần 5 (mục 4.2, 4.3) và slide từ "bộ 30" sang "bộ 28".
+2. Cập nhật báo cáo tuần 5 (mục 4–5) và slide từ "bộ 30" sang "bộ 28".
 
 ## 4b. Kiểm tra cuối: nhóm volume và chọn giữa bộ của OCSVM và bộ của IF
 

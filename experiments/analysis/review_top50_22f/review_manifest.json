@@ -1,0 +1,62 @@
+{
+  "matrix": "data/processed/feature_matrix_processed.parquet",
+  "config": "configs/benchmark_grid_test_22f.yaml",
+  "drop_features": [
+    "interarrival_dt_mean",
+    "delta_t_cv",
+    "same_second_share",
+    "is_single_event",
+    "activity_peak_hour_sin",
+    "log_distinct_hosts",
+    "missing_source_ratio",
+    "dst_host_entropy",
+    "log_total_logons",
+    "custom_proc_share",
+    "delta_mean_distinct_pair_7d",
+    "new_host_count_7d",
+    "peer_z_share_night",
+    "rare_logon_type_count_log",
+    "remote_logon_ratio",
+    "volume_robust_z_7d",
+    "off_hours_ratio",
+    "delta_mean_distinct_fail_host_7d",
+    "jaccard_logontype_7d"
+  ],
+  "segment": "User",
+  "split_day": 42,
+  "eval_days": [
+    43,
+    44,
+    45,
+    46,
+    47,
+    48,
+    49,
+    50,
+    51,
+    52,
+    53,
+    54,
+    55,
+    56,
+    57,
+    58,
+    59,
+    60
+  ],
+  "models": {
+    "isolation_forest": "if_n300_ms1024",
+    "local_outlier_factor": "lof_k20_robust",
+    "one_class_svm": "ocsvm_standard_nc1000"
+  },
+  "seed": 42,
+  "top": 50,
+  "n_alerts": 142,
+  "top_overlap": {
+    "isolation_forest&local_outlier_factor": 0,
+    "isolation_forest&one_class_svm": 6,
+    "local_outlier_factor&one_class_svm": 2,
+    "all": 0
+  },
+  "labels": "a = đáng ngờ, cần điều tra | b = bất thường nhưng giải thích được | c = nhiễu"
+}

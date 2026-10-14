@@ -8,6 +8,10 @@ Lấy 50 cảnh báo điểm cao nhất của MỖI mô hình ML, hợp lại, r
 Làm mù: thứ tự xáo ngẫu nhiên, phiếu chấm không có tên mô hình hay điểm; bảng khoá để riêng.
 
     python scripts/evaluation/build_review_set.py
+    python scripts/evaluation/build_review_set.py --config configs/benchmark_grid_test_22f.yaml --out experiments/analysis/review_top50_22f
+
+``drop_features`` trong cấu hình lưới được áp dụng như ở lưới: mô hình ML chỉ dùng các đặc trưng còn lại, và thẻ cảnh
+báo chỉ liệt kê độ lệch trên các đặc trưng đó.
 
 Đầu ra: experiments/analysis/review_top50/
   review_sheet.csv      phiếu chấm (mở bằng Excel / Google Sheets) — cột nhãn cho người chấm 1 và 2
@@ -46,6 +50,20 @@ LOGON_TYPES = {2: "Interactive", 3: "Network", 4: "Batch", 5: "Service", 7: "Unl
                9: "NewCredentials", 10: "RemoteInteractive", 11: "CachedInteractive"}
 
 
+def ml_features(cfg: dict):
+    """Đặc trưng core trừ ``drop_features`` của lưới; None = toàn bộ core."""
+    drop = set(cfg.get("drop_features") or [])
+    if not drop:
+        return None
+    from src.features.schema import FeatureSchema
+
+    core = list(FeatureSchema().core_features)
+    unknown = sorted(drop - set(core))
+    if unknown:
+        raise ValueError(f"drop_features không phải đặc trưng core: {unknown}")
+    return [f for f in core if f not in drop]
+
+
 def score_original(matrix: Path, cfg: dict, params_path: str, split_day: int, eval_days: list, seed: int):
     df = pl.read_parquet(matrix).sort(["day", "DomainName", "UserName"])
     if cfg.get("segment"):
@@ -56,17 +74,19 @@ def score_original(matrix: Path, cfg: dict, params_path: str, split_day: int, ev
     params = load_params(params_path)
     c0 = float(cfg.get("contamination", 0.05))
     scores = {}
+    feats = ml_features(cfg)
     for model, confs in cfg["models"].items():
         c = confs[0]  # lưới test: một cấu hình chốt / mô hình
         res = fit_and_score(data, model, _params_with(params, model, c.get("params") or {}),
-                            c.get("scaler", "robust"), seed, c0)
+                            c.get("scaler", "robust"), seed, c0, feature_names=feats)
         scores[model] = res["scores"]
         logger.info("%s (%s): fit %.0fs, ngưỡng %.4f", model, c["id"], res["fit_seconds"], res["threshold"])
     return train, ev, scores
 
 
-def feature_deviation(train: pd.DataFrame, rows: pd.DataFrame, top: int = 5) -> list:
-    feats = [c for c in train.columns if c not in NON_FEATURES and pd.api.types.is_numeric_dtype(train[c])]
+def feature_deviation(train: pd.DataFrame, rows: pd.DataFrame, top: int = 5, only=None) -> list:
+    feats = [c for c in train.columns if c not in NON_FEATURES and pd.api.types.is_numeric_dtype(train[c])
+             and (only is None or c in only)]
     t = train[feats]
     med, q99, q999 = t.median(), t.quantile(0.99), t.quantile(0.999)
     scale = ((t.quantile(0.75) - t.quantile(0.25)) / 1.349).where(lambda s: s > 1e-9, t.std()).replace(0, np.nan)
@@ -202,7 +222,7 @@ def main() -> None:
     logger.info("%d cảnh báo duy nhất từ %d mô hình × top %d", len(alerts), len(scores), args.top)
 
     rows = alerts.merge(ev, on=KEYS, how="left")
-    feats, ctx = feature_deviation(train, rows), account_context(train, rows)
+    feats, ctx = feature_deviation(train, rows, only=ml_features(cfg)), account_context(train, rows)
     raw = raw_summaries(alerts, Path(args.interim))
     cards = [{**a, "features": f, "context": c, "raw": raw.get((a["DomainName"], a["UserName"], int(a["day"])), {})}
              for a, f, c in zip(alerts.to_dict("records"), feats, ctx)]
@@ -223,7 +243,8 @@ def main() -> None:
     overlap = {f"{a}&{b}": len(tops[a] & tops[b]) for i, a in enumerate(names) for b in names[i + 1:]}
     overlap["all"] = len(set.intersection(*tops.values()))
     (out / "review_manifest.json").write_text(json.dumps({
-        "matrix": args.matrix, "segment": cfg.get("segment"), "split_day": args.split_day, "eval_days": eval_days,
+        "matrix": args.matrix, "config": args.config, "drop_features": cfg.get("drop_features") or [],
+        "segment": cfg.get("segment"), "split_day": args.split_day, "eval_days": eval_days,
         "models": {m: cfg["models"][m][0]["id"] for m in cfg["models"]}, "seed": args.seed, "top": args.top,
         "n_alerts": len(alerts), "top_overlap": overlap, "labels": LABELS}, indent=2, ensure_ascii=False),
         encoding="utf-8")

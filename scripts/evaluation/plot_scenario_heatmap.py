@@ -45,7 +45,7 @@ def main() -> None:
     p = argparse.ArgumentParser(description=__doc__.split("\n")[1])
     p.add_argument("--main", default="experiments/grid/test_30f", help="lưới chính (bộ 30 đặc trưng)")
     p.add_argument("--ref", default="experiments/grid/test", help="lưới so sánh (41 đặc trưng, tuần 4)")
-    p.add_argument("--copy-to", default="reports/week5/figures/04-scenario_pr_auc_heatmap.png")
+    p.add_argument("--copy-to", default="")
     args = p.parse_args()
     main_dir, ref_dir = Path(args.main), Path(args.ref)
 

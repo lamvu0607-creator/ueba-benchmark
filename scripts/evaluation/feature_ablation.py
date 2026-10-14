@@ -64,7 +64,7 @@ def ablation_configs(origin: dict) -> dict:
 def addback_configs(origin: dict) -> dict:
     """Thêm lại TỪNG đặc trưng trong 11 đặc trưng đã bỏ vào bộ 30: ``base30`` + ``add_<f>`` (31 đặc trưng).
 
-    Trả lời "có đặc trưng nào bị bỏ oan không" ở mức từng đặc trưng (ablation trên chỉ bỏ theo cụm)."""
+    Trả lời "có đặc trưng nào bị bỏ oan không" ở mức từng đặc trưng (ablation trên chỉ bỏ theo nhóm)."""
     dropped = ablation_configs(origin)["drop_rhythm_low_shap10"]
     cfgs = {ADDBACK_REF: list(dropped)}
     for f in dropped:
