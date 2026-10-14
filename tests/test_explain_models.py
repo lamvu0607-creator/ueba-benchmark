@@ -54,6 +54,15 @@ def test_ablation_configs_drop_only_core_features():
         assert set(dropped) <= set(origin) and len(dropped) < len(origin)
 
 
+def test_addback_configs_add_one_dropped_feature_each():
+    origin = em.schema_origin(ROOT / "configs/feature_schema.yaml")
+    base = fa.ablation_configs(origin)["drop_rhythm_low_shap10"]
+    cfgs = fa.addback_configs(origin)
+    assert cfgs[fa.ADDBACK_REF] == base == cfgs[fa.REPEAT] and len(cfgs) == 2 + len(base) == 13
+    for f in base:
+        assert set(base) - set(cfgs[f"add_{f}"]) == {f}
+
+
 def test_paired_delta_is_per_run_difference():
     df = pd.DataFrame({"run_id": ["r1", "r2"] * 2, "seed_index": [0, 1] * 2, "ablation": ["full"] * 2 + ["drop_x"] * 2,
                        "model": "m", "pr_auc": [0.5, 0.6, 0.4, 0.4]})

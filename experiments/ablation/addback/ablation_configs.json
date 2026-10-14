@@ -1,0 +1,199 @@
+{
+  "base30": {
+    "dropped": [
+      "interarrival_dt_mean",
+      "delta_t_cv",
+      "same_second_share",
+      "is_single_event",
+      "activity_peak_hour_sin",
+      "log_distinct_hosts",
+      "missing_source_ratio",
+      "log_total_logons",
+      "dst_host_entropy",
+      "volume_robust_z_7d",
+      "peer_z_share_night"
+    ],
+    "n_features": 30
+  },
+  "add_interarrival_dt_mean": {
+    "dropped": [
+      "delta_t_cv",
+      "same_second_share",
+      "is_single_event",
+      "activity_peak_hour_sin",
+      "log_distinct_hosts",
+      "missing_source_ratio",
+      "log_total_logons",
+      "dst_host_entropy",
+      "volume_robust_z_7d",
+      "peer_z_share_night"
+    ],
+    "n_features": 31
+  },
+  "add_delta_t_cv": {
+    "dropped": [
+      "interarrival_dt_mean",
+      "same_second_share",
+      "is_single_event",
+      "activity_peak_hour_sin",
+      "log_distinct_hosts",
+      "missing_source_ratio",
+      "log_total_logons",
+      "dst_host_entropy",
+      "volume_robust_z_7d",
+      "peer_z_share_night"
+    ],
+    "n_features": 31
+  },
+  "add_same_second_share": {
+    "dropped": [
+      "interarrival_dt_mean",
+      "delta_t_cv",
+      "is_single_event",
+      "activity_peak_hour_sin",
+      "log_distinct_hosts",
+      "missing_source_ratio",
+      "log_total_logons",
+      "dst_host_entropy",
+      "volume_robust_z_7d",
+      "peer_z_share_night"
+    ],
+    "n_features": 31
+  },
+  "add_is_single_event": {
+    "dropped": [
+      "interarrival_dt_mean",
+      "delta_t_cv",
+      "same_second_share",
+      "activity_peak_hour_sin",
+      "log_distinct_hosts",
+      "missing_source_ratio",
+      "log_total_logons",
+      "dst_host_entropy",
+      "volume_robust_z_7d",
+      "peer_z_share_night"
+    ],
+    "n_features": 31
+  },
+  "add_activity_peak_hour_sin": {
+    "dropped": [
+      "interarrival_dt_mean",
+      "delta_t_cv",
+      "same_second_share",
+      "is_single_event",
+      "log_distinct_hosts",
+      "missing_source_ratio",
+      "log_total_logons",
+      "dst_host_entropy",
+      "volume_robust_z_7d",
+      "peer_z_share_night"
+    ],
+    "n_features": 31
+  },
+  "add_log_distinct_hosts": {
+    "dropped": [
+      "interarrival_dt_mean",
+      "delta_t_cv",
+      "same_second_share",
+      "is_single_event",
+      "activity_peak_hour_sin",
+      "missing_source_ratio",
+      "log_total_logons",
+      "dst_host_entropy",
+      "volume_robust_z_7d",
+      "peer_z_share_night"
+    ],
+    "n_features": 31
+  },
+  "add_missing_source_ratio": {
+    "dropped": [
+      "interarrival_dt_mean",
+      "delta_t_cv",
+      "same_second_share",
+      "is_single_event",
+      "activity_peak_hour_sin",
+      "log_distinct_hosts",
+      "log_total_logons",
+      "dst_host_entropy",
+      "volume_robust_z_7d",
+      "peer_z_share_night"
+    ],
+    "n_features": 31
+  },
+  "add_log_total_logons": {
+    "dropped": [
+      "interarrival_dt_mean",
+      "delta_t_cv",
+      "same_second_share",
+      "is_single_event",
+      "activity_peak_hour_sin",
+      "log_distinct_hosts",
+      "missing_source_ratio",
+      "dst_host_entropy",
+      "volume_robust_z_7d",
+      "peer_z_share_night"
+    ],
+    "n_features": 31
+  },
+  "add_dst_host_entropy": {
+    "dropped": [
+      "interarrival_dt_mean",
+      "delta_t_cv",
+      "same_second_share",
+      "is_single_event",
+      "activity_peak_hour_sin",
+      "log_distinct_hosts",
+      "missing_source_ratio",
+      "log_total_logons",
+      "volume_robust_z_7d",
+      "peer_z_share_night"
+    ],
+    "n_features": 31
+  },
+  "add_volume_robust_z_7d": {
+    "dropped": [
+      "interarrival_dt_mean",
+      "delta_t_cv",
+      "same_second_share",
+      "is_single_event",
+      "activity_peak_hour_sin",
+      "log_distinct_hosts",
+      "missing_source_ratio",
+      "log_total_logons",
+      "dst_host_entropy",
+      "peer_z_share_night"
+    ],
+    "n_features": 31
+  },
+  "add_peer_z_share_night": {
+    "dropped": [
+      "interarrival_dt_mean",
+      "delta_t_cv",
+      "same_second_share",
+      "is_single_event",
+      "activity_peak_hour_sin",
+      "log_distinct_hosts",
+      "missing_source_ratio",
+      "log_total_logons",
+      "dst_host_entropy",
+      "volume_robust_z_7d"
+    ],
+    "n_features": 31
+  },
+  "control_refit_base30": {
+    "dropped": [
+      "interarrival_dt_mean",
+      "delta_t_cv",
+      "same_second_share",
+      "is_single_event",
+      "activity_peak_hour_sin",
+      "log_distinct_hosts",
+      "missing_source_ratio",
+      "log_total_logons",
+      "dst_host_entropy",
+      "volume_robust_z_7d",
+      "peer_z_share_night"
+    ],
+    "n_features": 30
+  }
+}

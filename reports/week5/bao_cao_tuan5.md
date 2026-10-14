@@ -114,7 +114,7 @@ Không chạy 28 ngày vì xu hướng đã đi xuống từ 21 ngày, và khi �
 
 Mô hình ngẫu nhiên đạt khoảng 0,014 ở mọi kịch bản.
 
-![Recall theo kịch bản](../../experiments/analysis/scenario/figures/scenario_recall_heatmap.png)
+![Recall theo kịch bản](figures/scenario_recall_heatmap.png)
 
 **Đọc biểu đồ:** mỗi ô là recall top-100/ngày (cùng số với bảng 2.1), màu càng đậm thì bắt được càng nhiều. Hàng OCSVM đậm nhất ở 4/6 cột. Cột off_hours nhạt ở mọi hàng.
 
@@ -126,7 +126,7 @@ Hạng tính theo % từ trên xuống của danh sách xếp hạng; càng nh�
 |---|---|---|---|---|---|
 | top 0,8% | top 1,2% | top 1,8% | top 4,0% | top 7,7% | top 26% |
 
-![Hạng của nạn nhân](../../experiments/analysis/scenario/figures/victim_rank_boxplot.png)
+![Hạng của nạn nhân](figures/victim_rank_boxplot.png)
 
 **Đọc biểu đồ:** mỗi hộp là phân bố hạng của nạn nhân một kịch bản theo một mô hình, trục dọc theo thang log, **càng cao càng tốt**. Vạch giữa hộp là trung vị. Ngân sách 100 cảnh báo/ngày tương đương khoảng top 1,2%: hộp nào nằm phía trên mức đó thì phần lớn nạn nhân đã lọt top-100.
 - brute_force: hộp OCSVM nằm cao và hẹp, trong khi hộp LOF nằm sát đáy.
@@ -148,6 +148,61 @@ Hạng tính theo % từ trên xuống của danh sách xếp hạng; càng nh�
 - **password_spraying: IF (0,23) ≈ z-score (0,22) > OCSVM (0,19), nhưng đều thấp.**
   - Nguyên nhân gốc: mỗi nạn nhân chỉ nhận **1–3 lần thử** (trung vị 2). Chiến dịch rải trên nhiều tài khoản, nên ở mức (tài khoản, ngày) gần như không có tín hiệu.
   - Không chỉnh mô hình nào giải được việc này. Cần đặc trưng **theo máy nguồn**, tức một Source thử nhiều tài khoản trong thời gian ngắn.
+
+### 2.1 PR-AUC theo kịch bản (heatmap, bộ 30 đặc trưng)
+
+Phần này dùng lưới test chính thức với **bộ 30 đặc trưng** (mục 4.3), khác với bảng 2.1 ở trên dùng 41 đặc trưng.
+
+**Cách tính PR-AUC theo kịch bản:**
+- So nạn nhân của **riêng một kịch bản** với **mọi** dòng bình thường; nạn nhân của các kịch bản khác bị bỏ ra.
+- Vì vậy mức ngẫu nhiên chỉ khoảng **0,0018**, bằng tỷ lệ nạn nhân của một kịch bản. Mức này thấp hơn nhiều so với khoảng 0,01 của PR-AUC tổng.
+- Để so giữa các kịch bản, mỗi ô ghi thêm **bội số so với ngẫu nhiên**: lift = PR-AUC / PR-AUC của mô hình ngẫu nhiên ở cùng kịch bản.
+
+![PR-AUC theo kịch bản](figures/scenario_pr_auc_heatmap.png)
+
+**Đọc biểu đồ:**
+- **Hình trái:**
+  - mỗi ô ghi PR-AUC (TB qua 5 run test) và ×lift;
+  - màu theo thang log, vàng là cao, tím là gần ngẫu nhiên;
+  - viền đỏ đánh dấu mô hình tốt nhất của từng kịch bản;
+  - vạch trắng tách 3 mô hình ML với các baseline.
+- **Hình phải:** Δ PR-AUC của bộ 30 so với bộ 41 (lưới tuần 4). Xanh là bộ 30 tốt hơn, đỏ là kém hơn.
+
+**Bảng 2.3: PR-AUC theo kịch bản (TB ± std qua 5 run test, 30 đặc trưng) và lift so với ngẫu nhiên**
+
+| Kịch bản | OCSVM | IF | LOF | z-score | Luật thất bại ≥ 5 |
+|---|---|---|---|---|---|
+| brute_force | **0,160 ± 0,071** (×90) | 0,015 (×9) | 0,002 (×1) | 0,013 (×7) | 0,063 (×35) |
+| logon_type_switch | 0,107 ± 0,028 (×59) | 0,057 (×32) | **0,116 ± 0,029** (×64) | 0,006 (×4) | 0,002 (×1) |
+| new_workstation_burst | **0,058 ± 0,015** (×34) | 0,019 (×11) | 0,022 (×13) | 0,002 (×1) | 0,002 (×1) |
+| dormant_wakeup | **0,022 ± 0,003** (×12) | 0,013 (×7) | 0,005 (×3) | 0,005 (×3) | 0,002 (×1) |
+| password_spraying | 0,010 (×6) | 0,018 ± 0,004 (×10) | 0,006 (×3) | **0,043 ± 0,012** (×25) | 0,007 (×4) |
+| off_hours | 0,008 (×4) | **0,010 ± 0,003** (×5) | 0,005 (×3) | 0,003 (×2) | 0,002 (×1) |
+
+Mô hình ngẫu nhiên đạt 0,0018 ở mọi kịch bản. Số đầy đủ, gồm std và luật 6 điều kiện, nằm trong `experiments/grid/test_30f/scenario_pr_auc_table.csv`.
+
+**Nhận xét:**
+1. **Theo PR-AUC, có ba nhóm kịch bản tách bạch:**
+   - **dễ:** brute_force, logon_type_switch, cao hơn ngẫu nhiên ×59–90;
+   - **trung bình:** new_workstation_burst ×34, dormant_wakeup ×12;
+   - **gần mù:** password_spraying, off_hours, ×4–10 với mô hình ML.
+
+   Thứ tự này trùng với hạng trung vị ở bảng 2.2.
+2. **OCSVM tốt nhất ở 3/6 kịch bản theo PR-AUC,** gồm brute_force, burst và dormant. PR-AUC cho cùng kết luận với recall@100 về vai trò mô hình chính của OCSVM.
+3. **logon_type_switch: LOF ngang OCSVM** (0,116 so với 0,107). Hiệu số nhỏ hơn 1 std, nên không phân định được.
+   - LOF có được mức này là nhờ bỏ 11 đặc trưng: PR-AUC +0,069 so với bộ 41 (hình phải).
+   - Đây là mức tăng lớn nhất của cả bảng Δ.
+4. **password_spraying: z-score đứng đầu theo PR-AUC (×25), gấp 2–4 lần các mô hình ML,** dù recall@100 của z-score chỉ ngang IF (0,22 so với 0,23, bảng 2.1).
+   - Nghĩa là z-score đẩy **một phần nhỏ** nạn nhân spraying lên đúng đầu danh sách, có lẽ là những nạn nhân bị thử nhiều lần nhất. Phần còn lại rải khắp danh sách như ở mọi mô hình.
+   - Gợi ý: một tín hiệu thống kê đơn giản về thất bại vẫn có ích cho spraying, nhưng không thay được đặc trưng theo máy nguồn.
+5. **off_hours: mọi mô hình chỉ cao hơn ngẫu nhiên ×2–5.** IF hơn OCSVM 0,002, nằm trong std. Không mô hình nào thắng thật.
+6. **Luật "thất bại ≥ 5" đạt ×35 ở brute_force,** đứng thứ hai sau OCSVM. Ở các kịch bản khác, luật này đúng bằng mức ngẫu nhiên, đúng như thiết kế.
+7. **Bộ 30 so với bộ 41 (hình phải):**
+   - phần tăng tập trung ở logon_type_switch (cả ba mô hình) và burst;
+   - các kịch bản khác thay đổi ≤ 0,006;
+   - OCSVM giảm ở brute_force (−0,014), nhưng std của ô này rất lớn (0,071), nên đó là nhiễu thứ tự dòng chứ không phải mất tín hiệu. Recall@100 của brute_force vẫn tăng 0,68 → 0,85 (mục 4.2).
+
+Chạy lại hình: `python scripts/evaluation/plot_scenario_heatmap.py`.
 
 **Kết luận phần 2:**
 1. OCSVM là mô hình chính: tốt nhất ở 4/6 kịch bản và gấp đôi IF ở recall tổng (0,32 so với 0,16).
@@ -209,13 +264,13 @@ Hạng tính theo % từ trên xuống của danh sách xếp hạng; càng nh�
 | volume | 0,07 | 0,05 | 0,04 | 0,04 |
 | context | 0,07 | 0,03 | 0,04 | 0,04 |
 
-![SHAP theo nhóm và kịch bản](../../experiments/analysis/explain/figures/shap_group_by_scenario.png)
+![SHAP theo nhóm và kịch bản](figures/shap_group_by_scenario.png)
 
 **Đọc biểu đồ:** mỗi bảng nhiệt là một mô hình. Hàng là nhóm đặc trưng, cột là kịch bản (hai cột cuối là toàn bộ nạn nhân và báo nhầm), số trong ô là tỷ phần |SHAP|. Ô đậm nằm gần như trên một "đường chéo": mỗi kịch bản có đúng một nhóm nổi bật. Riêng OCSVM có ô rhythm × false_alarm đậm (0,27), trong khi hàng rhythm nhạt ở mọi cột nạn nhân.
 
 ### 3.2 So sánh SHAP và LIME
 
-![Top 15 đặc trưng theo SHAP và LIME](../../experiments/analysis/explain/figures/top_features_shap_lime.png)
+![Top 15 đặc trưng theo SHAP và LIME](figures/top_features_shap_lime.png)
 
 **Đọc biểu đồ:** 15 đặc trưng có tỷ phần SHAP cao nhất của mỗi mô hình (thanh xanh), đặt cạnh tỷ phần LIME của cùng đặc trưng (thanh cam). Hai thanh dài gần bằng nhau nghĩa là hai phương pháp đồng ý.
 - Đặc trưng mạnh nhất khớp nhau ở LOF: `delta_mean_share_fail_7d` đứng đầu theo cả hai.
@@ -242,14 +297,125 @@ Spearman = tương quan hạng giữa hai bảng xếp hạng đặc trưng (1 l
    - `days_since_last_activity` → dormant_wakeup.
 2. **novelty và failure gánh nhiều nhất,** cao hơn hẳn mức chia đều. Đặc trưng đơn lẻ mạnh nhất là `new_source_count_7d` (hạng 1 ở OCSVM và IF).
 3. **rhythm, volume và context đóng góp dưới mức chia đều ở mọi kịch bản.** Riêng với OCSVM, rhythm lại là nguồn chính của **báo nhầm** (`delta_t_cv` chiếm 0,22 tỷ phần ở báo nhầm). Vì vậy rhythm là ứng viên ablation số 1: bỏ đi có thể giảm báo nhầm mà ít mất recall.
-4. **off_hours:** nhóm time giải thích phần lớn điểm của nạn nhân (0,52), nhưng điểm tuyệt đối vẫn thấp nên nạn nhân không lọt top. SHAP cho biết **cái gì** đẩy điểm lên, không cho biết điểm có **đủ cao** hay không. Ablation ở mục 4 trả lời câu hỏi thứ hai.
+4. **off_hours:** nhóm time giải thích phần lớn điểm của nạn nhân (0,52), nhưng điểm tuyệt đối vẫn thấp nên nạn nhân không lọt top. Mục 3.4 cho thấy phần 0,52 này gần như chỉ đến từ một đặc trưng, `delta_mean_share_night_7d`. SHAP cho biết **cái gì** đẩy điểm lên, không cho biết điểm có **đủ cao** hay không. Ablation ở mục 4 trả lời câu hỏi thứ hai.
 5. **Đặc trưng template v4 có đóng góp thật:** chiếm 44–51% tỷ phần ở nạn nhân, trong khi chỉ chiếm 41% số chiều (17/41).
 6. **10 đặc trưng ít được dùng nhất** có tỷ phần cao nhất qua ba mô hình chỉ khoảng 0,011–0,016, thấp hơn mức chia đều 0,024. Ví dụ: `is_single_event`, `log_total_logons`, `dst_host_entropy`, `peer_z_share_night`. Đây là ứng viên cắt tỉa.
 7. **Dùng SHAP làm căn cứ, LIME chỉ để minh hoạ.** Hai phương pháp khớp ở mức nhóm và ở đặc trưng mạnh nhất, nhưng khớp kém ở từng dòng. Với LOF, mô hình tuyến tính của LIME chỉ giải thích được 6% điểm (R² 0,06) vì LOF rất phi tuyến. LIME còn rời rạc hoá theo tứ phân vị, nên đánh giá thấp các đặc trưng novelty (đa số dòng bằng 0).
 
-**Hạn chế:** chỉ một run dev và một seed. Thứ hạng nhóm khá ổn định, còn thứ hạng từng đặc trưng ở giữa bảng có thể đổi giữa các run. Các đặc trưng tương quan có thể chia nhau phần đóng góp, nên nên đọc kết quả ở mức nhóm.
+📁 Số liệu mục 3.1–3.3: [`experiments/analysis/explain/`](../../experiments/analysis/explain/), gồm `feature_importance.csv`, `group_importance.csv` và `shap_lime_agreement.csv`.
 
-📁 Số liệu: [`experiments/analysis/explain/`](../../experiments/analysis/explain/), gồm `feature_importance.csv`, `group_importance.csv` và `shap_lime_agreement.csv`.
+### 3.4 Bổ sung: SHAP theo từng đặc trưng trên 3 run dev
+
+**Vì sao bổ sung:**
+- Các mục 3.1–3.3 kết luận ở mức 8 nhóm. Các nhóm này do nhóm thực hiện tự chia theo nghĩa của đặc trưng, không suy ra từ dữ liệu.
+- Danh sách "SHAP thấp" dùng để bỏ đặc trưng chỉ lấy từ một run.
+- Vì vậy cần kiểm tra ba điều:
+  1. thứ hạng **từng đặc trưng** có ổn định không;
+  2. nhóm theo nghĩa có trùng với cụm theo tương quan thật không;
+  3. trong mỗi kịch bản, có phải cả nhóm đóng góp, hay chỉ một vài đặc trưng.
+
+**Thiết lập:**
+- Chạy lại KernelSHAP trên thêm 2 run dev (`dev_seed20261037`, `038`), giữ nguyên cấu hình mục 3, không chạy LIME. Tổng cộng 3 run dev, mỗi run có 180 nạn nhân và 30 báo nhầm cho mỗi mô hình.
+- Cụm tương quan:
+  - tính |Spearman| giữa 41 đặc trưng trên dòng train User, ngày 1–35;
+  - phân cụm phân cấp (average linkage) với khoảng cách 1 − |ρ|;
+  - cắt cây ở 0,3, tức các đặc trưng trong một cụm có |ρ| trung bình ≥ 0,7.
+
+**Bảng 3.4: Độ ổn định thứ hạng giữa 3 run dev** (Spearman của tỷ phần |SHAP| trên nạn nhân, TB qua 3 cặp run)
+
+| Mức | OCSVM | IF | LOF | Trùng top-k giữa các cặp run |
+|---|---|---|---|---|
+| Từng đặc trưng (41) | 0,93 | 0,99 | 0,96 | top-10: 0,93–1,00 |
+| Nhóm theo nghĩa (8) | 0,97 | 0,98 | 0,98 | top-3: 1,00 |
+| Cụm tương quan (33) | 0,92 | 0,99 | 0,97 | top-5: 0,87 |
+
+![Tỷ phần SHAP từng đặc trưng qua 3 run](figures/feature_shap_stability.png)
+
+**Đọc biểu đồ:**
+- Mỗi cột là một mô hình; mỗi thanh là tỷ phần |SHAP| trung bình trên nạn nhân của một đặc trưng. Râu là min–max qua 3 run, màu là nhóm theo nghĩa.
+- Tên màu đỏ có dấu ✕ là 11 đặc trưng đã bỏ ở bộ 30. Nét đứt là mức chia đều 1/41.
+- Râu ngắn nghĩa là thứ hạng gần như không đổi giữa các run.
+- Hầu hết các thanh đỏ nằm ở nửa dưới, bên trái nét đứt.
+
+![Tỷ phần SHAP theo từng đặc trưng và kịch bản](figures/feature_shap_by_scenario.png)
+
+**Đọc biểu đồ:** hàng là 41 đặc trưng xếp theo nhóm (vạch xám tách nhóm), cột là kịch bản và báo nhầm, màu là tỷ phần |SHAP| TB qua 3 run. Mỗi cột thường chỉ có 1–2 ô đậm, không phải cả một khối nhóm.
+
+![Cụm tương quan giữa 41 đặc trưng](figures/feature_correlation_clusters.png)
+
+**Đọc biểu đồ:** ma trận |Spearman| đã sắp theo cây phân cụm; khung đỏ là các cụm có |ρ| ≥ 0,7. Nhãn hàng ghi nhóm theo nghĩa trong ngoặc vuông.
+
+**Bảng 3.5: Đặc trưng dẫn đầu từng kịch bản** (tỷ phần |SHAP| TB qua 3 run; mọi đặc trưng trong bảng lọt top-5 ở cả 3 run, trừ khi ghi khác)
+
+| Kịch bản | OCSVM | IF | LOF |
+|---|---|---|---|
+| brute_force | `failure_locked_out_share` **0,58** | `failure_locked_out_share` 0,18, `novelty_fail_failreason_7d` 0,16 | `delta_mean_share_fail_7d` 0,30, `failure_ratio` 0,16 |
+| password_spraying | `delta_mean_share_fail_7d` 0,14 | `novelty_fail_host_7d` 0,08 | `delta_mean_share_fail_7d` 0,27, `failure_ratio` 0,14 |
+| off_hours | `delta_mean_share_night_7d` **0,34** | `delta_mean_share_night_7d` 0,15 | `delta_mean_share_night_7d` 0,10 |
+| logon_type_switch | `dist_shift_logontype_7d` **0,32** | `dist_shift_logontype_7d` 0,18 | `new_source_count_7d` 0,16, `dist_shift_logontype_7d` 0,14 |
+| new_workstation_burst | `new_source_count_7d` **0,41** | `new_source_count_7d` 0,24 | `new_source_count_7d` 0,28 |
+| dormant_wakeup | `days_since_last_activity` **0,46** | `days_since_last_activity` 0,20 | `days_since_last_activity` 0,16 |
+| Báo nhầm | `delta_t_cv` **0,23**, `days_since_last_activity` 0,14 | `dist_shift_logontype_7d` 0,09, `failure_ratio` 0,08 | `failure_ratio` 0,17, `interactive_ratio` 0,12 |
+
+Danh sách top-5 đầy đủ của từng (mô hình, kịch bản), kèm số run lọt top-5, nằm trong `top5_by_scenario.csv`.
+
+**Bảng 3.6: 11 đặc trưng đã bỏ ở bộ 30 — hạng theo tỷ phần |SHAP| trên nạn nhân** (hạng tốt nhất – tệ nhất qua 3 run, trên 41 đặc trưng)
+
+| Đặc trưng | OCSVM | IF | LOF |
+|---|---|---|---|
+| `interarrival_dt_mean` | 38–40 | 33–34 | **11–12** |
+| `delta_t_cv` | 28–37 | 36–37 | 17–20 |
+| `same_second_share` | 28–34 | 27–28 | 21–23 |
+| `is_single_event` | 30–39 | 40–41 | 41 |
+| `activity_peak_hour_sin` | 30–35 | 36–37 | 32–38 |
+| `log_distinct_hosts` | 24–32 | 38–41 | 29–36 |
+| `missing_source_ratio` | 21–39 | 38–41 | 25–26 |
+| `log_total_logons` | 35–38 | 33–34 | 20–25 |
+| `dst_host_entropy` | 17–27 | 35 | 28–31 |
+| `volume_robust_z_7d` | **12–22** | 29–32 | **15–19** |
+| `peer_z_share_night` | 23–27 | 28–31 | 18–24 |
+
+**Nhận xét:**
+1. **Thứ hạng từng đặc trưng ổn định gần như nhóm.** Spearman giữa các run đạt 0,93–0,99 ở mức đặc trưng, so với 0,97–0,98 ở mức nhóm. Top-10 của IF và OCSVM trùng hoàn toàn giữa các run.
+   - Hạn chế "chỉ một run" ở mục 3 không làm sai kết luận theo từng đặc trưng.
+   - Vì vậy có thể đọc kết quả ở mức từng đặc trưng, không bắt buộc phải gộp nhóm.
+2. **Nhóm theo nghĩa phần lớn không phải cụm tương quan.**
+   - Chỉ có 6 cụm nhiều phần tử (14/41 đặc trưng) đạt |ρ| ≥ 0,7:
+     - `new_source_count_7d` + `new_host_count_7d` + `novelty_share_pair_7d`;
+     - `novelty_fail_host_7d` + `novelty_fail_failreason_7d`;
+     - `delta_mean_share_fail_7d` + `delta_mean_distinct_fail_host_7d`;
+     - `distinct_sources_count` + `peer_z_distinct_source`;
+     - `off_hours_ratio` + `peer_z_share_night`;
+     - `delta_mean_count_7d` + `delta_mean_distinct_source_7d` + `delta_mean_distinct_pair_7d`. Cụm này cắt ngang hai nhóm volume và fanout.
+   - 27 đặc trưng còn lại không tương quan mạnh với đặc trưng nào. Ví dụ, trong 8 đặc trưng của nhóm time chỉ có cặp `off_hours_ratio` + `peer_z_share_night` tương quan mạnh; 6 đặc trưng còn lại gần như độc lập.
+   - Vì vậy lý do "đọc theo nhóm để tránh SHAP chia công giữa các đặc trưng tương quan" chỉ đúng với 6 cụm trên, không đúng cho cả 8 nhóm.
+3. **Mỗi kịch bản do 1–2 đặc trưng cụ thể dẫn dắt, không phải cả nhóm.**
+   - off_hours: tỷ phần 0,52 của nhóm time ở mục 3.1 chủ yếu đến từ **một** đặc trưng, `delta_mean_share_night_7d` (0,34 với OCSVM). 7 đặc trưng giờ còn lại đều ≤ 0,053 (`off_hours_ratio`), phần lớn ≤ 0,03.
+   - Điều này giải thích vì sao bỏ cả nhóm time mà off_hours không đổi (mục 4.1): tín hiệu của nhóm chỉ là một đặc trưng, và đặc trưng đó vẫn không đủ để đẩy nạn nhân vào top.
+   - Tương tự:
+     - dormant_wakeup chỉ dựa vào `days_since_last_activity`;
+     - burst dựa vào `new_source_count_7d`;
+     - logon_type_switch dựa vào `dist_shift_logontype_7d`;
+     - brute_force của OCSVM dựa gần như hoàn toàn vào `failure_locked_out_share` (0,58).
+4. **Báo nhầm của OCSVM do đúng một đặc trưng, `delta_t_cv` (0,23).** Ba đặc trưng rhythm còn lại có tỷ phần ≈ 0 ở báo nhầm. Mục 4.4 kiểm tra xem chỉ bỏ `delta_t_cv` có đủ hay không.
+5. **11 đặc trưng đã bỏ có hạng thấp ở cả 3 run với OCSVM và IF.** Danh sách SHAP thấp lấy từ một run được xác nhận lại. Có hai ngoại lệ đáng ngờ:
+   - `interarrival_dt_mean` đứng hạng 11–12 ở LOF, trên mức chia đều;
+   - `volume_robust_z_7d` đứng hạng 12–22 ở OCSVM và 15–19 ở LOF.
+
+   Đây là hai ứng viên "bỏ oan", được kiểm tra bằng thí nghiệm thêm lại ở mục 4.4.
+
+📁 Số liệu: [`experiments/analysis/explain_stability/`](../../experiments/analysis/explain_stability/), gồm `rank_stability.csv`, `feature_share_by_run.csv`, `top5_by_scenario.csv`, `correlation_clusters.csv` và `dropped_features.csv`. Chạy lại:
+
+```
+python scripts/evaluation/explain_models.py --run data/injection_runs/dev_seed20261037 --skip-lime --out experiments/analysis/explain_runs/dev_seed20261037
+python scripts/evaluation/explain_models.py --run data/injection_runs/dev_seed20261038 --skip-lime --out experiments/analysis/explain_runs/dev_seed20261038
+python scripts/evaluation/shap_feature_stability.py
+```
+
+**Hạn chế:**
+- SHAP vẫn dùng 1 model seed (42) trên mỗi run.
+- Trong 6 cụm tương quan, cách KernelSHAP chia công giữa các đặc trưng cùng cụm vẫn tuỳ ý. Ví dụ, `new_host_count_7d` có tỷ phần gần 0 có thể vì `new_source_count_7d` đã nhận phần đóng góp thay nó. Với các cụm này nên đọc tổng của cả cụm.
+- Tỷ phần |SHAP| đo đóng góp vào điểm, không đo đóng góp vào khả năng phát hiện. Ablation ở mục 4 mới đo phần đó.
 
 ---
 
@@ -292,7 +458,7 @@ Cột chính là Δ recall top-100/ngày; ΔPR-AUC là chỉ số phụ.
 | bỏ template_v4 (24) | −0,04 / −0,07 / −0,08 | −0,048 ± 0,014 | −0,030 ± 0,005 | −0,020 ± 0,004 |
 | *đối chứng: xáo dòng (41)* | *−0,02 / 0,00 / 0,00* | *−0,020 ± 0,019* | *0,000 ± 0,001* | *−0,005 ± 0,008* |
 
-![Δ recall theo kịch bản trên dev](../../experiments/ablation/feature_groups/figures/delta_recall_by_scenario.png)
+![Δ recall theo kịch bản trên dev](figures/ablation_delta_recall_dev.png)
 
 **Đọc biểu đồ:** mỗi bảng nhiệt là một mô hình. Hàng là cấu hình ablation, cột là kịch bản (cột cuối "all" là tổng), số trong ô là Δ recall top-100/ngày.
 - Xanh là tốt hơn bản đủ 41 đặc trưng, đỏ là tệ hơn, trắng là không đổi.
@@ -326,7 +492,7 @@ Bộ 30 đặc trưng được chọn trên dev nên kết quả dev có thể l
 | IF | 0,16 → **0,21** | +0,047 ± 0,010 (−0,003 ± 0,013) | 0,066 → **0,089** | +0,023 ± 0,005 (−0,001 ± 0,007) | 0,17 → 0,20 |
 | LOF | 0,13 → **0,15** | +0,021 ± 0,009 (0,000 ± 0,003) | 0,048 → **0,064** | +0,017 ± 0,006 (0,000 ± 0,002) | 0,09 → 0,12 |
 
-![Δ recall theo kịch bản trên test](../../experiments/ablation/feature_groups_test/figures/delta_recall_by_scenario.png)
+![Δ recall theo kịch bản trên test](figures/ablation_delta_recall_test.png)
 
 **Đọc biểu đồ:** cùng cách đọc như hình trên dev. Hàng trên là bộ 30 đặc trưng, hàng dưới là đối chứng xáo dòng. Các ô xanh đậm nhất là:
 - OCSVM ở brute_force: +0,17, tức recall từ 0,68 lên 0,85;
@@ -354,12 +520,78 @@ Không ô nào đỏ rõ. Ô giảm duy nhất là dormant_wakeup của LOF (−
 
 Thứ hạng giữ nguyên: OCSVM > IF > LOF > mọi baseline. Bảng này cũng minh hoạ lý do chọn recall@K ở mục 0: IF và OCSVM có ROC-AUC gần như bằng nhau, nhưng OCSVM bắt gần gấp đôi số nạn nhân trong ngân sách 100 cảnh báo/ngày.
 
+### 4.4 Bổ sung: thêm lại từng đặc trưng vào bộ 30 (dev)
+
+**Câu hỏi:**
+- Ablation ở 4.1 bỏ theo **nhóm hoặc cụm**, nên chưa biết từng đặc trưng trong 11 đặc trưng bị bỏ có thật sự vô ích không.
+- Mục 3.4 còn chỉ ra hai ứng viên đáng ngờ:
+  - `interarrival_dt_mean`, hạng SHAP 11–12 ở LOF;
+  - `volume_robust_z_7d`, hạng 12–22 ở OCSVM.
+- Cũng cần biết: báo nhầm của OCSVM do `delta_t_cv`, vậy chỉ bỏ riêng đặc trưng đó có đủ không?
+
+**Thiết lập:**
+- Cùng 5 run dev, cùng mô hình, seed và cách tính Δ ghép cặp như 4.1.
+- Mốc so sánh là **bộ 30**. Mỗi cấu hình thêm lại **đúng một** trong 11 đặc trưng, thành 31 đặc trưng.
+- **Đối chứng mới `control_refit_base30`:** fit lại y nguyên bộ 30.
+  - Đối chứng này cần vì LOF không tất định: LOF dùng chỉ mục láng giềng xấp xỉ HNSW, dựng đa luồng (`n_jobs: -1` trong `configs/model_params.yaml`), nên thứ tự chèn đổi giữa các lần fit.
+  - Trên cùng dữ liệu, PR-AUC của LOF dao động tới 0,03 giữa hai lần fit.
+  - OCSVM và IF cho kết quả giống hệt khi fit lại (Δ = 0).
+
+**Bảng 4.4: Δ khi thêm lại một đặc trưng vào bộ 30, TB ± std qua 5 run dev**
+
+Mốc bộ 30: recall top-100/ngày OCSVM 0,380, IF 0,228, LOF 0,212; PR-AUC 0,230 / 0,096 / 0,094. In đậm: |Δ TB| > 1 std và |Δ| ≥ 0,015; với LOF cần |Δ| ≥ 0,03 để vượt nhiễu fit lại.
+
+| Thêm lại | ΔRecall top-100/ngày OCSVM / IF / LOF | ΔPR-AUC OCSVM | ΔPR-AUC IF | ΔPR-AUC LOF |
+|---|---|---|---|---|
+| `interarrival_dt_mean` | **−0,029** / −0,012 / **−0,039** | **−0,022 ± 0,005** | −0,006 ± 0,013 | **−0,039 ± 0,020** |
+| `delta_t_cv` | −0,013 / −0,007 / +0,001 | **−0,024 ± 0,007** | −0,004 ± 0,016 | −0,001 ± 0,025 |
+| `is_single_event` | **−0,022** / **−0,026** / −0,022 | **−0,015 ± 0,003** | −0,008 ± 0,012 | −0,022 ± 0,021 |
+| `same_second_share` | −0,003 / −0,014 / −0,005 | −0,002 ± 0,002 | −0,007 ± 0,012 | −0,005 ± 0,012 |
+| `missing_source_ratio` | −0,008 / −0,012 / −0,014 | −0,006 ± 0,002 | −0,002 ± 0,014 | −0,020 ± 0,019 |
+| `volume_robust_z_7d` | 0,000 / −0,005 / −0,016 | −0,005 ± 0,002 | −0,002 ± 0,008 | −0,020 ± 0,019 |
+| `peer_z_share_night` | −0,003 / +0,001 / −0,022 | −0,002 ± 0,002 | +0,008 ± 0,010 | −0,012 ± 0,015 |
+| `log_distinct_hosts` | +0,002 / −0,004 / −0,011 | +0,002 ± 0,001 | −0,001 ± 0,013 | −0,018 ± 0,010 |
+| `activity_peak_hour_sin` | +0,003 / −0,015 / −0,002 | 0,000 ± 0,000 | −0,007 ± 0,013 | −0,012 ± 0,010 |
+| `log_total_logons` | +0,001 / −0,006 / +0,002 | 0,000 ± 0,001 | −0,003 ± 0,010 | −0,003 ± 0,011 |
+| `dst_host_entropy` | −0,002 / −0,005 / −0,001 | −0,003 ± 0,001 | 0,000 ± 0,012 | −0,007 ± 0,009 |
+| *đối chứng: fit lại bộ 30* | *0,000 / 0,000 / −0,015* | *0,000 ± 0,000* | *0,000 ± 0,000* | *−0,016 ± 0,014* |
+
+![Δ recall theo kịch bản khi thêm lại từng đặc trưng](figures/addback_delta_recall.png)
+
+**Đọc biểu đồ:**
+- Mỗi bảng nhiệt là một mô hình; hàng là đặc trưng được thêm lại, cột là kịch bản.
+- Số trong ô là Δ recall top-100/ngày so với bộ 30. Đỏ là thêm vào làm tệ hơn, xanh là tốt hơn. Dấu * nghĩa là |Δ TB| > 1 std.
+- Gần như không có ô xanh rõ. Các ô đỏ rõ tập trung ở hai hàng `interarrival_dt_mean` và `is_single_event`.
+- Hàng cuối là đối chứng fit lại: với LOF, riêng việc fit lại đã cho các ô tới −0,03. Ô của LOF chỉ đáng tin khi vượt mức này.
+
+**Giải thích:**
+1. **Không đặc trưng nào bị bỏ oan.** Thêm lại bất kỳ đặc trưng nào trong 11 đặc trưng đều không cải thiện rõ ở mô hình nào. Mức tăng lớn nhất chỉ +0,008 PR-AUC (IF, `peer_z_share_night`), nhỏ hơn std. Bộ 30 được xác nhận ở mức từng đặc trưng, không chỉ ở mức cụm.
+2. **SHAP cao không có nghĩa là đặc trưng có ích.**
+   - `interarrival_dt_mean` đứng hạng 11–12 theo SHAP ở LOF, tức LOF có dùng nó để chấm điểm.
+   - Nhưng thêm nó lại làm LOF **tệ hơn rõ nhất** (PR-AUC −0,039, recall −0,039), vượt mức nhiễu fit lại (−0,016).
+   - Đặc trưng này đẩy điểm lên ở cả dòng bình thường, nên đóng vai trò nhiễu chứ không phải tín hiệu.
+   - Đây là minh chứng rõ nhất cho việc SHAP (đóng góp vào điểm) phải đi kèm ablation (đóng góp vào phát hiện).
+3. **Báo nhầm của OCSVM không chỉ do `delta_t_cv`.**
+   - SHAP trên báo nhầm chỉ chỉ ra `delta_t_cv` (0,23).
+   - Ablation cho thấy ba trong bốn đặc trưng rhythm đều làm OCSVM tệ hơn với mức gần nhau: `delta_t_cv` −0,024, `interarrival_dt_mean` −0,022, `is_single_event` −0,015 PR-AUC.
+   - Vì vậy nếu chỉ bỏ `delta_t_cv` theo gợi ý của SHAP thì sẽ còn sót hai đặc trưng gây hại. Bỏ cả nhóm rhythm là đúng trong trường hợp này.
+4. **`volume_robust_z_7d` không phải bị bỏ oan.** Thêm lại nó không giúp OCSVM (−0,005) và LOF (−0,020, ngang mức nhiễu fit lại).
+5. **Thiệt hại dormant_wakeup của LOF (mục 4.3) chưa quy được về một đặc trưng cụ thể.**
+   - Thêm lại từng đặc trưng đổi recall dormant của LOF từ −0,002 đến +0,041 (mốc bộ 30 chỉ 0,05).
+   - Ba đặc trưng cho mức tăng vượt 1 std: `dst_host_entropy` +0,041 ± 0,034, `delta_t_cv` +0,037 ± 0,018, `peer_z_share_night` +0,035 ± 0,030. Ba đặc trưng này khác nhóm và không tương quan với nhau, mốc recall rất thấp và LOF có nhiễu fit lại, nên chưa đủ để kết luận đặc trưng nào là nguyên nhân.
+   - Giả thuyết trước đây là do `log_total_logons` / `volume_robust_z_7d` không được xác nhận: Δ lần lượt +0,017 và +0,011, đều nhỏ hơn std.
+6. **LOF có nhiễu không tất định đáng kể.** Fit lại cùng dữ liệu cho PR-AUC −0,016 ± 0,014. Mọi kết luận về LOF có hiệu nhỏ hơn khoảng 0,03 cần đọc thận trọng; điều này áp dụng cả cho các bảng 4.1–4.3.
+   - Muốn LOF tất định thì đặt `n_jobs: 1`. Khi đó dựng chỉ mục chậm hơn.
+
+Chạy lại: `python scripts/evaluation/feature_ablation.py --mode addback`, khoảng 1 giờ. Kết quả ở `experiments/ablation/addback/`.
+
 **Hạn chế:**
-- Danh sách đặc trưng SHAP thấp lấy từ một run dev.
+- Danh sách đặc trưng SHAP thấp ban đầu lấy từ một run dev. Mục 3.4 và 4.4 đã kiểm tra lại trên 3 run SHAP và 5 run ablation.
+- Thí nghiệm thêm lại chỉ thử **từng** đặc trưng một, chưa thử các cặp đặc trưng.
 - Tham số mô hình giữ nguyên theo bản 41 đặc trưng. Với ít chiều hơn, k của LOF và số thành phần của OCSVM có thể còn tốt hơn, nhưng chưa dò lại.
 - `configs/feature_schema.yaml` chưa đổi; bộ 30 được chọn qua `drop_features` trong cấu hình lưới.
 
-📁 Số liệu: [`experiments/ablation/feature_groups/`](../../experiments/ablation/feature_groups/) (dev), [`experiments/ablation/feature_groups_test/`](../../experiments/ablation/feature_groups_test/) (test) và [`experiments/grid/test_30f/`](../../experiments/grid/test_30f/) (lưới cuối).
+📁 Số liệu: [`experiments/ablation/feature_groups/`](../../experiments/ablation/feature_groups/) (dev), [`experiments/ablation/feature_groups_test/`](../../experiments/ablation/feature_groups_test/) (test), [`experiments/grid/test_30f/`](../../experiments/grid/test_30f/) (lưới cuối) và [`experiments/ablation/addback/`](../../experiments/ablation/addback/) (thêm lại từng đặc trưng).
 
 ---
 

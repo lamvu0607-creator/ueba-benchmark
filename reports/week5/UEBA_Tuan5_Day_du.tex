@@ -1,0 +1,871 @@
+\documentclass[aspectratio=169, 10pt]{beamer}
+
+% =============================================================================
+% CẤU HÌNH BIÊN DỊCH & GÓI LỆNH (TƯƠNG THÍCH HOÀN HẢO OVERLEAF / TEXLIVE)
+% =============================================================================
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[utf8]{vietnam}
+\else
+  \usepackage{fontspec}
+  \setsansfont{DejaVu Sans}
+  \setmonofont{DejaVu Sans Mono}
+\fi
+
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{colortbl}
+\usepackage{tabularx}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{tikz}
+\usetikzlibrary{positioning,arrows.meta}
+\usepackage{tcolorbox}
+\tcbuselibrary{skins}
+\usepackage{hyperref}
+
+% Đường dẫn tìm ảnh linh hoạt (hỗ trợ cả chạy từ thư mục gốc, thư mục slides/, hoặc drive)
+\graphicspath{{./}{slides/}{../}{../slides/}{drive-download-20260925T212557Z-1-001/}{../drive-download-20260925T212557Z-1-001/}}
+
+% =============================================================================
+% ĐỊNH NGHĨA HỆ MÀU SẮC CHUYÊN NGHIỆP (VINSOC THEME)
+% =============================================================================
+\definecolor{socblue}{RGB}{18, 48, 92}
+\definecolor{socteal}{RGB}{14, 116, 144}
+\definecolor{socsky}{RGB}{2, 132, 199}
+\definecolor{socdark}{RGB}{30, 41, 59}
+\definecolor{socbg}{RGB}{248, 250, 252}
+\definecolor{socborder}{RGB}{226, 232, 240}
+\definecolor{socgreen}{RGB}{22, 101, 52}
+\definecolor{socorange}{RGB}{194, 65, 12}
+\definecolor{socred}{RGB}{185, 28, 28}
+
+% =============================================================================
+% CẤU HÌNH GIAO DIỆN BEAMER & LỀ TRANG
+% =============================================================================
+\usetheme{default}
+\usefonttheme{professionalfonts}
+\setbeamertemplate{navigation symbols}{}
+\setbeamersize{text margin left=6mm, text margin right=6mm}
+
+% Màu sắc các phần tử chính của Beamer
+\setbeamercolor{structure}{fg=socblue}
+\setbeamercolor{palette primary}{bg=socblue,fg=white}
+\setbeamercolor{palette secondary}{bg=socteal,fg=white}
+\setbeamercolor{palette tertiary}{bg=socdark,fg=white}
+\setbeamercolor{item}{fg=socblue}
+\setbeamercolor{subitem}{fg=socteal}
+\setbeamercolor{block title}{bg=socblue, fg=white}
+\setbeamercolor{block body}{bg=socbg, fg=socdark}
+\setbeamercolor{block title example}{bg=socteal, fg=white}
+\setbeamercolor{block body example}{bg=socbg, fg=socdark}
+
+% Tiêu đề Slide (Frametitle) - Thanh ngang 1 dòng thanh thoát, tinh gọn
+\makeatletter
+\setbeamerfont{frametitle}{size=\normalsize, series=\bfseries}
+\setbeamercolor{frametitle}{bg=socblue, fg=white}
+\setbeamertemplate{frametitle}{%
+  \nointerlineskip%
+  \begin{beamercolorbox}[wd=\paperwidth,ht=3.2ex,dp=1.2ex,left]{frametitle}%
+    \hspace*{2.5ex}\usebeamerfont{frametitle}\insertframetitle%
+    \ifx\insertframesubtitle\@empty%
+    \else%
+      \hskip 2em plus 1fill{\footnotesize\color{socsky!45!white}\textmd{\insertframesubtitle}}\hspace*{2.5ex}%
+    \fi%
+  \end{beamercolorbox}%
+  \vspace{-1pt}%
+  {\color{socsky}\hrule height 1.2pt}%
+}
+\makeatother
+
+% Chân trang Slide (Footline) - Rõ ràng, dễ đọc, cân đối hài hòa
+\setbeamercolor{footline}{bg=socdark, fg=white}
+\setbeamertemplate{footline}{%
+  {\color{socsky!60!black}\hrule height 0.8pt}%
+  \leavevmode%
+  \hbox{%
+    \begin{beamercolorbox}[wd=.33\paperwidth,ht=3.2ex,dp=1.2ex,left]{footline}%
+      \hspace*{2.5ex}\fontsize{6}{7}\selectfont\textbf{\color{socsky}VinSOC} \textcolor{white!35}{|} \textmd{\color{white!85}Security Operations Center}
+    \end{beamercolorbox}%
+    \begin{beamercolorbox}[wd=.44\paperwidth,ht=3.2ex,dp=1.2ex,center]{footline}%
+      \footnotesize\color{white!90}Tuần 5: Phân tích \& củng cố
+    \end{beamercolorbox}%
+    \begin{beamercolorbox}[wd=.23\paperwidth,ht=3.2ex,dp=1.2ex,right]{footline}%
+      \footnotesize\color{white!80}Trang \;\textbf{\color{white}\insertframenumber} / \inserttotalframenumber\hspace*{2.5ex}
+    \end{beamercolorbox}%
+  }%
+  \vskip0pt%
+}
+
+% =============================================================================
+% MACRO & THÀNH PHẦN HỘP TINH GỌN (CHỐNG TRÀN VERTICAL TUYỆT ĐỐI)
+% =============================================================================
+% Hộp Nhận xét nghiệp vụ ngắn gọn
+\newcommand{\nhanxet}[1]{%
+  \vspace{0.12em}%
+  \begin{tcolorbox}[
+    enhanced,
+    colback=socsky!6,
+    colframe=socsky,
+    boxrule=0pt,
+    leftrule=3pt,
+    arc=1mm,
+    left=6pt, right=6pt, top=3pt, bottom=3pt,
+    fontupper=\scriptsize
+  ]
+    \textbf{\color{socsky!90!black}Nhận xét nghiệp vụ:} #1
+  \end{tcolorbox}%
+}
+
+% Hộp Chú thích biểu đồ tinh gọn
+\newcommand{\chuthichbieudo}[1]{%
+  \vspace{0.12em}%
+  \begin{tcolorbox}[
+    enhanced,
+    colback=socbg,
+    colframe=socborder,
+    boxrule=0.6pt,
+    leftrule=3pt,
+    borderline west={3pt}{0pt}{socteal},
+    arc=1mm,
+    left=6pt, right=6pt, top=3pt, bottom=3pt,
+    fontupper=\scriptsize
+  ]
+    \textbf{\color{socteal}Ý nghĩa:} #1
+  \end{tcolorbox}%
+}
+
+% Hộp thẻ card nội dung gọn nhẹ (thay thế beamer block to cồng kềnh)
+\newtcolorbox{soccard}[2][]{%
+  enhanced,
+  colback=socbg,
+  colframe=socborder,
+  boxrule=0.6pt,
+  leftrule=2.5pt,
+  borderline west={2.5pt}{0pt}{socblue},
+  arc=1mm,
+  left=5pt, right=5pt, top=3.5pt, bottom=3.5pt,
+  fontupper=\scriptsize,
+  title={\textbf{\color{socblue}#2}},
+  coltitle=socblue,
+  attach title to upper={\par\vspace{1.5pt}},
+  #1
+}
+
+% Lệnh chèn ảnh an toàn hỗ trợ đa đường dẫn
+\newcommand{\chenanh}[2][width=\linewidth]{%
+  \IfFileExists{#2}{%
+    \includegraphics[#1]{#2}%
+  }{%
+    \IfFileExists{slides/#2}{%
+      \includegraphics[#1]{slides/#2}%
+    }{%
+      \IfFileExists{drive-download-20260925T212557Z-1-001/#2}{%
+        \includegraphics[#1]{drive-download-20260925T212557Z-1-001/#2}%
+      }{%
+        \IfFileExists{../drive-download-20260925T212557Z-1-001/#2}{%
+          \includegraphics[#1]{../drive-download-20260925T212557Z-1-001/#2}%
+        }{%
+          \centering\fbox{\textit{\color{gray}[Tệp hình ảnh: #2]}}\par%
+        }%
+      }%
+    }%
+  }%
+}
+
+% Cấu hình bảng biểu tinh gọn
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.18}
+
+% =============================================================================
+
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\setbeamerfont{block title}{size=\normalsize,series=\bfseries}
+\setbeamerfont{block body}{size=\small}
+\setbeamercolor{normal text}{fg=socdark,bg=white}
+\newcommand{\feat}[1]{\texttt{\detokenize{#1}}}
+\newcommand{\sourceinfo}[1]{\par\vspace{.45em}{\fontsize{6.5}{8}\selectfont\color{socteal}Nguồn: #1}}
+\newcommand{\keyline}[1]{\par\vspace{.7em}{\small\bfseries\color{socblue}#1}\par}
+\newcommand{\windowplot}{
+\begin{tikzpicture}
+\begin{axis}[width=9.1cm,height=5.0cm,xmin=5,xmax=23,ymin=0,ymax=.38,
+xtick={7,14,21},xlabel={Cửa sổ lịch sử (ngày)},ylabel={Recall top-100/ngày},
+ytick={0,.1,.2,.3},grid=major,grid style={socborder},
+tick label style={font=\scriptsize},label style={font=\scriptsize},
+legend style={font=\scriptsize,draw=none,at={(.5,1.03)},anchor=south,legend columns=3},
+axis line style={socborder}]
+\addplot+[socblue,thick,mark=*,error bars/.cd,y dir=both,y explicit]
+coordinates {(7,.317) +- (0,.027) (14,.318) +- (0,.031) (21,.294) +- (0,.030)};
+\addlegendentry{OCSVM}
+\addplot+[socteal,thick,mark=square*,error bars/.cd,y dir=both,y explicit]
+coordinates {(7,.159) +- (0,.015) (14,.156) +- (0,.004) (21,.146) +- (0,.006)};
+\addlegendentry{IF}
+\addplot+[socorange,thick,mark=triangle*,error bars/.cd,y dir=both,y explicit]
+coordinates {(7,.121) +- (0,.006) (14,.034) +- (0,.004) (21,.003) +- (0,.003)};
+\addlegendentry{LOF}
+\end{axis}
+\end{tikzpicture}}
+\newcommand{\finalplot}{
+\begin{tikzpicture}
+\begin{axis}[width=9.7cm,height=5.2cm,xbar,xmin=0,xmax=.43,
+symbolic y coords={Ngẫu nhiên,Luật 6 điều kiện,Z-score,Luật thất bại,LOF,IF,OCSVM},
+ytick=data,xtick={0,.1,.2,.3,.4},xlabel={Recall top-100/ngày},
+tick label style={font=\scriptsize},label style={font=\scriptsize},
+nodes near coords,nodes near coords style={font=\scriptsize,anchor=west},
+every node near coord/.append style={/pgf/number format/fixed,/pgf/number format/precision=3},
+bar width=10pt,enlarge y limits=.12,xmajorgrids,grid style={socborder},
+axis line style={socborder}]
+\addplot[fill=socteal,draw=none] coordinates {
+(.014,Ngẫu nhiên) (.073,Luật 6 điều kiện) (.075,Z-score)
+(.098,Luật thất bại) (.147,LOF) (.209,IF) (.376,OCSVM)};
+\end{axis}
+\end{tikzpicture}}
+\newcommand{\scenariotable}{
+\begin{tabularx}{\linewidth}{@{}Xcccccc@{}}
+\toprule\rowcolor{socblue!10}
+\textbf{Kịch bản} & \textbf{OCSVM} & \textbf{IF} & \textbf{LOF} & \textbf{Z-score} & \textbf{Luật $\geq$5} & \textbf{Luật 6}\\\midrule
+Brute-force & \cellcolor{socteal!25}\textbf{0,68} & 0,10 & 0,01 & 0,13 & 0,45 & 0,26\\[4pt]
+Đổi LogonType & \cellcolor{socteal!25}\textbf{0,58} & 0,42 & 0,51 & 0,02 & 0,00 & 0,00\\[4pt]
+Bùng nổ máy mới & \cellcolor{socteal!25}\textbf{0,29} & 0,07 & 0,10 & 0,02 & 0,01 & 0,00\\[4pt]
+Password spraying & 0,19 & \cellcolor{socteal!25}\textbf{0,23} & 0,04 & 0,22 & 0,05 & 0,12\\[4pt]
+Thức dậy sau ngủ đông & \cellcolor{socteal!25}\textbf{0,17} & 0,08 & 0,08 & 0,00 & 0,04 & 0,02\\[4pt]
+Ngoài giờ & 0,03 & \cellcolor{socteal!25}\textbf{0,08} & 0,05 & 0,06 & 0,04 & 0,03\\\midrule
+\textbf{Tất cả} & \textbf{0,32} & 0,16 & 0,13 & 0,08 & 0,10 & 0,07\\\bottomrule
+\end{tabularx}}
+\newcommand{\testtable}{
+\begin{tabularx}{\linewidth}{@{}Xcccc@{}}
+\toprule\rowcolor{socblue!10}
+\textbf{Mô hình} & \textbf{Recall: 41 / 30} & \textbf{$\Delta$Recall} & \textbf{PR-AUC: 41 / 30} & \textbf{$\Delta$PR-AUC}\\\midrule
+\rowcolor{socteal!10}OCSVM & 0,32 / \textbf{0,38} & $+0,055\pm0,020$ & 0,170 / \textbf{0,192} & $+0,023\pm0,006$\\[8pt]
+IF & 0,16 / \textbf{0,21} & $+0,047\pm0,010$ & 0,066 / \textbf{0,089} & $+0,023\pm0,005$\\[8pt]
+LOF & 0,13 / \textbf{0,15} & $+0,021\pm0,009$ & 0,048 / \textbf{0,064} & $+0,017\pm0,006$\\\bottomrule
+\end{tabularx}}
+\newcommand{\benchmarktable}{
+\begin{tabularx}{\linewidth}{@{}Xcccc@{}}
+\toprule\rowcolor{socblue!10}\textbf{Mô hình} & \textbf{Recall/ngày} & \textbf{PR-AUC} & \textbf{ROC-AUC} & \textbf{P@100/ngày}\\\midrule
+\rowcolor{socteal!10}\textbf{OCSVM} & \textbf{0,376} & $\mathbf{0,192\pm0,016}$ & 0,911 & \textbf{0,323}\\[5pt]
+IF & 0,209 & $0,089\pm0,006$ & 0,913 & 0,179\\[5pt]
+LOF & 0,147 & $0,062\pm0,004$ & 0,701 & 0,126\\\midrule
+Luật thất bại $\geq$5 & 0,098 & $0,025\pm0,000$ & 0,623 & 0,084\\[5pt]
+Z-score & 0,075 & $0,032\pm0,003$ & 0,743 & 0,064\\[5pt]
+Luật 6 điều kiện & 0,073 & $0,015\pm0,001$ & 0,536 & 0,062\\[5pt]
+Ngẫu nhiên & 0,014 & $0,010\pm0,000$ & 0,503 & 0,012\\\bottomrule
+\end{tabularx}}
+
+\title{PHÂN TÍCH LỖI VÀ CỦNG CỐ BENCHMARK UEBA}
+\subtitle{Tuần 5: Cửa sổ lịch sử, giải thích mô hình và ablation}
+\author{VinSOC Security Operations Center}
+\date{Tháng 10/2026}
+\hypersetup{pdftitle={UEBA Tuần 5 - Bản đầy đủ},pdfauthor={VinSOC Security Operations Center}}
+% Biên dịch: xelatex -interaction=nonstopmode UEBA_Tuan5_Day_du.tex (chạy hai lần).
+% Snapshot nguồn: e9528111199839856327e4029437e44003003f99, ngày 13/10/2026.
+% Source: https://github.com/lamvu0607-creator/ueba-benchmark/blob/e9528111199839856327e4029437e44003003f99/reports/week5/bao_cao_tuan5.md
+\begin{document}
+
+\begin{frame}[plain]
+\begin{tikzpicture}[remember picture,overlay]
+\fill[socblue] (current page.north west) rectangle ([yshift=-24pt]current page.north east);
+\fill[socsky] ([yshift=-24pt]current page.north west) rectangle ([yshift=-27pt]current page.north east);
+\end{tikzpicture}
+\begin{center}
+{\LARGE\bfseries\color{socblue}KHUNG BENCHMARK UEBA}\\[.6em]
+{\large\bfseries\color{socteal}Tuần 5: Phân tích lỗi và củng cố}\\[.7em]
+{\normalsize Cửa sổ lịch sử, kịch bản, SHAP/LIME và ablation}\\[1em]
+{\small Isolation Forest \quad LOF \quad One-Class SVM}\\[1.2em]
+{\small VinSOC Security Operations Center}\\[.4em]
+{\footnotesize Tháng 10/2026}\\[.7em]
+{\footnotesize\color{socteal}Bản đầy đủ}
+\end{center}
+\end{frame}
+
+% NOTE: Mở đầu bằng mục tiêu: giải thích vì sao mô hình bắt được hoặc bỏ sót, rồi kiểm chứng việc giảm đặc trưng. Review chưa có kết quả hai người độc lập.
+% SOURCE: Báo cáo tuần 5, mục 1--5.
+\begin{frame}{01. Nội dung công việc tuần 5}
+
+\begin{columns}[T,onlytextwidth]
+\begin{column}{.48\textwidth}
+\begin{block}{Phân tích hành vi}
+\begin{itemize}\setlength\itemsep{9pt}
+\item So sánh cửa sổ lịch sử 7, 14 và 21 ngày.
+\item Đo khả năng phát hiện từng kịch bản.
+\item Dùng SHAP/LIME để hiểu đóng góp đặc trưng.
+\end{itemize}
+\end{block}
+\end{column}
+\begin{column}{.48\textwidth}
+\begin{exampleblock}{Củng cố benchmark}
+\begin{itemize}\setlength\itemsep{9pt}
+\item Bỏ nhóm đặc trưng, rồi thêm lại từng đặc trưng để kiểm chứng.
+\item Kiểm tra bộ 30 đặc trưng trên test.
+\item Chuẩn bị review top-50 và xác định việc còn lại.
+\end{itemize}
+\end{exampleblock}
+\end{column}
+\end{columns}
+\keyline{Kết quả chính: giữ lịch sử 7 ngày, chọn bộ 30 đặc trưng và ưu tiên OCSVM.}
+\sourceinfo{Báo cáo tuần 5, mục 1--5.}
+\end{frame}
+
+% NOTE: Phân biệt 5 model seed trên một bộ tiêm với 5 run tiêm khác nhau. Std của thí nghiệm cửa sổ chỉ phản ánh dao động mô hình.
+% SOURCE: Báo cáo tuần 5, thiết lập mục 1--4.
+\begin{frame}{02. Phạm vi và các khối thực nghiệm}
+
+\small
+\begin{tabularx}{\linewidth}{@{}p{3.3cm}XX@{}}
+\toprule\rowcolor{socblue!10}\textbf{Thí nghiệm} & \textbf{Dữ liệu} & \textbf{Cách lặp}\\\midrule
+Cửa sổ lịch sử & Train ngày 1--42, test 43--60 & 1 run tiêm, 5 model seed\\[4pt]
+Theo kịch bản & Train ngày 1--42, test 43--60 & 5 run tiêm test, bộ 41 và bộ 30\\[4pt]
+SHAP/LIME & Train ngày 1--35, dev 36--42 & 1 run dev (+2 run chỉ SHAP), seed 42\\[4pt]
+Ablation theo nhóm & Train ngày 1--35, dev 36--42 & 5 run dev, $\Delta$ ghép cặp so với 41\\[4pt]
+Thêm lại từng đặc trưng & Train ngày 1--35, dev 36--42 & 5 run dev, $\Delta$ ghép cặp so với bộ 30\\[4pt]
+Kiểm tra bộ 30 & Train ngày 1--42, test 43--60 & 5 run test, cấu hình giữ nguyên\\\bottomrule
+\end{tabularx}
+\keyline{Đơn vị phân tích: tài khoản $\times$ ngày, phân khúc User.}
+\small 6 kịch bản tiêm tổng hợp. Mỗi run test có 1.543 dòng bị tiêm, tỷ lệ dương khoảng 1\%.
+\sourceinfo{Báo cáo tuần 5, thiết lập mục 1--4.}
+\end{frame}
+
+% NOTE: Đừng nhầm recall 38% với 38 cảnh báo đúng trong 100. Precision trong top-100/ngày của OCSVM cuối là khoảng 32,3%.
+% SOURCE: Báo cáo tuần 5, mục 0.
+\begin{frame}{03. Recall top-100/ngày gắn với ngân sách cảnh báo}
+
+\begin{block}{Câu hỏi đánh giá}
+\small Nếu analyst xem 100 cảnh báo mỗi ngày, bao nhiêu dòng tài khoản--ngày bị tiêm xuất hiện trong danh sách đó?
+\end{block}
+\[
+\mathrm{Recall}_{100/\text{ngày}}
+=\frac{\sum_d\left|\mathrm{Top}_{100}(d)\cap V_d\right|}
+{\sum_d|V_d|}
+\]
+\small $V_d$: tập dòng bị tiêm của ngày $d$. Khi tính theo kịch bản, mẫu số chỉ gồm nạn nhân của kịch bản đó.
+\begin{itemize}\setlength\itemsep{6pt}
+\item 100 trên khoảng 8.600 dòng User/ngày tương đương khoảng \textbf{1,2\%}.
+\item Mọi mô hình dùng cùng ngân sách. Tính riêng từng ngày rồi gộp nạn nhân.
+\item PR-AUC đo toàn bộ xếp hạng. P@50 trong báo cáo lấy trên \textbf{cả khối chấm}.
+\end{itemize}
+\keyline{100 là ngân sách thử nghiệm, cần điều chỉnh theo năng lực vận hành thực tế.}
+\sourceinfo{Báo cáo tuần 5, mục 0.}
+\end{frame}
+
+% NOTE: OCSVM chênh 0,001 giữa 7 và 14 ngày, nhỏ hơn nhiều std khoảng 0,03. Đây là một run test, chưa phải kết luận đa bộ dữ liệu.
+% SOURCE: Bảng 1.1, báo cáo tuần 5.
+\begin{frame}{04. Cửa sổ 14--21 ngày không cải thiện recall}
+
+\begin{columns}[c,onlytextwidth]
+\begin{column}{.63\textwidth}\centering\windowplot\end{column}
+\begin{column}{.35\textwidth}
+\small
+\textbf{\color{socblue}Recall 7 / 14 / 21 ngày}
+\begin{itemize}\setlength\itemsep{9pt}
+\item OCSVM: \textbf{0,317} / 0,318 / 0,294.
+\item IF: \textbf{0,159} / 0,156 / 0,146.
+\item LOF: \textbf{0,121} / 0,034 / 0,003.
+\end{itemize}
+\vspace{.5em}
+\textbf{Giữ 7 ngày}: OCSVM và IF không hưởng lợi rõ, LOF giảm mạnh.
+\end{column}
+\end{columns}
+\footnotesize Thanh sai số: $\pm1$ std qua 5 model seed trên cùng một run tiêm test.
+\sourceinfo{Bảng 1.1, báo cáo tuần 5.}
+\end{frame}
+
+% NOTE: Phân biệt ROC-AUC theo kịch bản với recall top-100/ngày. Không trình bày giả thuyết warm-up như nguyên nhân đã chứng minh.
+% SOURCE: Bảng 1.3--1.4 và phân tích mục 1.
+\begin{frame}{05. Cửa sổ dài tăng chi phí và thay đổi vùng lịch sử}
+
+\small
+\begin{tabularx}{\linewidth}{@{}p{3.3cm}X@{}}
+\toprule\rowcolor{socblue!10}\textbf{Quan sát} & \textbf{Bằng chứng / diễn giải}\\\midrule
+Chi phí ghép lịch sử & Khoảng 200 giây ở 14 ngày và 570 giây ở 21 ngày. RAM ở 14 ngày gần gấp đôi mốc 7 ngày.\\[9pt]
+Lợi ích theo kịch bản & ROC-AUC spraying của OCSVM tăng 0,690 lên 0,770. Dormant giảm 0,940 xuống 0,924.\\[9pt]
+LOF giảm mạnh & \textbf{Giả thuyết chưa kiểm chứng}: warm-up dài làm nhiều dòng thiếu lịch sử, điền median có thể tạo vùng mật độ giả.\\[9pt]
+Ưu tiên tiếp theo & Giữ cửa sổ chung 7 ngày, xây đặc trưng theo máy nguồn cho spraying.\\\bottomrule
+\end{tabularx}
+\keyline{Lợi ích riêng của spraying chưa bù được suy giảm recall tổng và chi phí.}
+\sourceinfo{Bảng 1.3--1.4 và phân tích mục 1.}
+\end{frame}
+
+% NOTE: Nêu rõ đây là bộ 41, trước ablation. Không dùng những giá trị này làm kết quả theo kịch bản của bộ 30.
+% SOURCE: Bảng 2.1, báo cáo tuần 5.
+\begin{frame}{06. Kết quả theo sáu kịch bản với 41 đặc trưng}
+
+\footnotesize\scenariotable
+\keyline{OCSVM dẫn đầu 4/6 kịch bản. IF dẫn đầu spraying và ngoài giờ.}
+\small Tất cả ô là recall top-100/ngày, trung bình 5 run test. Mô hình ngẫu nhiên khoảng 0,014.
+\sourceinfo{Bảng 2.1, báo cáo tuần 5.}
+\end{frame}
+
+% NOTE: Hạng là phần trăm từ đầu danh sách, càng nhỏ càng tốt. Không suy ra recall trực tiếp từ trung vị vì phân bố vẫn trải rộng.
+% SOURCE: Bảng 2.2 và phân tích mục 2.
+\begin{frame}{07. Vị trí nạn nhân giải thích khả năng lọt top-100}
+
+\small
+\begin{tabularx}{\linewidth}{@{}XccX@{}}
+\toprule\rowcolor{socblue!10}\textbf{Kịch bản} & \textbf{Hạng trung vị} & \textbf{Recall OCSVM} & \textbf{Quan sát}\\\midrule
+Brute-force & top 0,8\% & 0,68 & Nhiều nạn nhân ở đầu danh sách.\\[7pt]
+Đổi LogonType & top 1,2\% & 0,58 & Đặc trưng novelty và Jaccard tách rõ.\\[7pt]
+Bùng nổ máy mới & top 1,8\% & 0,29 & Bùng nổ nhỏ dễ chìm trong biến động.\\[7pt]
+Thức dậy sau ngủ đông & top 4,0\% & 0,17 & Ngày phát lại giống hoạt động cũ.\\[7pt]
+Ngoài giờ & top 7,7\% & 0,03 & Điểm tăng nhưng chưa đủ lọt top.\\[7pt]
+Password spraying & top 26\% & 0,19 & Mỗi nạn nhân chỉ có 1--3 lần thử.\\\bottomrule
+\end{tabularx}
+\keyline{Ngân sách top-100 tương đương khoảng top 1,2\% mỗi ngày.}
+\sourceinfo{Bảng 2.2 và phân tích mục 2.}
+\end{frame}
+
+% NOTE: PR-AUC theo kịch bản so nạn nhân của MỘT kịch bản với mọi dòng bình thường, nên mức ngẫu nhiên chỉ ~0,0018, không so trực tiếp với PR-AUC tổng ~0,01. Ô tô màu theo bội số so với ngẫu nhiên. Đây là bộ 30, khác slide 06 (bộ 41).
+% SOURCE: Bảng 2.3, mục 2.1 báo cáo tuần 5; experiments/grid/test_30f/scenario_pr_auc_table.csv.
+\begin{frame}{08. PR-AUC theo kịch bản với 30 đặc trưng}
+
+\footnotesize
+\begin{tabularx}{\linewidth}{@{}Xccccc@{}}
+\toprule\rowcolor{socblue!10}
+\textbf{Kịch bản} & \textbf{OCSVM} & \textbf{IF} & \textbf{LOF} & \textbf{Z-score} & \textbf{Luật $\geq$5}\\\midrule
+Brute-force & \cellcolor{socteal!45}\textbf{0,160} ($\times$90) & \cellcolor{socteal!10}0,015 ($\times$9) & 0,002 ($\times$1) & 0,013 ($\times$7) & \cellcolor{socteal!45}0,063 ($\times$35)\\[4pt]
+Đổi LogonType & \cellcolor{socteal!45}0,107 ($\times$59) & \cellcolor{socteal!45}0,057 ($\times$32) & \cellcolor{socteal!45}\textbf{0,116} ($\times$64) & 0,006 ($\times$4) & 0,002 ($\times$1)\\[4pt]
+Bùng nổ máy mới & \cellcolor{socteal!45}\textbf{0,058} ($\times$34) & \cellcolor{socteal!25}0,019 ($\times$11) & \cellcolor{socteal!25}0,022 ($\times$13) & 0,002 ($\times$1) & 0,002 ($\times$1)\\[4pt]
+Thức dậy sau ngủ đông & \cellcolor{socteal!25}\textbf{0,022} ($\times$12) & \cellcolor{socteal!10}0,013 ($\times$7) & 0,005 ($\times$3) & 0,005 ($\times$3) & 0,002 ($\times$1)\\[4pt]
+Password spraying & \cellcolor{socteal!10}0,010 ($\times$6) & \cellcolor{socteal!25}0,018 ($\times$10) & 0,006 ($\times$3) & \cellcolor{socteal!25}\textbf{0,043} ($\times$25) & 0,007 ($\times$4)\\[4pt]
+Ngoài giờ & 0,008 ($\times$4) & \cellcolor{socteal!10}\textbf{0,010} ($\times$5) & 0,005 ($\times$3) & 0,003 ($\times$2) & 0,002 ($\times$1)\\\bottomrule
+\end{tabularx}
+\vspace{.4em}
+\begin{itemize}\setlength\itemsep{4pt}
+\item Mức ngẫu nhiên $\approx$ 0,0018 = tỷ lệ nạn nhân của một kịch bản. ($\times$n) = gấp n lần ngẫu nhiên.
+\item Spraying: z-score đẩy \textbf{một phần nhỏ} nạn nhân lên đầu danh sách, dù recall@100 chỉ ngang IF.
+\item Đổi LogonType: LOF ngang OCSVM (chênh $<$ 1 std), nhờ bỏ 11 đặc trưng (+0,069).
+\end{itemize}
+\keyline{Ba mức độ khó: brute-force, đổi LogonType dễ; máy mới, ngủ đông vừa; spraying, ngoài giờ gần mù.}
+\sourceinfo{Bảng 2.3, mục 2.1 báo cáo tuần 5.}
+\end{frame}
+
+% NOTE: Đề xuất feature mới là hướng thử nghiệm tiếp theo, chưa có kết quả thực nghiệm. Chỉ chỉnh ngưỡng sẽ tăng tải cảnh báo.
+% SOURCE: Mục 2 và 4.2, báo cáo tuần 5.
+\begin{frame}{09. Hai điểm mù cần đặc trưng mới}
+
+\begin{columns}[T,onlytextwidth]
+\begin{column}{.48\textwidth}
+\begin{block}{Đăng nhập ngoài giờ}
+\small
+\begin{itemize}\setlength\itemsep{8pt}
+\item Recall tốt nhất chỉ \textbf{0,08} với IF.
+\item Một ngày bận bị dời sang đêm vẫn giữ nhiều đặc điểm hoạt động quen thuộc.
+\item Cần đo \textbf{giờ hiện tại lệch lịch sử giờ của chính tài khoản}.
+\end{itemize}
+\end{block}
+\end{column}
+\begin{column}{.48\textwidth}
+\begin{exampleblock}{Password spraying}
+\small
+\begin{itemize}\setlength\itemsep{8pt}
+\item IF 0,23, z-score 0,22, OCSVM 0,19.
+\item Mỗi tài khoản nhận rất ít lần thử, tín hiệu nằm ở cả chiến dịch.
+\item Cần đo \textbf{một máy nguồn thử nhiều tài khoản trong thời gian ngắn}.
+\end{itemize}
+\end{exampleblock}
+\end{column}
+\end{columns}
+\keyline{Bộ 30 đặc trưng cải thiện recall tổng, hai điểm mù này gần như giữ nguyên.}
+\sourceinfo{Mục 2 và 4.2, báo cáo tuần 5.}
+\end{frame}
+
+% NOTE: SHAP giải thích hàm chấm điểm của mô hình. Dòng không tiêm điểm cao chỉ là âm tính theo nhãn tổng hợp, chưa chứng minh là hoạt động lành tính.
+% SOURCE: Thiết lập mục 3, báo cáo tuần 5.
+\begin{frame}{10. SHAP/LIME giải thích điểm trên dev}
+
+\small
+\begin{columns}[T,onlytextwidth]
+\begin{column}{.53\textwidth}
+\begin{block}{Cách chạy}
+\begin{itemize}\setlength\itemsep{7pt}
+\item 1 run dev, seed mô hình 42 (+2 run dev chỉ SHAP, slide 13).
+\item SHAP: 180 nạn nhân và 30 dòng không tiêm điểm cao / mô hình.
+\item KernelSHAP: nền 50 dòng train, 1.000 mẫu.
+\item LIME: 105 dòng / mô hình, 2.000 mẫu nhiễu.
+\end{itemize}
+\end{block}
+\end{column}
+\begin{column}{.44\textwidth}
+\footnotesize
+\begin{tabularx}{\linewidth}{@{}Xc@{}}
+\toprule\rowcolor{socblue!10}\textbf{Nhóm} & \textbf{Số chiều}\\\midrule
+Lưu lượng (volume) & 3\\
+Lỗi (failure) & 6\\
+Thời gian (time) & 8\\
+Nhịp (rhythm) & 4\\
+Kiểu đăng nhập & 6\\
+Độ phân tán (fanout) & 6\\
+Độ mới (novelty) & 5\\
+Ngữ cảnh (context) & 3\\\bottomrule
+\end{tabularx}
+\end{column}
+\end{columns}
+\keyline{Dùng kết quả dev để đề xuất ablation và chọn đặc trưng.}
+\sourceinfo{Thiết lập mục 3, báo cáo tuần 5.}
+\end{frame}
+
+% NOTE: Điểm đáng chú ý để ablation là rhythm. Tỷ phần 52% của time không có nghĩa bắt được 52% tấn công ngoài giờ.
+% SOURCE: Bảng 3.1--3.2, báo cáo tuần 5.
+\begin{frame}{11. SHAP cho thấy nhóm nào đóng góp vào điểm}
+
+\footnotesize
+\begin{tabularx}{\linewidth}{@{}XXccc@{}}
+\toprule\rowcolor{socblue!10}\textbf{Kịch bản} & \textbf{Nhóm chính} & \textbf{OCSVM} & \textbf{IF} & \textbf{LOF}\\\midrule
+Brute-force & failure & 0,76 & 0,51 & 0,60\\[6pt]
+Password spraying & failure & 0,33 & 0,30 & 0,50\\[6pt]
+Ngoài giờ & time & 0,52 & 0,50 & 0,29\\[6pt]
+Đổi LogonType & logon\_type & 0,44 & 0,38 & 0,22\\[6pt]
+Bùng nổ máy mới & novelty / fanout & 0,44 / 0,35 & 0,34 / 0,36 & 0,39 / 0,18\\[6pt]
+Thức dậy sau ngủ đông & novelty & 0,49 & 0,40 & 0,30\\\bottomrule
+\end{tabularx}
+\small
+\[
+\text{Tỷ phần đóng góp tuyệt đối}_j=\frac{|\phi_j|}{\sum_k|\phi_k|}
+\]
+\textbf{Lấy trị tuyệt đối nên chỉ đo độ lớn đóng góp, không giữ hướng đẩy điểm lên/xuống.}
+\keyline{OCSVM: rhythm chiếm 0,27 ở dòng không tiêm điểm cao, chỉ 0,04 trên nạn nhân.}
+\sourceinfo{Bảng 3.1--3.2, báo cáo tuần 5.}
+\end{frame}
+
+% NOTE: Chỉ một run dev, một seed. SHAP cộng đúng điểm không bảo đảm phân bổ đóng góp duy nhất khi các feature tương quan.
+% SOURCE: Bảng 3.3 và hạn chế mục 3.
+\begin{frame}{12. SHAP và LIME chưa đồng thuận tốt ở từng dòng}
+
+\small
+\begin{tabularx}{\linewidth}{@{}Xccc@{}}
+\toprule\rowcolor{socblue!10}\textbf{Mô hình} & \textbf{Spearman hạng} & \textbf{Trùng top-5} & \textbf{$R^2$ cục bộ LIME}\\\midrule
+OCSVM & 0,44 & 0,22 & 0,35\\[12pt]
+IF & 0,37 & 0,17 & 0,54\\[12pt]
+LOF & 0,23 & 0,32 & \textcolor{socred}{\textbf{0,06}}\\\bottomrule
+\end{tabularx}
+\vspace{.7em}
+\begin{itemize}\setlength\itemsep{8pt}
+\item Spearman đo mức khớp hạng đặc trưng toàn cục. Trùng top-5 đo mức khớp theo dòng.
+\item Với LOF, mô hình tuyến tính LIME khớp cục bộ kém.
+\item SHAP cho ứng viên cắt tỉa. \textbf{Ablation kiểm tra tác động thật lên hiệu năng}.
+\end{itemize}
+\keyline{SHAP làm căn cứ, LIME chỉ minh hoạ; kiểm tra tiếp theo từng đặc trưng.}
+\sourceinfo{Bảng 3.3, mục 3.2 báo cáo tuần 5.}
+\end{frame}
+
+% NOTE: Trả lời phản biện "vì sao gộp nhóm ngay": SHAP vốn tính theo từng đặc trưng; bổ sung 2 run dev cho thấy hạng từng đặc trưng ổn định gần như nhóm. Nhóm theo nghĩa do nhóm tự đặt, phần lớn không phải cụm tương quan; chỉ 6 cụm có |rho| >= 0,7.
+% SOURCE: Bảng 3.4 và nhận xét 1--2, mục 3.4 báo cáo tuần 5.
+\begin{frame}{13. SHAP theo từng đặc trưng ổn định qua 3 run dev}
+
+\begin{columns}[T,onlytextwidth]
+\begin{column}{.52\textwidth}
+\footnotesize
+\begin{tabularx}{\linewidth}{@{}Xccc@{}}
+\toprule\rowcolor{socblue!10}\textbf{Spearman giữa run} & \textbf{OCSVM} & \textbf{IF} & \textbf{LOF}\\\midrule
+Từng đặc trưng (41) & 0,93 & 0,99 & 0,96\\[5pt]
+Nhóm theo nghĩa (8) & 0,97 & 0,98 & 0,98\\[5pt]
+Cụm tương quan (33) & 0,92 & 0,99 & 0,97\\\bottomrule
+\end{tabularx}
+\vspace{.5em}
+
+Top-10 đặc trưng của OCSVM và IF trùng hoàn toàn giữa 3 run.
+\end{column}
+\begin{column}{.45\textwidth}
+\begin{block}{Nhóm theo nghĩa $\neq$ cụm tương quan}
+\footnotesize
+\begin{itemize}\setlength\itemsep{4pt}
+\item Chỉ 6 cụm có $|\rho|\geq0,7$, gồm 14/41 đặc trưng.
+\item Ví dụ: \feat{new_source_count_7d} + \feat{new_host_count_7d} + \feat{novelty_share_pair_7d}.
+\item Cụm \feat{delta_mean_*} cắt ngang volume và fanout.
+\item Nhóm time: chỉ cặp \feat{off_hours_ratio} + \feat{peer_z_share_night} tương quan mạnh.
+\end{itemize}
+\end{block}
+\end{column}
+\end{columns}
+\keyline{Đọc theo từng đặc trưng là hợp lệ; chỉ trong 6 cụm mới cần cộng theo cụm.}
+\sourceinfo{Bảng 3.4, mục 3.4 báo cáo tuần 5.}
+\end{frame}
+
+% NOTE: Tỷ phần 0,52 của nhóm time ở off_hours thực chất gần như chỉ từ delta_mean_share_night_7d. Báo nhầm của OCSVM do delta_t_cv, nhưng slide 19 cho thấy bỏ riêng nó chưa đủ.
+% SOURCE: Bảng 3.5, mục 3.4 báo cáo tuần 5.
+\begin{frame}{14. Mỗi kịch bản do 1--2 đặc trưng dẫn dắt}
+
+\footnotesize
+\begin{tabularx}{\linewidth}{@{}p{3.0cm}Xc@{}}
+\toprule\rowcolor{socblue!10}\textbf{Kịch bản} & \textbf{Đặc trưng dẫn đầu (OCSVM)} & \textbf{Tỷ phần $|$SHAP$|$}\\\midrule
+Brute-force & \feat{failure_locked_out_share} & 0,58\\[3pt]
+Password spraying & \feat{delta_mean_share_fail_7d} & 0,14\\[3pt]
+Ngoài giờ & \feat{delta_mean_share_night_7d} & 0,34\\[3pt]
+Đổi LogonType & \feat{dist_shift_logontype_7d} & 0,32\\[3pt]
+Bùng nổ máy mới & \feat{new_source_count_7d} & 0,41\\[3pt]
+Thức dậy sau ngủ đông & \feat{days_since_last_activity} & 0,46\\[3pt]
+\textcolor{socred}{Báo nhầm} & \feat{delta_t_cv} & 0,23\\\bottomrule
+\end{tabularx}
+\vspace{.3em}
+\begin{itemize}\setlength\itemsep{3pt}
+\item Đặc trưng dẫn đầu của IF trùng OCSVM ở 5/6 kịch bản, của LOF ở 4/6; LOF dựa vào \feat{delta_mean_share_fail_7d} cho brute-force.
+\item Ngoài giờ: 7 đặc trưng giờ còn lại đều $\leq$ 0,053, nên bỏ cả nhóm time mà recall không đổi.
+\end{itemize}
+\keyline{Tín hiệu tập trung ở vài đặc trưng, không dàn đều theo nhóm.}
+\sourceinfo{Bảng 3.5, mục 3.4 báo cáo tuần 5.}
+\end{frame}
+
+% NOTE: Dấu vượt 1 std trong báo cáo là quy ước mô tả, không phải kiểm định ý nghĩa thống kê hoặc khoảng tin cậy.
+% SOURCE: Thiết lập mục 4 và ablation_nhom_dac_trung.md.
+\begin{frame}{15. Ablation giữ cố định dữ liệu và tham số}
+
+\small
+\begin{tabularx}{\linewidth}{@{}p{3.3cm}X@{}}
+\toprule\rowcolor{socblue!10}\textbf{Thành phần} & \textbf{Cách kiểm soát}\\\midrule
+Mốc so sánh & Đủ 41 đặc trưng, dòng train sắp cố định.\\[9pt]
+Can thiệp & Bỏ một nhóm hoặc một tổ hợp, fit lại imputer/scaler và mô hình.\\[9pt]
+Tham số & Giữ nguyên cấu hình đã chốt của từng mô hình.\\[9pt]
+Ghép cặp & So cùng run và model seed, lặp trên 5 run dev.\\[9pt]
+Đối chứng & Giữ 41 đặc trưng, chỉ xáo dòng train để đo nhiễu thứ tự.\\\bottomrule
+\end{tabularx}
+\[
+\Delta_i=\text{chỉ số}_{\text{bỏ đặc trưng},i}-\text{chỉ số}_{41,i}
+\]
+\keyline{Báo cáo trung bình và std của $\Delta_i$, so cả mức nhiễu đối chứng.}
+\sourceinfo{Thiết lập mục 4 và ablation\_nhom\_dac\_trung.md.}
+\end{frame}
+
+% NOTE: Mức tăng PR-AUC OCSVM bộ 30 là +0,064 ±0,014 so với đối chứng -0,020 ±0,019. Dev có thể lạc quan do chọn trên chính dev.
+% SOURCE: Bảng 4.1, báo cáo tuần 5.
+\begin{frame}{16. Bỏ rhythm và đặc trưng SHAP thấp tốt nhất trên dev}
+
+\footnotesize
+\begin{tabularx}{\linewidth}{@{}Xcccc@{}}
+\toprule\rowcolor{socblue!10}\textbf{Cấu hình} & \textbf{Số chiều} & \textbf{$\Delta$R OCSVM} & \textbf{$\Delta$R IF} & \textbf{$\Delta$R LOF}\\\midrule
+\rowcolor{socteal!10}\textbf{Bỏ rhythm + SHAP thấp} & \textbf{30} & \textbf{+0,06} & \textbf{+0,09} & \textbf{+0,05}\\[2pt]
+Bỏ rhythm & 37 & +0,05 & +0,06 & +0,03\\[2pt]
+Bỏ 10 SHAP thấp & 31 & +0,03 & +0,08 & 0,00\\[2pt]
+Bỏ volume + context & 35 & +0,01 & +0,08 & +0,01\\[2pt]
+Bỏ time & 33 & +0,01 & +0,07 & -0,02\\[2pt]
+Bỏ logon\_type & 35 & -0,01 & -0,01 & -0,02\\[2pt]
+Bỏ fanout & 35 & -0,03 & -0,03 & 0,00\\[2pt]
+Bỏ novelty & 36 & -0,03 & -0,04 & -0,10\\[2pt]
+Bỏ failure & 35 & -0,08 & 0,00 & 0,00\\[2pt]
+Bỏ template v4 & 24 & -0,04 & -0,07 & -0,08\\[2pt]
+Đối chứng xáo dòng & 41 & -0,02 & 0,00 & 0,00\\\bottomrule
+\end{tabularx}
+\keyline{Bộ 30: $\Delta$PR-AUC = +0,064 (OCSVM), +0,034 (IF), +0,037 (LOF).}
+\footnotesize $\Delta$R là thay đổi recall top-100/ngày. Đây là kết quả chọn cấu hình trên dev.
+\sourceinfo{Bảng 4.1, báo cáo tuần 5.}
+\end{frame}
+
+% NOTE: Bỏ một nhóm kiểm tra đóng góp khi nhóm đó vắng mặt sau huấn luyện lại. Các nhóm còn lại có thể bù tín hiệu nên không coi delta là đóng góp cộng tuyến tính.
+% SOURCE: Phân tích mục 4.1.
+\begin{frame}{17. Các nhóm mạnh bảo vệ những kịch bản khác nhau}
+
+\small
+\begin{tabularx}{\linewidth}{@{}p{3.3cm}X@{}}
+\toprule\rowcolor{socblue!10}\textbf{Nhóm bị bỏ} & \textbf{Thiệt hại theo kịch bản trên dev}\\\midrule
+Failure & OCSVM mất 0,57 recall brute-force và 0,27 spraying.\\[10pt]
+Novelty & OCSVM mất 0,32 recall máy mới. LOF mất 0,50 ở đổi LogonType.\\[10pt]
+LogonType & Cả ba mô hình mất 0,14--0,28 recall ở đổi LogonType.\\[10pt]
+Fanout & OCSVM mất 0,14 recall ở bùng nổ máy mới.\\\bottomrule
+\end{tabularx}
+\keyline{Giữ tín hiệu failure, novelty, LogonType và fanout.}
+\small Bỏ time gần như không đổi recall ngoài giờ ($-0,02$ đến 0,00), dù SHAP cho thấy time góp nhiều vào điểm nạn nhân.
+\sourceinfo{Phân tích mục 4.1.}
+\end{frame}
+
+% NOTE: Giải thích vì sao không phải bỏ 14. Giữ một số feature volume/time/context, không bỏ cả mọi nhóm đóng góp thấp.
+% SOURCE: Danh sách bộ 30 ở mục 4.1.
+\begin{frame}{18. Bộ 30 bỏ tổng cộng 11 đặc trưng}
+
+\begin{columns}[T,onlytextwidth]
+\begin{column}{.47\textwidth}
+\begin{block}{Bỏ cả nhóm rhythm: 4}
+\footnotesize
+\begin{itemize}\setlength\itemsep{9pt}
+\item \feat{interarrival_dt_mean}
+\item \feat{delta_t_cv}
+\item \feat{same_second_share}
+\item \feat{is_single_event}
+\end{itemize}
+\end{block}
+\end{column}
+\begin{column}{.50\textwidth}
+\begin{exampleblock}{Bỏ thêm 7 đặc trưng SHAP thấp}
+\footnotesize
+\begin{itemize}\setlength\itemsep{6pt}
+\item \feat{activity_peak_hour_sin}
+\item \feat{log_distinct_hosts}
+\item \feat{missing_source_ratio}
+\item \feat{log_total_logons}
+\item \feat{dst_host_entropy}
+\item \feat{volume_robust_z_7d}
+\item \feat{peer_z_share_night}
+\end{itemize}
+\end{exampleblock}
+\end{column}
+\end{columns}
+\keyline{4 + 10 có 3 phần tử trùng, nên bỏ 11 và còn 30.}
+\small Schema chưa đổi, bộ 30 hiện chọn bằng \feat{drop_features} trong cấu hình lưới.
+\sourceinfo{Danh sách bộ 30 ở mục 4.1.}
+\end{frame}
+
+% NOTE: Mốc là bộ 30 (không phải 41). OCSVM và IF tất định (fit lại Δ = 0); LOF dùng HNSW đa luồng nên fit lại đã lệch -0,016 ± 0,014 PR-AUC -- mọi hiệu LOF nhỏ hơn ~0,03 cần thận trọng. interarrival_dt_mean: SHAP hạng 11-12 ở LOF nhưng thêm lại làm LOF tệ nhất.
+% SOURCE: Bảng 4.4, mục 4.4 báo cáo tuần 5; experiments/ablation/addback/.
+\begin{frame}{19. Thêm lại từng đặc trưng: không có đặc trưng bị bỏ oan}
+
+\footnotesize
+\begin{tabularx}{\linewidth}{@{}Xccc@{}}
+\toprule\rowcolor{socblue!10}\textbf{Thêm lại vào bộ 30} & \textbf{$\Delta$PR-AUC OCSVM} & \textbf{$\Delta$PR-AUC IF} & \textbf{$\Delta$PR-AUC LOF}\\\midrule
+\feat{interarrival_dt_mean} & \textcolor{socred}{$-0,022\pm0,005$} & $-0,006\pm0,013$ & \textcolor{socred}{$-0,039\pm0,020$}\\[2pt]
+\feat{delta_t_cv} & \textcolor{socred}{$-0,024\pm0,007$} & $-0,004\pm0,016$ & $-0,001\pm0,025$\\[2pt]
+\feat{is_single_event} & \textcolor{socred}{$-0,015\pm0,003$} & $-0,008\pm0,012$ & $-0,022\pm0,021$\\[2pt]
+\feat{volume_robust_z_7d} & $-0,005\pm0,002$ & $-0,002\pm0,008$ & $-0,020\pm0,019$\\[2pt]
+\feat{peer_z_share_night} & $-0,002\pm0,002$ & $+0,008\pm0,010$ & $-0,012\pm0,015$\\[2pt]
+6 đặc trưng còn lại & $-0,006$ đến $+0,002$ & $-0,007$ đến $0,000$ & $-0,020$ đến $-0,003$\\\midrule
+\textit{Đối chứng: fit lại bộ 30} & $0,000$ & $0,000$ & $-0,016\pm0,014$\\\bottomrule
+\end{tabularx}
+\vspace{.3em}
+\begin{itemize}\setlength\itemsep{3pt}
+\item Không lần thêm lại nào cải thiện rõ: bộ 30 đứng vững ở mức từng đặc trưng.
+\item \feat{interarrival_dt_mean} có SHAP cao ở LOF nhưng làm LOF tệ nhất: \textbf{SHAP cao chưa chắc có ích}.
+\item Báo nhầm OCSVM không chỉ do \feat{delta_t_cv}: 3/4 đặc trưng rhythm cùng gây hại, nên bỏ cả nhóm là đúng.
+\end{itemize}
+\keyline{LOF không tất định (HNSW đa luồng): hiệu LOF dưới khoảng 0,03 cần đọc thận trọng.}
+\sourceinfo{Bảng 4.4, mục 4.4 báo cáo tuần 5.}
+\end{frame}
+
+% NOTE: Bảng 4.2 là ablation test, khác lưới cuối ở vài số do cách tổng hợp/chạy. Không thay LOF PR-AUC 0,064 của ablation bằng 0,062 của lưới cuối.
+% SOURCE: Bảng 4.2, báo cáo tuần 5.
+\begin{frame}{20. Bộ 30 cải thiện trên khối test}
+
+\footnotesize\testtable
+\vspace{.8em}
+\small
+\begin{itemize}\setlength\itemsep{8pt}
+\item Chọn bộ đặc trưng trên dev, kiểm tra trên 5 run test với tham số giữ nguyên.
+\item OCSVM: $\Delta$Recall \textbf{+0,055}, đối chứng xáo dòng $+0,019\pm0,029$.
+\item Brute-force của OCSVM tăng khoảng \textbf{0,68 lên 0,85}.
+\item IF tăng recall đổi LogonType khoảng 0,20. LOF tăng khoảng 0,15.
+\end{itemize}
+\keyline{Lợi ích tổng giữ được trên test, spraying và ngoài giờ gần như không đổi.}
+\sourceinfo{Bảng 4.2, báo cáo tuần 5.}
+\end{frame}
+
+% NOTE: Nguồn phụ benchmark_30_dac_trung bổ sung các baseline. Theo recall, luật thất bại 0,098 cao hơn z-score 0,075; z-score chỉ là baseline tốt nhất theo PR-AUC.
+% SOURCE: Bảng 4.3 và benchmark_30_dac_trung.md, mục 1.
+\begin{frame}{21. Benchmark cuối với 30 đặc trưng}
+
+\footnotesize\benchmarktable
+\keyline{OCSVM bắt 37,6\% nạn nhân trong ngân sách 100 cảnh báo/ngày.}
+\small OCSVM và IF có ROC-AUC gần nhau (0,911 / 0,913), nhưng recall trong ngân sách khác rõ (0,376 / 0,209).
+\sourceinfo{Bảng 4.3 và benchmark\_30\_dac\_trung.md, mục 1.}
+\end{frame}
+
+% NOTE: Thanh là giá trị trung bình 5 run. Không thêm sai số vì báo cáo bảng cuối chưa đưa std recall.
+% SOURCE: Lưới test_30f, benchmark_30_dac_trung.md, mục 1.
+\begin{frame}{22. OCSVM giữ lợi thế ở đầu danh sách cảnh báo}
+
+\begin{columns}[c,onlytextwidth]
+\begin{column}{.73\textwidth}\centering\finalplot\end{column}
+\begin{column}{.25\textwidth}
+\small
+\textbf{\color{socblue}Cùng 100 cảnh báo/ngày}
+\begin{itemize}\setlength\itemsep{10pt}
+\item OCSVM: recall \textbf{37,6\%}.
+\item IF: 20,9\%.
+\item LOF: 14,7\%.
+\end{itemize}
+\textbf{Khoảng 1,8 lần IF} ở chỉ số chính.
+\end{column}
+\end{columns}
+\sourceinfo{Lưới test\_30f, benchmark\_30\_dac\_trung.md, mục 1.}
+\end{frame}
+
+% NOTE: OCSVM triển khai SGD nên có nhạy thứ tự. Những delta ghép cặp có thể khác phép trừ số trung bình đã làm tròn.
+% SOURCE: benchmark_30_dac_trung.md, mục 2.
+\begin{frame}{23. So với tuần 4 phải kiểm soát thứ tự dòng}
+
+\footnotesize
+\begin{tabularx}{\linewidth}{@{}Xccc@{}}
+\toprule\rowcolor{socblue!10}\textbf{PR-AUC} & \textbf{41: tuần 4} & \textbf{41: sắp dòng} & \textbf{30: sắp dòng}\\\midrule
+OCSVM & $0,182\pm0,023$ & $0,170\pm0,015$ & $\mathbf{0,192\pm0,016}$\\[12pt]
+IF & $0,065\pm0,003$ & $0,066\pm0,006$ & $0,089\pm0,006$\\[12pt]
+LOF & $0,047\pm0,004$ & $0,048\pm0,003$ & $0,062\pm0,004$\\\bottomrule
+\end{tabularx}
+\small
+\vspace{.8em}
+\begin{itemize}\setlength\itemsep{8pt}
+\item So 41 sắp dòng với 30 sắp dòng để phân tích việc bỏ đặc trưng.
+\item So thẳng với tuần 4 đồng thời thay cả số chiều lẫn thứ tự train.
+\item OCSVM tuần 4 có thứ tự dòng thuận lợi. Mức tăng PR-AUC so tuần 4 chỉ khoảng 0,010.
+\end{itemize}
+\keyline{Đối chứng giúp tránh gán mọi thay đổi cho ablation.}
+\sourceinfo{benchmark\_30\_dac\_trung.md, mục 2.}
+\end{frame}
+
+% NOTE: Không tuyên bố tuần 5 hoàn thành 100%. Tài liệu review_top50.md có nhãn Claude trên bộ 41, không tính là nghiệm thu review hai thực tập sinh.
+% SOURCE: Báo cáo tuần 5 mục 5, đề cương tuần 5, review_top50.md.
+\begin{frame}{24. Review top-50 và kiểm tra tái lập còn cần hoàn tất}
+
+\begin{columns}[T,onlytextwidth]
+\begin{column}{.50\textwidth}
+\begin{block}{Review thủ công}
+\small
+\begin{itemize}\setlength\itemsep{7pt}
+\item Báo cáo chính: \textbf{chưa hoàn thành}.
+\item Thẻ làm mù và hướng dẫn chấm đã có.
+\item Cần hai người chấm độc lập: đáng ngờ / giải thích được / nhiễu.
+\item Đối chiếu nhãn, đo Cohen's $\kappa$.
+\end{itemize}
+\end{block}
+\end{column}
+\begin{column}{.47\textwidth}
+\begin{exampleblock}{Việc cần chốt}
+\small
+\begin{itemize}\setlength\itemsep{7pt}
+\item Tạo lại bộ review cho mô hình 30 đặc trưng.
+\item Schema hiện vẫn giữ 41, bộ 30 dùng cấu hình lưới.
+\item Xác nhận chạy đầu-cuối trên môi trường mới.
+\item Cập nhật README và bảng benchmark báo cáo tổng.
+\end{itemize}
+\end{exampleblock}
+\end{column}
+\end{columns}
+\footnotesize Tài liệu phụ có bản chấm AI để tham khảo, chưa thay thế hai người chấm độc lập.
+\sourceinfo{Báo cáo tuần 5 mục 5, đề cương tuần 5, review\_top50.md.}
+\end{frame}
+
+% NOTE: Kết quả áp dụng cho phạm vi benchmark này, chưa chứng minh hiệu quả phát hiện tấn công thực tế. LOF có suy giảm dormant theo ROC-AUC; không nói bộ 30 tốt hơn mọi kịch bản.
+% SOURCE: Báo cáo tuần 5 và benchmark_30_dac_trung.md.
+\begin{frame}{25. Kết luận và hướng hoàn thiện}
+
+\small
+\begin{tabularx}{\linewidth}{@{}p{3.3cm}X@{}}
+\toprule\rowcolor{socblue!10}\textbf{Quyết định} & \textbf{Căn cứ}\\\midrule
+Giữ lịch sử 7 ngày & Cửa sổ dài chưa cải thiện recall tổng, tăng thời gian và RAM.\\[9pt]
+Ưu tiên bộ 30 & Bỏ 11 đặc trưng, cả ba mô hình tăng recall trên test; thêm lại từng đặc trưng không cải thiện.\\[9pt]
+Ưu tiên OCSVM & Recall 0,376 và PR-AUC 0,192, tốt nhất trong benchmark này.\\[9pt]
+Bổ sung tín hiệu & Lịch sử giờ riêng của tài khoản và fan-out theo máy nguồn.\\\bottomrule
+\end{tabularx}
+\vspace{.6em}
+\textbf{\color{socorange}Giới hạn:} chỉ User và nhãn tổng hợp. SHAP trên 3 run dev, một model seed. LOF không tất định (HNSW đa luồng). Mô hình xấp xỉ, tham số chưa dò lại cho bộ 30.
+\keyline{Hoàn tất review độc lập và kiểm tra máy sạch trước khi chốt bàn giao.}
+\sourceinfo{Báo cáo tuần 5 và benchmark\_30\_dac\_trung.md.}
+\end{frame}
+\end{document}
+
+% =============================================================================
+% PROMPT BÀN GIAO / CẬP NHẬT CHO AI KHÁC
+% Giữ nguyên VinSOC theme: aspectratio=169, font DejaVu Sans, các màu soc*,
+% thanh tiêu đề, đường nhấn socsky, footer, lề và khung bìa.
+% Biên dịch XeLaTeX hai lần. Toàn bộ biểu đồ là vector TikZ/PGFPlots nội tuyến.
+% Nội dung chính: reports/week5/bao_cao_tuan5.md.
+% Đối chiếu số liệu phụ: benchmark_30_dac_trung.md và ablation_nhom_dac_trung.md.
+% Không lẫn các khối: cửa sổ = 1 injection run x 5 model seed; SHAP = 1 dev run;
+% kịch bản 41f = 5 test run; ablation dev = 5 dev run; xác nhận test = 5 test run.
+% SHAP bổ sung = 3 dev run (chỉ SHAP ở run 37, 38); thêm lại từng đặc trưng = 5 dev run, mốc bộ 30.
+% Recall top-100/ngày là chỉ số chính. P@50 toàn khối khác P@100/ngày.
+% Delta trong ablation là hiệu ghép cặp, không lấy std của hai cột trừ nhau.
+% Giữ đối chứng xáo dòng khi so bộ 41 với 30, đặc biệt với OCSVM SGD.
+% Không gọi quy ước vượt 1 std là kiểm định ý nghĩa thống kê.
+% Tỷ phần |SHAP| là độ lớn đóng góp, không giữ dấu hoặc là tỷ lệ phát hiện.
+% Các dòng không tiêm điểm cao chưa phải lành tính được xác minh.
+% Không dùng kết quả 41f làm kết quả theo kịch bản của 30f.
+% Review top50 trong báo cáo chính chưa hoàn thành. Tài liệu phụ có chấm AI.
+% Chỉ cập nhật kết quả review sau hai người chấm độc lập và đo Cohen kappa.
+% Tạo lại review bằng bộ 30 nếu chốt bộ 30. Không bịa chỉ số máy sạch.
+% Chú thích thuyết trình cho từng slide ở comment NOTE ngay trước frame.
+% =============================================================================

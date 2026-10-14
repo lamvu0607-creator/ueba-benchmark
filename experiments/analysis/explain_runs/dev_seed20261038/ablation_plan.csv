@@ -1,0 +1,9 @@
+﻿group,n_features,uniform_share,OCSVM_victims,OCSVM_top_scenario,OCSVM_false_alarm,IF_victims,IF_top_scenario,IF_false_alarm,LOF_victims,LOF_top_scenario,LOF_false_alarm,near_unused_features
+volume,3,0.073,0.053,password_spraying (0.10),0.09,0.046,password_spraying (0.07),0.065,0.048,dormant_wakeup (0.07),0.029,
+failure,6,0.146,0.215,brute_force (0.77),0.174,0.165,brute_force (0.52),0.251,0.256,password_spraying (0.51),0.259,
+time,8,0.195,0.163,off_hours (0.54),0.064,0.189,off_hours (0.54),0.156,0.132,off_hours (0.27),0.154,
+rhythm,4,0.098,0.033,password_spraying (0.05),0.272,0.043,password_spraying (0.07),0.053,0.054,logon_type_switch (0.07),0.094,
+logon_type,6,0.146,0.138,logon_type_switch (0.43),0.081,0.153,logon_type_switch (0.40),0.182,0.126,logon_type_switch (0.24),0.216,
+fanout,6,0.146,0.155,new_workstation_burst (0.35),0.1,0.148,new_workstation_burst (0.35),0.083,0.103,new_workstation_burst (0.15),0.058,
+novelty,5,0.122,0.216,dormant_wakeup (0.58),0.179,0.217,dormant_wakeup (0.42),0.14,0.241,new_workstation_burst (0.43),0.152,
+context,3,0.073,0.027,password_spraying (0.04),0.041,0.038,password_spraying (0.06),0.069,0.042,off_hours (0.05),0.038,

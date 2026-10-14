@@ -16,14 +16,14 @@ Mọi số liệu tính trên nhãn tiêm tổng hợp (lớp 1, §5.2 đề cư
 
 Thí nghiệm chạy trên một run tiêm test (test_seed20261061), mỗi cửa sổ 5 model seed.
 
-| Mô hình | PR-AUC 7 / 14 / 21 ngày | P@100/ngày 7 / 14 / 21 |
+| Mô hình | Recall top-100/ngày 7 / 14 / 21 ngày (chỉ số chính) | PR-AUC 7 / 14 / 21 ngày (phụ) |
 |---|---|---|
-| OCSVM | 0,165 / 0,169 / 0,160 | 0,27 / 0,27 / 0,25 |
-| IF | 0,066 / 0,063 / 0,059 | 0,14 / 0,13 / 0,13 |
-| LOF | 0,043 / 0,027 / 0,020 | 0,10 / 0,03 / 0,00 |
+| OCSVM | **0,317** / 0,318 / 0,294 | 0,165 / 0,169 / 0,160 |
+| IF | **0,159** / 0,156 / 0,146 | 0,066 / 0,063 / 0,059 |
+| LOF | **0,121** / 0,034 / 0,003 | 0,043 / 0,027 / 0,020 |
 
 - **14 ngày:** khác 7 ngày chưa tới 1 độ lệch chuẩn.
-- **21 ngày:** giảm P@k của mọi mô hình ML, tốn thời gian gấp ~3 lần và tốn nhiều RAM hơn.
+- **21 ngày:** giảm recall top-100/ngày của mọi mô hình ML, tốn thời gian gấp ~3 lần và tốn nhiều RAM hơn.
 - **Đánh đổi theo kịch bản:** cửa sổ dài giúp password spraying (ROC-AUC 0,69 → 0,77) nhưng hại dormant wakeup.
 - **Phát hiện phụ:** thứ tự dòng trong ma trận thay đổi giữa các lần tính và làm lệch kết quả IF/OCSVM tới 0,027 PR-AUC. Các script mới đều sắp dòng cố định.
 
@@ -84,8 +84,12 @@ Giải thích điểm của ba mô hình chốt trên một run dev, gồm 30 n�
 - **rhythm là nguồn chính của báo nhầm ở OCSVM:** `delta_t_cv` chiếm 0,22 tỷ phần ở báo nhầm.
 - **Đặc trưng template v4 gánh 44–51% tỷ phần ở nạn nhân,** trong khi chỉ chiếm 41% số chiều.
 - **SHAP và LIME khớp ở mức nhóm, kém ở từng dòng.** R² cục bộ của LIME với LOF chỉ 0,06. Vì vậy **SHAP là căn cứ chính**, còn LIME chỉ để minh hoạ.
+- **Bổ sung theo từng đặc trưng, 3 run dev** (báo cáo tuần 5, mục 3.4):
+  - **Thứ hạng từng đặc trưng ổn định gần như nhóm:** Spearman giữa các run đạt 0,93–0,99. Vì vậy đọc kết quả theo từng đặc trưng là hợp lệ.
+  - **Mỗi kịch bản do 1–2 đặc trưng dẫn dắt, không phải cả nhóm.** Ví dụ: off_hours gần như chỉ dựa vào `delta_mean_share_night_7d`; dormant dựa vào `days_since_last_activity`; burst dựa vào `new_source_count_7d`.
+  - **Nhóm theo nghĩa phần lớn không phải cụm tương quan.** Chỉ 6 cụm (14/41 đặc trưng) có |ρ| ≥ 0,7.
 
-📄 Đọc: `reports/week5/shap_lime.md`. Số liệu và hình ở `experiments/analysis/explain/`.
+📄 Đọc: `reports/week5/shap_lime.md` và mục 3.4 của `reports/week5/bao_cao_tuan5.md`. Số liệu và hình ở `experiments/analysis/explain/` và `experiments/analysis/explain_stability/`.
 
 ## 5. Ablation theo nhóm đặc trưng (dev, 5 run) → bỏ 11 đặc trưng, còn 30
 
@@ -106,6 +110,11 @@ Bỏ từng nhóm rồi so với bản đủ 41 đặc trưng bằng hiệu ghé
 - **Kiểm tra một lần trên test xác nhận bộ 30** ở cả ba mô hình, và mức tăng vượt đối chứng:
   - PR-AUC OCSVM 0,170 → 0,192, IF 0,066 → 0,089, LOF 0,048 → 0,064;
   - không kịch bản nào tụt rõ.
+- **Thêm lại từng đặc trưng trong 11 đặc trưng vào bộ 30** (dev, báo cáo tuần 5, mục 4.4):
+  - **Không đặc trưng nào bị bỏ oan.** Không lần thêm lại nào cải thiện rõ.
+  - `interarrival_dt_mean` có SHAP cao ở LOF nhưng thêm lại làm LOF tệ hơn (PR-AUC −0,039). Như vậy SHAP cao chưa chắc là có ích.
+  - **Báo nhầm của OCSVM không chỉ do `delta_t_cv`:** `interarrival_dt_mean` và `is_single_event` cũng gây hại ở mức tương tự. Bỏ cả nhóm rhythm là đúng.
+  - **LOF không tất định:** fit lại cùng dữ liệu đã lệch −0,016 ± 0,014 PR-AUC, do chỉ mục HNSW dựng đa luồng.
 
 📄 Đọc: `reports/week5/ablation_nhom_dac_trung.md`. Số liệu ở `experiments/ablation/feature_groups/` (dev) và `experiments/ablation/feature_groups_test/` (test).
 
