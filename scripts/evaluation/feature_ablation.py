@@ -75,7 +75,7 @@ def addback_configs(origin: dict) -> dict:
 
 
 SHAP_SHARE = ROOT / "experiments/analysis/explain_stability/feature_share_by_run.csv"
-K_VALUES = (5, 10, 15, 18)
+K_VALUES = (5, 10, 15, 18, 20)
 
 
 def shap_low_order(path: Path = SHAP_SHARE) -> list:
@@ -243,7 +243,7 @@ def main() -> None:
     p.add_argument("--analyze-only", action="store_true")
     p.add_argument("--mode", choices=["groups", "addback", "kcurve"], default="groups",
                    help="groups: bỏ theo nhóm so với đủ 41; addback: thêm lại từng đặc trưng đã bỏ vào bộ 30; "
-                        "kcurve: bỏ rhythm + K đặc trưng SHAP thấp nhất, K = 5/10/15/18")
+                        "kcurve: bỏ rhythm + K đặc trưng SHAP thấp nhất, K = 5/10/15/18/20")
     p.add_argument("--out", default=None, help="mặc định experiments/ablation/feature_groups | addback | kcurve")
     args = p.parse_args()
     args.out = args.out or "experiments/ablation/" + {"addback": "addback", "kcurve": "kcurve"}.get(
