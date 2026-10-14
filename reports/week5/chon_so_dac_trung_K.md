@@ -1,5 +1,7 @@
 # Chọn số đặc trưng bỏ thêm theo SHAP (đường cong K)
 
+> **Cập nhật sau khi kiểm tra trên test** ([`kiem_tra_test_K_va_context.md`](kiem_tra_test_K_va_context.md)): kết luận của OCSVM (phẳng) và IF (tốt nhất khoảng 22 đặc trưng) lặp lại trên test; kết luận của LOF (tốt nhất ở 30–33) **không** lặp lại, vì trên test K = 15/18 làm LOF tăng. Bộ đặc trưng chung đề xuất đổi thành **bộ 28** (bộ 30 bỏ nốt nhóm context).
+
 > Bổ sung cho báo cáo tuần 5, mục 4. Khối **dev** (5 run `dev_seed20261036`–`040`, fit ngày 1–35, chấm ngày 36–42), phân khúc User, cấu hình mô hình chốt, model seed 42 / 7 / 2024 / 1 / 2. Chỉ số chính: **recall top-100/ngày**; phụ: PR-AUC.
 
 ## 1. Vì sao làm thí nghiệm này

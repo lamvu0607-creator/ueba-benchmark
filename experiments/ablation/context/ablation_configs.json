@@ -1,0 +1,86 @@
+{
+  "base30": {
+    "dropped": [
+      "interarrival_dt_mean",
+      "delta_t_cv",
+      "same_second_share",
+      "is_single_event",
+      "activity_peak_hour_sin",
+      "log_distinct_hosts",
+      "missing_source_ratio",
+      "log_total_logons",
+      "dst_host_entropy",
+      "volume_robust_z_7d",
+      "peer_z_share_night"
+    ],
+    "n_features": 30
+  },
+  "drop_remote_logon_ratio": {
+    "dropped": [
+      "interarrival_dt_mean",
+      "delta_t_cv",
+      "same_second_share",
+      "is_single_event",
+      "activity_peak_hour_sin",
+      "log_distinct_hosts",
+      "missing_source_ratio",
+      "log_total_logons",
+      "dst_host_entropy",
+      "volume_robust_z_7d",
+      "peer_z_share_night",
+      "remote_logon_ratio"
+    ],
+    "n_features": 29
+  },
+  "drop_custom_proc_share": {
+    "dropped": [
+      "interarrival_dt_mean",
+      "delta_t_cv",
+      "same_second_share",
+      "is_single_event",
+      "activity_peak_hour_sin",
+      "log_distinct_hosts",
+      "missing_source_ratio",
+      "log_total_logons",
+      "dst_host_entropy",
+      "volume_robust_z_7d",
+      "peer_z_share_night",
+      "custom_proc_share"
+    ],
+    "n_features": 29
+  },
+  "drop_context": {
+    "dropped": [
+      "interarrival_dt_mean",
+      "delta_t_cv",
+      "same_second_share",
+      "is_single_event",
+      "activity_peak_hour_sin",
+      "log_distinct_hosts",
+      "missing_source_ratio",
+      "log_total_logons",
+      "dst_host_entropy",
+      "volume_robust_z_7d",
+      "peer_z_share_night",
+      "remote_logon_ratio",
+      "custom_proc_share"
+    ],
+    "n_features": 28
+  },
+  "control_refit_base30": {
+    "dropped": [
+      "interarrival_dt_mean",
+      "delta_t_cv",
+      "same_second_share",
+      "is_single_event",
+      "activity_peak_hour_sin",
+      "log_distinct_hosts",
+      "missing_source_ratio",
+      "log_total_logons",
+      "dst_host_entropy",
+      "volume_robust_z_7d",
+      "peer_z_share_night"
+    ],
+    "n_features": 30
+  }
+}
