@@ -112,24 +112,27 @@ Bỏ danh sách ứng viên rồi so với bản đủ 41 đặc trưng bằng h
 
 ## 6. Bảng benchmark cuối (lưới test chính thức, 22 đặc trưng)
 
-5 run test, cấu hình chốt từ dev, dòng sắp cố định. Lưới bộ 30 và lưới tuần 4 với 41 đặc trưng giữ nguyên để so sánh.
+5 run test, dòng sắp cố định. Cấu hình mô hình chọn lại trên **lưới dev 22 đặc trưng** (13 cấu hình × 5 run dev, `experiments/grid/dev_22f/`): IF và LOF giữ nguyên, OCSVM đổi từ `nc1000` sang `g01` (gamma 0,1; PR-AUC dev 0,248 ± 0,028 so với 0,227 ± 0,049). Lưới bộ 30 và lưới tuần 4 với 41 đặc trưng giữ nguyên để so sánh.
 
 | Mô hình | Recall top-100/ngày | PR-AUC | ROC-AUC | Recall / PR-AUC bộ 30 |
 |---|---|---|---|---|
-| **OCSVM** | **0,373 ± 0,022** | **0,189 ± 0,013** | 0,908 | 0,376 / 0,192 |
+| **OCSVM** (`g01`) | **0,336 ± 0,070** | **0,175 ± 0,048** | 0,892 | 0,376 / 0,192 |
 | IF | 0,242 ± 0,016 | 0,111 ± 0,011 | 0,921 | 0,209 / 0,089 |
-| LOF | 0,176 ± 0,015 | 0,070 ± 0,008 | 0,717 | 0,147 / 0,062 |
+| LOF | 0,175 ± 0,006 | 0,071 ± 0,013 | 0,717 | 0,147 / 0,062 |
 | z-score (baseline tốt nhất) | 0,075 | 0,032 ± 0,003 | 0,743 | — |
 | ngẫu nhiên | 0,014 | 0,010 | 0,503 | — |
+| *OCSVM `nc1000` (đối chiếu)* | *0,373 ± 0,022* | *0,189 ± 0,013* | *0,908* | — |
 
-- **Thứ hạng giữ nguyên:** OCSVM > IF > LOF > mọi baseline. IF có ROC-AUC nhỉnh hơn OCSVM nhưng chỉ bắt khoảng hai phần ba số nạn nhân trong 100 cảnh báo/ngày.
-- **So với bộ 30:** OCSVM ngang, IF +0,033 recall, LOF +0,029 recall.
-- **So với 41 đặc trưng ban đầu:** recall OCSVM 0,32 → 0,37, IF 0,16 → 0,24, LOF 0,13 → 0,18.
+- **Thứ hạng giữ nguyên:** OCSVM > IF > LOF > mọi baseline. IF có ROC-AUC nhỉnh hơn OCSVM nhưng chỉ bắt khoảng 70% số nạn nhân của OCSVM trong 100 cảnh báo/ngày.
+- **`g01` thắng trên dev nhưng không lặp lại trên test:** trung bình thấp hơn `nc1000` (trong 1 std) và kém ổn định hơn nhiều (PR-AUC từng run 0,11–0,24 so với 0,17–0,20). Vẫn báo cáo `g01` vì đổi lại sau khi xem test là chọn bằng tập test; khi triển khai nên ưu tiên `nc1000`. Đổi lại, `g01` fit 5 s so với 47 s.
+- **So với bộ 30:** IF +0,033 recall, LOF +0,028 recall; OCSVM cùng cấu hình `nc1000` thì ngang.
+- **So với 41 đặc trưng ban đầu:** recall OCSVM 0,32 → 0,34 (`nc1000`: 0,37), IF 0,16 → 0,24, LOF 0,13 → 0,18.
+- **LOF không tất định:** trung bình 5 run lặp lại được, nhưng từng lần fit lệch tới khoảng 15% PR-AUC và top 50 cảnh báo chỉ trùng 6/50 giữa hai lần fit.
 - **LOF ở dormant_wakeup vẫn yếu:** ROC-AUC 0,604 (41) → 0,521 (30) → 0,570 (22).
 - **off_hours và password_spraying vẫn là điểm mù.**
 - `configs/feature_schema.yaml` **chưa đổi.** Bộ 22 đặc trưng được chọn qua `drop_features` trong `configs/benchmark_grid_test_22f.yaml`.
 
-📄 Đọc: mục 5 của `reports/week5/bao_cao_tuan5.md`. Kết quả ở `experiments/grid/test_22f/` (bộ 30: `experiments/grid/test_30f/`).
+📄 Đọc: mục 5 của `reports/week5/bao_cao_tuan5.md`. Kết quả ở `experiments/grid/test_22f/` (bộ 30: `experiments/grid/test_30f/`; OCSVM `nc1000`: `experiments/grid/test_22f_nc1000/`; lưới dev 22 đặc trưng: `experiments/grid/dev_22f/`). Mô hình cho demo: `experiments/models/User_22f/` (`scripts/evaluation/train_demo_models.py`).
 
 ## 7. Kiểm tra chạy lại
 

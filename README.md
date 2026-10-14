@@ -18,8 +18,14 @@ python scripts/evaluation/shap_feature_stability.py        # SHAP từng đặc 
 python scripts/evaluation/feature_ablation.py              # bộ 30 trên dev -> experiments/ablation/feature_groups/
 python scripts/evaluation/feature_ablation.py --mode kcurve    # đường cong K trên dev -> experiments/ablation/kcurve/
 python scripts/evaluation/plot_kcurve.py                   # hình đường cong K -> reports/week5/figures/06-kcurve.png
+python scripts/evaluation/run_grid.py --config configs/benchmark_grid_dev_22f.yaml    # lưới dev 22 đặc trưng (13 cấu hình), chọn cấu hình
 python scripts/evaluation/run_grid.py --config configs/benchmark_grid_test_22f.yaml   # benchmark cuối, 22 đặc trưng
+python scripts/evaluation/train_demo_models.py             # lưu 3 mô hình 22 đặc trưng cho demo -> experiments/models/User_22f/
 ```
+
+Cấu hình mô hình của benchmark cuối chọn trên lưới dev 22 đặc trưng: IF `if_n300_ms1024`, LOF `lof_k20_robust`,
+OCSVM `ocsvm_standard_g01` (trước đó `nc1000`, chọn với 41 đặc trưng; kết quả test của `nc1000` giữ ở
+`experiments/grid/test_22f_nc1000/` để đối chiếu).
 
 ---
 
@@ -170,9 +176,11 @@ python scripts/reproduce.py                  # đầy đủ; --skip-existing b�
 Kết quả ghi vào `experiments/reproduce/test_22f/`, kèm `reproduce_check.csv` so từng chỉ số với
 `experiments/grid/test_22f/grid_summary.csv` (đạt khi sai lệch tương đối ≤ 1%). Lệnh tốn nhiều giờ (tính lại đặc
 trưng 60 ngày, 5 run tiêm, lưới khoảng 50 phút). **LOF không tất định:** chỉ mục HNSW dựng đa luồng
-(`n_jobs: -1` trong `configs/model_params.yaml`), fit lại lệch khoảng ±0,003 recall top-100/ngày trên test (khoảng 2%
-tương đối), nên LOF được so với ngưỡng 5%; OCSVM, IF và các baseline tất định. Muốn LOF tất định thì đặt `n_jobs: 1`
-(chậm hơn) và chạy lại lưới.
+(`n_jobs: -1` trong `configs/model_params.yaml`). Trung bình 5 run lặp lại được (hai lần chạy lưới test: recall
+top-100/ngày 0,176 và 0,175, PR-AUC 0,070 và 0,071), nên LOF được so với ngưỡng 5%; OCSVM, IF và các baseline tất
+định. Nhưng **từng lần fit** LOF lệch nhiều hơn: PR-AUC của một run lệch tới khoảng 15% giữa các lần fit, và top 50
+cảnh báo LOF của hai lần fit chỉ trùng 6/50 — danh sách cảnh báo LOF (bộ review, demo) không tái lập được. Muốn LOF
+tất định thì đặt `n_jobs: 1` (chậm hơn) và chạy lại lưới.
 
 Hai con số để đối chiếu với máy khác:
 - bản tóm tắt hồ sơ train ra **29.830 tài khoản, 15.946 máy, L = 5**;

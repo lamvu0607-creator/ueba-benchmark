@@ -572,26 +572,28 @@ ymajorgrids,grid style={socborder},axis line style={socborder}]
 \sourceinfo{experiments/ablation/kcurve/, cấu hình drop\_rhythm\_k18; configs/benchmark\_grid\_test\_22f.yaml.}
 \end{frame}
 
-% NOTE: Lưới test chính thức, 5 run test, cấu hình mô hình chốt từ dev. Trong ngoặc là bộ 30. OCSVM ngang bộ 30 (chênh dưới 1 std); IF, LOF tăng rõ, khớp với thí nghiệm K trên test (hiệu ghép cặp so với bộ 30: OCSVM -0,003 ± 0,005, IF +0,034 ± 0,013, LOF +0,028 ± 0,005). LOF đảo chiều so với dev, nên không dựa vào LOF để chọn K. K = 18 chốt sau khi đã xem test: với OCSVM và IF test chỉ xác nhận dev.
+% NOTE: Lưới test chính thức, 5 run test, cấu hình mô hình chọn lại trên lưới dev 22 đặc trưng (experiments/grid/dev_22f): OCSVM nc1000 -> g01 (PR-AUC dev 0,248 ± 0,028 so với 0,227 ± 0,049); g01 kém ổn định trên test, số nc1000 ở experiments/grid/test_22f_nc1000. Trong ngoặc là bộ 30. OCSVM nc1000 ngang bộ 30 (chênh dưới 1 std); IF, LOF tăng rõ, khớp với thí nghiệm K trên test (hiệu ghép cặp so với bộ 30: OCSVM -0,003 ± 0,005, IF +0,034 ± 0,013, LOF +0,028 ± 0,005). LOF đảo chiều so với dev, nên không dựa vào LOF để chọn K. K = 18 chốt sau khi đã xem test: với OCSVM và IF test chỉ xác nhận dev.
 % SOURCE: experiments/grid/test_22f/grid_summary.csv; experiments/ablation/kcurve_test/; báo cáo tuần 5, bảng 5.1 và 5.3.
 \begin{frame}{16. Benchmark cuối trên test với bộ 22 đặc trưng}
 
 \footnotesize
 \begin{tabularx}{\linewidth}{@{}Xccc@{}}
 \toprule\rowcolor{socblue!10}\textbf{Mô hình} & \textbf{Recall top-100/ngày} & \textbf{PR-AUC} & \textbf{ROC-AUC}\\\midrule
-\textbf{OCSVM} & \textbf{0,373} ± 0,022 \;(0,376) & \textbf{0,189} ± 0,013 \;(0,192) & 0,908 \;(0,911)\\[4pt]
+\textbf{OCSVM} (g01) & \textbf{0,336} ± 0,070 \;(0,376) & \textbf{0,175} ± 0,048 \;(0,192) & 0,892 \;(0,911)\\[4pt]
 IF & 0,242 ± 0,016 \;(0,209) & 0,111 ± 0,011 \;(0,089) & 0,921 \;(0,913)\\[4pt]
-LOF & 0,176 ± 0,015 \;(0,147) & 0,070 ± 0,008 \;(0,062) & 0,717 \;(0,701)\\[4pt]
+LOF & 0,175 ± 0,006 \;(0,147) & 0,071 ± 0,013 \;(0,062) & 0,717 \;(0,701)\\[4pt]
 z-score (baseline tốt nhất) & 0,075 & 0,032 & 0,743\\[4pt]
-Ngẫu nhiên & 0,014 & 0,010 & 0,503\\\bottomrule
+Ngẫu nhiên & 0,014 & 0,010 & 0,503\\[4pt]
+\textit{OCSVM nc1000 (đối chiếu)} & \textit{0,373} ± 0,022 & \textit{0,189} ± 0,013 & \textit{0,908}\\\bottomrule
 \end{tabularx}
 \vspace{.3em}
 
-\scriptsize Trong ngoặc: bộ 30. TB ± std qua 5 run test, tỷ lệ dương khoảng 1\%.
+\scriptsize Trong ngoặc: bộ 30 (OCSVM nc1000). TB ± std qua 5 run test, tỷ lệ dương khoảng 1\%. Cấu hình chọn lại trên lưới dev 22 đặc trưng: OCSVM nc1000 $\to$ g01.
 \nhanxet{
 \begin{itemize}\setlength\itemsep{2pt}
-\item \textbf{OCSVM ngang bộ 30, IF và LOF tăng rõ.} Giảm rõ duy nhất: OCSVM ở đổi LogonType (0,65 $\to$ 0,61), bù bằng brute-force (+0,02).
-\item \textbf{So với 41 đặc trưng:} recall OCSVM 0,32 $\to$ 0,37, IF 0,16 $\to$ 0,24, LOF 0,13 $\to$ 0,18.
+\item \textbf{OCSVM g01 thắng trên dev nhưng kém ổn định trên test} (PR-AUC từng run 0,11–0,24, nc1000: 0,17–0,20). Giữ g01 để không chọn bằng test; triển khai nên ưu tiên nc1000.
+\item \textbf{IF và LOF tăng rõ so với bộ 30;} OCSVM cùng cấu hình nc1000 thì ngang.
+\item \textbf{So với 41 đặc trưng:} recall OCSVM 0,32 $\to$ 0,34 (nc1000: 0,37), IF 0,16 $\to$ 0,24, LOF 0,13 $\to$ 0,18.
 \item off\_hours và password spraying vẫn là điểm mù: cần đặc trưng mới.
 \end{itemize}}
 \sourceinfo{experiments/grid/test\_22f/grid\_summary.csv; báo cáo tuần 5, bảng 5.3.}

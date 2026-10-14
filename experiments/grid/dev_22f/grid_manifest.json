@@ -1,0 +1,238 @@
+{
+  "format": "ueba-grid-manifest/1",
+  "created_at": "2026-10-14T17:18:14.993249+00:00",
+  "git": {
+    "commit": "a3e8857bc10b04e4e7215c91846c101e68c14704",
+    "branch": "feature/target-rate-1pct",
+    "is_dirty": true
+  },
+  "libraries": {
+    "python": "3.14.6",
+    "scikit-learn": "1.9.1",
+    "scipy": "1.18.1",
+    "polars": "1.44.2",
+    "numpy": "2.5.3",
+    "pandas": "3.0.5",
+    "joblib": "1.6.0",
+    "pyarrow": "24.0.0"
+  },
+  "config_path": "configs/benchmark_grid_dev_22f.yaml",
+  "config": {
+    "block": "dev",
+    "segment": "User",
+    "output_dir": "experiments/grid/dev_22f",
+    "split_day": 35,
+    "runs": [
+      "data/injection_runs/dev_seed20261036",
+      "data/injection_runs/dev_seed20261037",
+      "data/injection_runs/dev_seed20261038",
+      "data/injection_runs/dev_seed20261039",
+      "data/injection_runs/dev_seed20261040"
+    ],
+    "model_seeds": [
+      42,
+      7,
+      2024,
+      1,
+      2
+    ],
+    "contamination": 0.05,
+    "precision_ks": [
+      10,
+      50,
+      100
+    ],
+    "daily_budgets": [
+      10,
+      50,
+      100
+    ],
+    "models": {
+      "isolation_forest": [
+        {
+          "id": "if_default",
+          "scaler": "robust",
+          "params": {}
+        },
+        {
+          "id": "if_n300_ms1024",
+          "scaler": "robust",
+          "params": {
+            "n_estimators": 300,
+            "max_samples": 1024
+          }
+        },
+        {
+          "id": "if_maxfeat05",
+          "scaler": "robust",
+          "params": {
+            "max_features": 0.5
+          }
+        }
+      ],
+      "local_outlier_factor": [
+        {
+          "id": "lof_k20_robust",
+          "scaler": "robust",
+          "params": {}
+        },
+        {
+          "id": "lof_k20_standard",
+          "scaler": "standard",
+          "params": {}
+        },
+        {
+          "id": "lof_k20_quantile",
+          "scaler": "quantile",
+          "params": {}
+        },
+        {
+          "id": "lof_k100_standard",
+          "scaler": "standard",
+          "params": {
+            "n_neighbors": 100
+          }
+        }
+      ],
+      "one_class_svm": [
+        {
+          "id": "ocsvm_robust",
+          "scaler": "robust",
+          "params": {}
+        },
+        {
+          "id": "ocsvm_standard",
+          "scaler": "standard",
+          "params": {}
+        },
+        {
+          "id": "ocsvm_quantile",
+          "scaler": "quantile",
+          "params": {}
+        },
+        {
+          "id": "ocsvm_standard_nc1000",
+          "scaler": "standard",
+          "params": {
+            "n_components": 1000
+          }
+        },
+        {
+          "id": "ocsvm_standard_g0005",
+          "scaler": "standard",
+          "params": {
+            "gamma": 0.005
+          }
+        },
+        {
+          "id": "ocsvm_standard_g01",
+          "scaler": "standard",
+          "params": {
+            "gamma": 0.1
+          }
+        }
+      ]
+    },
+    "baselines": [
+      "zscore_baseline",
+      "rule_threshold_baseline",
+      "failure_count_baseline",
+      "random_baseline"
+    ],
+    "contamination_sweep": [
+      0.05
+    ],
+    "sort_rows": true,
+    "drop_features": [
+      "interarrival_dt_mean",
+      "delta_t_cv",
+      "same_second_share",
+      "is_single_event",
+      "activity_peak_hour_sin",
+      "log_distinct_hosts",
+      "missing_source_ratio",
+      "dst_host_entropy",
+      "log_total_logons",
+      "custom_proc_share",
+      "delta_mean_distinct_pair_7d",
+      "new_host_count_7d",
+      "peer_z_share_night",
+      "rare_logon_type_count_log",
+      "remote_logon_ratio",
+      "volume_robust_z_7d",
+      "off_hours_ratio",
+      "delta_mean_distinct_fail_host_7d",
+      "jaccard_logontype_7d"
+    ]
+  },
+  "params_path": "configs/model_params.yaml",
+  "split_day": 35,
+  "segment": "User",
+  "inputs": [
+    {
+      "run": "data/injection_runs/dev_seed20261036",
+      "injection_seed": 20261036,
+      "model_seed": 42,
+      "n_eval": 54954,
+      "n_positive": 553,
+      "matrix_sha256": "7b555b3fa4a454ebffc971bd408fbc0fc5cdce2846b7bf913a7a8a2be3767db9"
+    },
+    {
+      "run": "data/injection_runs/dev_seed20261037",
+      "injection_seed": 20261037,
+      "model_seed": 7,
+      "n_eval": 54959,
+      "n_positive": 553,
+      "matrix_sha256": "a8b5df8bcaeafc1d3cd971f28dd226073ffa4f60110c226ffe1a9d59d8c9e2f5"
+    },
+    {
+      "run": "data/injection_runs/dev_seed20261038",
+      "injection_seed": 20261038,
+      "model_seed": 2024,
+      "n_eval": 54965,
+      "n_positive": 553,
+      "matrix_sha256": "b36e8bc83f5a49d9cdf6f29ea1c3ed600e91701cce286a3ec6faf927d816bcdb"
+    },
+    {
+      "run": "data/injection_runs/dev_seed20261039",
+      "injection_seed": 20261039,
+      "model_seed": 1,
+      "n_eval": 54974,
+      "n_positive": 553,
+      "matrix_sha256": "3621384423547e49e101ee0e4f2ac130baf78a345851a69a7b4ec3b6514865ff"
+    },
+    {
+      "run": "data/injection_runs/dev_seed20261040",
+      "injection_seed": 20261040,
+      "model_seed": 2,
+      "n_eval": 54958,
+      "n_positive": 553,
+      "matrix_sha256": "62cc7d1440514a6228baeb475f99c88166da337fffae239d64ce5b9de9bcad4d"
+    }
+  ],
+  "selection_rule": "best config per ML model = highest mean pr_auc over seeds on this block",
+  "best_configs": {
+    "isolation_forest": "if_n300_ms1024",
+    "local_outlier_factor": "lof_k20_robust",
+    "one_class_svm": "ocsvm_standard_g01"
+  },
+  "artifacts": {
+    "grid_runs": "experiments\\grid\\dev_22f\\grid_runs.csv",
+    "grid_summary": "experiments\\grid\\dev_22f\\grid_summary.csv",
+    "grid_scenarios": "experiments\\grid\\dev_22f\\grid_scenarios.csv",
+    "grid_scenarios_summary": "experiments\\grid\\dev_22f\\grid_scenarios_summary.csv",
+    "contamination_runs": "experiments\\grid\\dev_22f\\contamination_runs.csv",
+    "contamination_summary": "experiments\\grid\\dev_22f\\contamination_summary.csv",
+    "pr_curves": "experiments\\grid\\dev_22f\\pr_curves.csv"
+  },
+  "figures": [
+    "experiments\\grid\\dev_22f\\figures\\grid_pr_auc.png",
+    "experiments\\grid\\dev_22f\\figures\\grid_pr_auc.pdf",
+    "experiments\\grid\\dev_22f\\figures\\pr_curves.png",
+    "experiments\\grid\\dev_22f\\figures\\pr_curves.pdf",
+    "experiments\\grid\\dev_22f\\figures\\contamination_sensitivity.png",
+    "experiments\\grid\\dev_22f\\figures\\contamination_sensitivity.pdf",
+    "experiments\\grid\\dev_22f\\figures\\scenario_roc_auc.png",
+    "experiments\\grid\\dev_22f\\figures\\scenario_roc_auc.pdf"
+  ]
+}
