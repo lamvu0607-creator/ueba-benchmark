@@ -24,8 +24,9 @@
    PR-AUC 0,175 ± 0,048**, gấp khoảng 3,4 lần recall và 7 lần PR-AUC của luật "số lần thất bại ≥ 5", gấp 17 lần
    ngẫu nhiên về PR-AUC. Thứ hạng ổn định: **OCSVM > IF > LOF > z-score > các luật > ngẫu nhiên.**
 5. **Phát hiện quan trọng.**
-   - Phát hiện tốt brute-force, đổi loại logon, bùng nổ máy trạm mới; **hai điểm mù chung** là dời hoạt động sang
-     ban đêm và rải mật khẩu (password spraying), do giới hạn của đặc trưng tính theo từng tài khoản.
+   - Phát hiện tốt brute-force, đổi loại logon, bùng nổ máy trạm mới; bắt kém ba loại: dời hoạt động
+     sang ban đêm, rải mật khẩu (password spraying) và tài khoản ngủ đông thức dậy, do đặc trưng chỉ tính theo từng
+     tài khoản trong từng ngày.
    - Chọn scaler quyết định mô hình dựa trên khoảng cách: đổi RobustScaler sang StandardScaler nâng PR-AUC OCSVM từ 0,03 lên 0,24 trên dev.
    - Bớt đặc trưng làm mô hình **tốt hơn**: từ 41 xuống 22 đặc trưng, recall IF tăng 0,16 → 0,24 trên test.
    - Cấu hình OCSVM tốt nhất trên dev (`g01`) **kém ổn định** trên test; cấu hình `nc1000` ổn định hơn và được khuyến nghị khi triển khai.
@@ -82,6 +83,20 @@ tấn công nào?
   nhãn tổng hợp 6 kịch bản; đánh giá phân khúc tài khoản người dùng (User).
 - **Ngoài phạm vi** (đề cương mục 2.2): mô hình học sâu, phát hiện theo thời gian thực, tích hợp SIEM, nhãn tấn công thật.
 
+### 1.4. Những điểm khác đề cương
+
+Đề cương cho phép điều chỉnh khi có lý do. Bảng dưới liệt kê các điều chỉnh để người đọc không phải tự đối chiếu.
+
+| Hạng mục | Đề cương | Báo cáo này | Lý do |
+|---|---|---|---|
+| LOF | `LocalOutlierFactor(novelty=True)` của scikit-learn | LOF tính trên láng giềng xấp xỉ HNSW (thư viện `hnswlib`) | LOF chính xác không chạy được trên khoảng 315.000 dòng User với nhiều cấu hình. Khi fit trên mẫu con 20.000 dòng (tuần 3), danh sách Top-20 gần như không trùng giữa các seed (trùng 0,03), nên kết quả không dùng được |
+| One-Class SVM | `OneClassSVM(kernel="rbf")` | Nhân RBF xấp xỉ bằng Nystroem, rồi `SGDOneClassSVM` | Bản gốc của scikit-learn có thời gian chạy tăng theo bậc 2–3 của số dòng |
+| Chỉ số chính | PR-AUC | Recall top-100 cảnh báo/ngày. PR-AUC vẫn có trong mọi bảng | Khớp với việc SOC chỉ xem được một số cảnh báo cố định mỗi ngày, và so được giữa các loại tấn công (mục 3.4.3) |
+| Chia tập | Train / test theo thời gian | Thêm khối dev (ngày 36–42) nằm trong train | Chọn cấu hình và đặc trưng mà không dùng nhãn của test (một ngoại lệ ở mục 5.3.3) |
+
+Vì hai thuật toán là bản xấp xỉ, mọi kết luận về "LOF" và "OCSVM" trong báo cáo là kết luận về các bản xấp xỉ này
+(mục 7, hạn chế 5).
+
 ---
 
 ## 2. Dữ liệu
@@ -96,7 +111,7 @@ Bộ **LANL Unified Host and Network Dataset**: log Windows Security của mạn
 | 4624 | Đăng nhập thành công | 14,1 triệu |
 | 4625 | Đăng nhập thất bại | 0,34 triệu (2,3%) |
 
-Mỗi sự kiện có 21 trường, chia 6 nhóm: thời gian (`Time`, epoch giây), sự kiện (`EventID`), danh tính
+Mỗi sự kiện có 21 trường, chia 6 nhóm: thời gian (`Time`, số giây tính từ đầu bộ dữ liệu), sự kiện (`EventID`), danh tính
 (`UserName`, `DomainName`, `LogonID`, `Subject*`), máy (`LogHost`, `Source`, `Destination`), xác thực
 (`LogonType`, `AuthenticationPackage`, `FailureReason`, `Status`, …) và tiến trình (`Process*`). Ý nghĩa từng trường
 ở [`docs/data_dictionary.md`](../../docs/data_dictionary.md).
@@ -147,6 +162,31 @@ data/interim/ (log theo ngày, parquet)
 
 Mỗi bước chạy bằng `python main.py --stage <clean|features|…>`, có ghi log và kiểm tra lược đồ
 (`FeatureSchema.validate_features`). Đặc trưng lịch sử của ngày t chỉ dùng dữ liệu các ngày ≤ t−1.
+
+### 2.5. Nhịp theo thời gian
+
+`Time` không phải ngày giờ lịch mà là số giây tính từ đầu bộ dữ liệu: ngày 1 có `Time` từ 1 đến 86.399, ngày *d* gồm
+các sự kiện có `Time` trong khoảng [(d−1)·86.400, d·86.400). Giờ trong ngày được tính bằng `(Time mod 86.400) div 3.600`.
+Cách tính này giả định `Time = 0` là nửa đêm giờ địa phương. Bảng dưới kiểm tra giả định đó và các nhịp khác của dữ liệu.
+
+**Bảng 2.1: Nhịp theo thời gian của 60 ngày dữ liệu**
+
+| Câu hỏi | Kết quả | Kết luận |
+|---|---|---|
+| Có chu kỳ 7 ngày không? | Hệ số tự tương quan của lưu lượng ngày ở độ trễ 7 là 0,58, cao nhất trong các độ trễ 1–14. Riêng thứ tự ngày trong tuần giải thích 67% biến động của lưu lượng | Có |
+| Có "cuối tuần" không? | 2 trong 7 ngày có lưu lượng thấp hơn 29% và số tài khoản hoạt động thấp hơn 31%, lặp lại ở 87,5% số tuần (16 ngày: 6, 7, 13, 14, …, 55, 56) | Có |
+| Ban đêm có vắng hơn ban ngày không? | Ngày thường, 0h–5h trung bình 553.600 sự kiện 4624/giờ, thấp hơn 37% so với 9h–15h (877.500/giờ). Thấp nhất lúc 4h, cao nhất lúc 9h. Cuối tuần gần như phẳng | Có. Cách tính giờ khớp với giờ địa phương |
+| Hành vi có trôi theo thời gian không? | Tương quan hạng giữa ngày và trung bình trượt 7 ngày: khối lượng 0,12; tỷ lệ thất bại −0,38; tỷ lệ ngoài giờ 0,28 (ngưỡng 0,3) | Tỷ lệ thất bại có trôi |
+
+Hệ quả cho thiết kế:
+1. **Cửa sổ lịch sử 7 ngày** chứa đúng một chu kỳ tuần, nên khi so ngày t với 7 ngày trước, cuối tuần không bị coi là bất thường.
+2. **Dữ liệu không có ngày lịch.** "Cuối tuần" ở đây là hai ngày có lưu lượng thấp nhất trong chu kỳ, chưa đối chiếu được với thứ Bảy và Chủ nhật thật.
+3. **Khung ngoài giờ (18h–7h) rộng.** Khung này dài 14/24 giờ và chiếm 51,6% tổng số sự kiện. Ngày thường, lưu lượng lúc 7h đã bằng 90% giờ cao điểm mà vẫn bị tính là ngoài giờ. Hệ quả cho kịch bản off_hours được phân tích ở mục 5.5.
+4. **Có trôi nhẹ**, nên chia tập theo thời gian (mục 3.4.1) cho kết quả gần với lúc triển khai thật hơn chia ngẫu nhiên.
+
+📁 [`reports/week2/temporal_stability_check.md`](../week2/temporal_stability_check.md) ·
+[`docs/feature_engineering/tables/hourly_rhythm_summary.csv`](../../docs/feature_engineering/tables/hourly_rhythm_summary.csv) ·
+[`docs/feature_engineering/figures/temporal_hourly_rhythm.png`](../../docs/feature_engineering/figures/temporal_hourly_rhythm.png)
 
 ---
 
@@ -402,7 +442,7 @@ hạng kịch bản không đổi với bộ 22.
   new_workstation_burst (chủ yếu OCSVM).
 - **Bắt yếu:** dormant_wakeup; nạn nhân bị bỏ sót lại có **nhiều** sự kiện hơn nạn nhân bị bắt (trung vị 150 so
   với 85), vì một ngày bận "phát lại" trông giống tài khoản bận bình thường.
-- **Điểm mù chung:** off_hours và password_spraying (phân tích ở mục 5.5).
+- **Điểm mù chung:** off_hours và password_spraying. Cả ba kịch bản yếu được phân tích ở mục 5.5.
 - **Không có mô hình nào thắng ở mọi kịch bản:** luật thất bại tốt nhất ở spraying về ROC-AUC; IF tốt hơn OCSVM ở
   dormant_wakeup và off_hours về ROC-AUC. Điều này ủng hộ việc kết hợp mô hình và luật (mục 8).
 
@@ -501,6 +541,12 @@ thứ tự dòng train đã làm PR-AUC OCSVM lệch −0,020 ± 0,019 (do SGD),
 
 #### 5.3.3. Chọn số đặc trưng bỏ (K)
 
+Bộ 30 đặc trưng dùng trong tuần 5 được tạo bằng cách bỏ nhóm rhythm và **10 đặc trưng SHAP thấp nhất**. Con số 10 là
+một số tròn được chọn, không có quy tắc nào đứng sau: khi xếp 41 đặc trưng theo mức đóng góp SHAP, các giá trị giảm
+đều và không có chỗ gãy (hạng 10 là 0,0164, hạng 11 là 0,0171). Kết quả tốt của bộ 30 chỉ cho thấy bỏ các đặc trưng
+đó không gây hại, chứ không chứng minh 10 là con số đúng. Vì vậy số đặc trưng cần bỏ được chọn lại bằng **đường cong K**
+trên dev, với quy tắc chọn đặt ra trước khi xem kết quả.
+
 Xếp 41 đặc trưng theo tỷ phần |SHAP| cao nhất qua 3 mô hình × 3 run dev; cấu hình `drop_rhythm_kK` bỏ rhythm và K
 đặc trưng thấp nhất. K = 18 là mức cắt tự nhiên: đúng 18 đặc trưng có tỷ phần dưới mức chia đều 1/41 ở mọi mô hình, mọi run.
 
@@ -508,7 +554,7 @@ Xếp 41 đặc trưng theo tỷ phần |SHAP| cao nhất qua 3 mô hình × 3 r
 |---|---|---|---|
 | 41 (đủ) | 0,317 | 0,139 | 0,165 |
 | 37 (bỏ rhythm) | 0,368 | 0,195 | 0,197 |
-| 30 | 0,380 | 0,228 | **0,207** |
+| 30 (rhythm + 10 SHAP thấp, bộ của tuần 5) | 0,380 | 0,228 | **0,207** |
 | 25 (K = 15) | **0,385** | 0,246 | 0,181 |
 | **22 (K = 18, chốt)** | 0,383 | **0,264** | 0,170 |
 | 21 (K = 20) | 0,382 | 0,258 | 0,167 |
@@ -536,13 +582,20 @@ LOF 0,121 / 0,034 / 0,003 (sụp ở cửa sổ dài vì nhiều dòng đầu tr
 Cửa sổ dài chỉ giúp spraying (ROC-AUC 0,69 → 0,77) nhưng làm hại dormant_wakeup và tốn khoảng 3 lần thời gian.
 **Giữ 7 ngày.** Chi tiết: [`reports/week5/bao_cao_tuan5.md`](../week5/bao_cao_tuan5.md) mục 1.
 
-### 5.5. Hai điểm mù: off_hours và password spraying
+### 5.5. Ba kịch bản bị bắt kém: off_hours, password_spraying, dormant_wakeup
+
+Các con số recall trong mục này lấy từ bảng 4.5 (41 đặc trưng).
 
 **off_hours** (recall top-100/ngày ≤ 0,08 ở mọi mô hình):
 - Nạn nhân bị bỏ sót có trung vị 107 sự kiện, nạn nhân bị bắt chỉ 9,5. Một ngày bận bị dời sang đêm vẫn trông như
   một tài khoản bận; trong không gian khoảng cách, vài chiều về ban đêm bị các chiều khối lượng lấn át.
 - SHAP xác nhận nhóm time giải thích phần lớn điểm của nạn nhân (0,52), nhưng điểm tuyệt đối không đủ cao để lọt top.
-- Hướng sửa: đặc trưng so giờ hoạt động với **lịch sử giờ của chính tài khoản** có trọng số cao hơn, hoặc một luật riêng.
+- **Khung giờ đêm quá rộng.** Ngoài giờ là 18h–7h, tức 14/24 giờ, và chứa cả 7h, lúc lưu lượng ngày thường đã bằng 90%
+  giờ cao điểm (mục 2.5). Một ngày bị dời vào khung này vì vậy không khác nhiều so với một ngày bình thường.
+- **Nhóm đặc trưng thời gian hiện không tạo khác biệt:** bỏ cả 8 đặc trưng thời gian thì recall off_hours gần như không đổi
+  ở cả 3 mô hình (−0,02 đến 0,00).
+- **Không phải do lệch múi giờ:** nhịp lưu lượng theo giờ khớp với giờ địa phương (mục 2.5).
+- Hướng sửa: thu hẹp khung giờ đêm, và dùng đặc trưng so giờ hoạt động với **lịch sử giờ của chính tài khoản**, hoặc một luật riêng.
 
 **password_spraying** (recall ≤ 0,23):
 - Mỗi nạn nhân chỉ nhận 1–3 lần thử. Ở mức (tài khoản, ngày) gần như không có tín hiệu; dấu hiệu thật là **một máy
@@ -550,6 +603,19 @@ Cửa sổ dài chỉ giúp spraying (ROC-AUC 0,69 → 0,77) nhưng làm hại d
 - Luật thất bại có ROC-AUC tốt nhất (0,875) nhưng vẫn không đưa được nạn nhân vào top (recall 0,05).
 - Hướng sửa: đặc trưng **fan-out theo máy nguồn** (engine đã có phép đo `fanout`), hoặc phân tích ở cấp máy nguồn
   thay vì cấp tài khoản. Không chỉnh tham số mô hình nào giải được vấn đề này.
+
+**dormant_wakeup** (recall ≤ 0,17; ROC-AUC 0,91 với OCSVM và 0,94 với IF):
+- Bộ tiêm phát lại một ngày bình thường của chính tài khoản sau một khoảng nghỉ dài. Chỉ có khoảng nghỉ là khác thường;
+  khối lượng, máy và loại đăng nhập đều giống một ngày bình thường.
+- Nạn nhân bị bỏ sót lại có **nhiều** sự kiện hơn nạn nhân bị bắt (trung vị 150 so với 85), vì một ngày bận trông giống
+  một tài khoản bận bình thường.
+- Tín hiệu rõ nhất chỉ còn `days_since_last_activity`. Sau khoảng nghỉ từ 7 ngày trở lên, các đặc trưng so với 7 ngày
+  trước không có lịch sử để so (suy luận từ cách tính, chưa đo riêng).
+- Hướng sửa: đặc trưng "khoảng nghỉ hôm nay so với khoảng nghỉ dài nhất trước đó của chính tài khoản".
+
+**Nguyên nhân chung.** Cả ba kịch bản đều chạm vào giới hạn của cách đặt bài toán: **mỗi dòng là một tài khoản trong
+một ngày**. Spraying cần nhìn theo máy nguồn qua nhiều tài khoản; off_hours và dormant_wakeup cần so với lịch sử dài
+hơn của chính tài khoản. Chỉnh tham số mô hình không giải được các điểm mù này.
 
 ### 5.6. Độ ổn định
 
@@ -617,7 +683,10 @@ Hướng dẫn chấm: [`docs/huong_dan_review_top50.md`](../../docs/huong_dan_r
    lành tính. Không có nhãn tấn công thật để hiệu chỉnh.
 2. **Giả định train "sạch" không hoàn toàn đúng.** Train có khoảng 600 dòng giống brute-force thật; chính chúng làm LOF thất bại.
 3. **Chỉ đánh giá phân khúc User.** Tài khoản Machine không được tiêm; Admin, Service, System quá ít để học máy.
-4. **Đặc trưng theo từng tài khoản** không thấy được tấn công phân tán nhiều tài khoản (spraying).
+4. **Ba kịch bản bị bắt kém: password_spraying, off_hours, dormant_wakeup** (recall top-100/ngày ≤ 0,23 / 0,08 / 0,17,
+   số của 41 đặc trưng). Nguyên nhân: (a) đặc trưng chỉ tính theo từng tài khoản, nên không thấy một máy nguồn thử nhiều
+   tài khoản; (b) khung giờ đêm 18h–7h quá rộng, chứa cả giờ làm việc lúc 7h; (c) ngày "thức dậy" giống một ngày bình
+   thường, chỉ khác khoảng nghỉ. Chi tiết và hướng sửa ở mục 5.5.
 5. **Thuật toán xấp xỉ.** LOF dùng láng giềng xấp xỉ HNSW, OCSVM dùng nhân RBF xấp xỉ Nystroem + SGD, thay cho bản chính xác
    của scikit-learn. Kết luận về "LOF" và "OCSVM" là kết luận về các bản xấp xỉ này.
 6. **LOF không tất định** ở mức từng lần fit (mục 5.6); danh sách cảnh báo LOF không tái lập được.
@@ -676,9 +745,31 @@ Khuyến nghị khởi đầu ở **khoảng 100 cảnh báo/ngày** (một anal
 
 ### 9.1. Môi trường
 
-Python 3.11–3.14, conda hoặc venv, cài theo README mục 2 (`pip install -r requirements.txt`, `pip install -e .`).
+Conda hoặc venv, cài theo README mục 2 (`pip install -r requirements.txt`, `pip install -e .`).
 Dữ liệu interim (khoảng 22 GB) tải từ Google Drive (README mục 6) vì không nằm trong Git. Toàn bộ tham số nằm trong
 `configs/`; không có đường dẫn tuyệt đối trong mã.
+
+**Phiên bản đã sinh ra bảng 4.2.** `requirements.txt` chỉ ghi phiên bản tối thiểu (`>=`), nên cài mới hôm nay có thể
+nhận phiên bản khác. Để chạy lại đúng như báo cáo, cài đúng các phiên bản sau. Chúng được ghi tự động trong
+`experiments/grid/test_22f/grid_manifest.json` lúc chạy lưới:
+
+| Thư viện | Phiên bản |
+|---|---|
+| Python | 3.14.6 |
+| numpy | 2.5.3 |
+| pandas | 3.0.5 |
+| polars | 1.44.2 |
+| pyarrow | 24.0.0 |
+| scipy | 1.18.1 |
+| scikit-learn | 1.9.1 |
+| joblib | 1.6.0 |
+
+Ví dụ: `pip install numpy==2.5.3 pandas==3.0.5 polars==1.44.2 pyarrow==24.0.0 scipy==1.18.1 scikit-learn==1.9.1 joblib==1.6.0`,
+rồi `pip install -r requirements.txt` cho các thư viện còn lại. Manifest chưa ghi phiên bản của `pyod`, `hnswlib`,
+`shap` và `lime` (mục 9.5).
+
+**Kiểm tra dữ liệu sau khi tải:** `python scripts/validate_interim.py` phải báo 120 file hợp lệ, gồm 929.103.392 dòng
+4624 và 13.823.040 dòng 4625.
 
 ### 9.2. Một lệnh
 
@@ -715,6 +806,9 @@ khớp tuyệt đối, LOF lệch do không tất định). Dùng: `AnomalyPipel
 
 - `pytest`: 258 test pass trên máy phát triển; bản clone sạch chạy được test mà không cần dữ liệu ngoài Git (trừ 2 test cần ma trận).
 - **Chưa** chạy `reproduce.py` trọn vẹn trên một máy sạch do người thứ ba thực hiện (tiêu chí 4.1 #1).
+- **Chưa có file khoá phiên bản** (`pip freeze` của môi trường đã chạy lưới). Bảng phiên bản ở mục 9.1 thiếu `pyod`,
+  `hnswlib`, `shap`, `lime`, và manifest của lưới test ghi lúc chạy có thay đổi chưa commit (`is_dirty: true`).
+- **Chưa có mã băm (sha256) của dữ liệu interim.** Hiện chỉ kiểm được bằng số file và số dòng (mục 9.1).
 
 ---
 
@@ -724,7 +818,7 @@ khớp tuyệt đối, LOF lệch do không tất định). Dùng: `AnomalyPipel
 |---|---|---|---|
 | 1 | Tính tái lập | ⚠️ | Có lệnh duy nhất và seed cố định (mục 9). Chưa chạy trên máy sạch; LOF chỉ tái lập ở mức trung bình |
 | 2 | Pipeline dữ liệu | ✅ | Mục 2.3–2.4; `main.py`, ghi log, quyết định làm sạch kèm lý do |
-| 3 | Bộ đặc trưng | ✅ | 41 core (22 dùng trong benchmark), tên/công thức/kiểu/diễn giải trong schema; unit test |
+| 3 | Bộ đặc trưng | ✅ | 41 core (22 dùng trong benchmark); tên, công thức, kiểu và ý nghĩa của 22 đặc trưng ở Phụ lục A, đủ 41 trong schema; unit test |
 | 4 | Bảng benchmark | ✅ | Bảng 4.1: 3 mô hình × 3–6 cấu hình × 5 seed, mean ± std; bảng 4.2 trên test |
 | 5 | Bộ chỉ số | ✅ | Bảng 4.2: PR-AUC, ROC-AUC, P@10/50/100, recall tại ngân sách, tỷ lệ cảnh báo, thời gian fit/chấm |
 | 6 | Baseline | ✅ | Ngẫu nhiên và luật số lần thất bại (cùng z-score, luật 6 điều kiện) trong mọi bảng |
@@ -737,30 +831,33 @@ khớp tuyệt đối, LOF lệch do không tất định). Dùng: `AnomalyPipel
 
 ## Phụ lục A: 22 đặc trưng của benchmark cuối
 
-| Nhóm | Đặc trưng | Ý nghĩa |
-|---|---|---|
-| failure | `failure_ratio` | Tỷ lệ đăng nhập thất bại trong ngày |
-| failure | `failure_locked_out_share` | Tỷ phần thất bại do tài khoản bị khoá |
-| failure | `delta_mean_share_fail_7d` | Tỷ lệ thất bại hôm nay trừ trung bình 7 ngày trước |
-| failure | `novelty_fail_host_7d` | Số máy đích bị đăng nhập thất bại mới so với 7 ngày trước |
-| failure | `novelty_fail_failreason_7d` | Số lý do thất bại mới so với 7 ngày trước |
-| time | `activity_peak_hour_cos` | cos(2π · giờ cao điểm / 24) |
-| time | `hour_entropy` | Độ trải đều của hoạt động trên các khung giờ |
-| time | `dist_shift_hour_7d` | Độ dịch (Total Variation) của phân bố giờ so với 7 ngày trước |
-| time | `jaccard_hour_7d` | Độ trùng tập giờ hoạt động so với 7 ngày trước |
-| time | `delta_mean_share_night_7d` | Tỷ lệ sự kiện ban đêm hôm nay trừ trung bình 7 ngày trước |
-| logon_type | `interactive_ratio` | Tỷ lệ đăng nhập tương tác (type 2) |
-| logon_type | `ntlm_ratio` | Tỷ lệ xác thực NTLM |
-| logon_type | `dist_shift_logontype_7d` | Độ dịch cơ cấu loại logon so với 7 ngày trước |
-| logon_type | `novelty_logontype_7d` | Số loại logon mới so với 7 ngày trước |
-| fanout | `distinct_sources_count` | Số máy nguồn khác nhau trong ngày |
-| fanout | `delta_mean_distinct_source_7d` | log số máy nguồn hôm nay trừ trung bình 7 ngày trước |
-| fanout | `peer_z_distinct_source` | z bền vững số máy nguồn so với tài khoản cùng loại trong ngày |
-| novelty | `new_source_count_7d` | Số máy nguồn chưa thấy trong 7 ngày trước |
-| novelty | `days_since_last_activity` | Số ngày kể từ lần hoạt động trước |
-| novelty | `jaccard_source_7d` | Độ trùng tập máy nguồn so với 7 ngày trước |
-| novelty | `novelty_share_pair_7d` | Tỷ phần sự kiện qua cặp (nguồn, đích) mới so với 7 ngày trước |
-| volume | `delta_mean_count_7d` | log số sự kiện hôm nay trừ trung bình 7 ngày trước |
+Một dòng là một tài khoản trong một ngày. "7 ngày trước" là 7 ngày lịch t−7 … t−1. Cột "NULL khi" ghi trường hợp đặc
+trưng không có giá trị; khi đó mô hình điền bằng trung vị của train (mục 3.2).
+
+| Nhóm | Đặc trưng | Kiểu | Công thức | Ý nghĩa hành vi | NULL khi |
+|---|---|---|---|---|---|
+| failure | `failure_ratio` | số thực | số lần thất bại (4625) / tổng số lần đăng nhập trong ngày | Tỷ lệ đăng nhập thất bại trong ngày | – |
+| failure | `failure_locked_out_share` | số thực | số lần thất bại có lý do "account locked out" / số lần thất bại | Tỷ phần thất bại do tài khoản bị khoá (dấu hiệu dò mật khẩu) | không có lần thất bại nào |
+| failure | `delta_mean_share_fail_7d` | số thực | tỷ lệ thất bại hôm nay − trung bình tỷ lệ thất bại của 7 ngày trước | Tỷ lệ thất bại tăng bất thường so với chính tài khoản | 7 ngày đầu dữ liệu, hoặc 7 ngày trước không hoạt động |
+| failure | `novelty_fail_host_7d` | số thực | số máy đích (`LogHost`) bị đăng nhập thất bại hôm nay mà không có trong 7 ngày trước | Thất bại ở những máy chưa từng thử | – |
+| failure | `novelty_fail_failreason_7d` | số thực | số lý do thất bại hôm nay không có trong 7 ngày trước | Kiểu thất bại mới (ví dụ sai mật khẩu, tài khoản không tồn tại) | – |
+| time | `activity_peak_hour_cos` | số thực | cos(2π · h / 24), với h là giờ có nhiều sự kiện nhất trong ngày | Giờ cao điểm trong ngày, mã hoá vòng tròn để 23h và 0h nằm cạnh nhau | – |
+| time | `hour_entropy` | số thực | entropy của phân bố sự kiện theo giờ / ln(số giờ có sự kiện) | Hoạt động dồn vào ít giờ (gần 0) hay trải đều (gần 1) | – |
+| time | `dist_shift_hour_7d` | số thực | ½ · Σ \|tỷ phần sự kiện ở giờ h hôm nay − tỷ phần ở giờ h của 7 ngày trước\| | Phân bố giờ hoạt động thay đổi bao nhiêu so với tuần trước (0 là y hệt, 1 là khác hẳn) | chưa có lịch sử 7 ngày |
+| time | `jaccard_hour_7d` | số thực | \|giờ hoạt động hôm nay ∩ của 7 ngày trước\| / \|hợp của hai tập\| | Độ trùng tập giờ hoạt động với tuần trước | chưa có lịch sử 7 ngày |
+| time | `delta_mean_share_night_7d` | số thực | tỷ lệ sự kiện ngoài giờ (18h–7h) hôm nay − trung bình của 7 ngày trước | Hoạt động dời sang ban đêm so với chính tài khoản | 7 ngày đầu dữ liệu |
+| logon_type | `interactive_ratio` | số thực | số lần đăng nhập loại 2 (tương tác) / tổng số lần đăng nhập | Tỷ lệ đăng nhập trực tiếp tại máy | – |
+| logon_type | `ntlm_ratio` | số thực | số lần dùng gói xác thực NTLM / tổng số lần đăng nhập | Tỷ lệ xác thực NTLM (giao thức cũ, hay gặp trong tấn công) | – |
+| logon_type | `dist_shift_logontype_7d` | số thực | như `dist_shift_hour_7d`, nhưng theo loại đăng nhập thay cho giờ | Cơ cấu loại đăng nhập thay đổi so với tuần trước | chưa có lịch sử 7 ngày |
+| logon_type | `novelty_logontype_7d` | số thực | số loại đăng nhập hôm nay không có trong 7 ngày trước | Dùng loại đăng nhập chưa từng dùng | – |
+| fanout | `distinct_sources_count` | số nguyên | số máy nguồn (`Source`) khác nhau trong ngày | Đăng nhập từ bao nhiêu máy | – |
+| fanout | `delta_mean_distinct_source_7d` | số thực | log(số máy nguồn hôm nay) − trung bình của 7 ngày trước | Số máy nguồn tăng bất thường so với chính tài khoản | 7 ngày đầu dữ liệu |
+| fanout | `peer_z_distinct_source` | số thực | (log số máy nguồn − trung vị của các tài khoản cùng loại trong ngày) / (IQR / 1,349), chặn trong ±10 | Số máy nguồn cao bất thường so với các tài khoản cùng loại | – |
+| novelty | `new_source_count_7d` | số nguyên | số máy nguồn hôm nay không có trong 7 ngày trước | Đăng nhập từ máy mới | – |
+| novelty | `days_since_last_activity` | số nguyên | t − ngày hoạt động gần nhất trước t | Tài khoản nghỉ bao lâu trước hôm nay | lần hoạt động đầu tiên của tài khoản |
+| novelty | `jaccard_source_7d` | số thực | \|máy nguồn hôm nay ∩ của 7 ngày trước\| / \|hợp của hai tập\| | Độ trùng tập máy nguồn với tuần trước | chưa có lịch sử 7 ngày |
+| novelty | `novelty_share_pair_7d` | số thực | số sự kiện qua cặp (máy nguồn, máy đích) mới / tổng số sự kiện | Tỷ phần đăng nhập đi theo đường mới | không có sự kiện có đủ nguồn và đích |
+| volume | `delta_mean_count_7d` | số thực | log(số sự kiện hôm nay) − trung bình của 7 ngày trước | Khối lượng tăng hoặc giảm bất thường so với chính tài khoản | 7 ngày đầu dữ liệu |
 
 19 đặc trưng bị bỏ: 4 rhythm (`interarrival_dt_mean`, `delta_t_cv`, `same_second_share`, `is_single_event`) và
 `activity_peak_hour_sin`, `log_distinct_hosts`, `missing_source_ratio`, `dst_host_entropy`, `log_total_logons`,
