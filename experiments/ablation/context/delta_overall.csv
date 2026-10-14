@@ -11,3 +11,6 @@ drop_context,local_outlier_factor,0.0762,0.7017,0.092,0.158,0.2,-0.0066,-0.0002,
 control_refit_base30,one_class_svm,0.2304,0.9204,0.556,0.3006,0.3805,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,5,False,False,False,False,False
 control_refit_base30,isolation_forest,0.0957,0.9006,0.228,0.1803,0.2282,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,0.0,5,False,False,False,False,False
 control_refit_base30,local_outlier_factor,0.0762,0.7017,0.092,0.158,0.2,0.0042,0.0011,0.016,0.0034,0.0043,0.018,0.0018,0.1108,0.0097,0.0123,5,False,False,False,False,False
+drop_context_volume,one_class_svm,0.2304,0.9204,0.556,0.3006,0.3805,0.0046,0.0026,0.012,0.0049,0.0061,0.0028,0.001,0.0228,0.0049,0.0062,5,True,True,False,False,False
+drop_context_volume,isolation_forest,0.0957,0.9006,0.228,0.1803,0.2282,0.04,0.0215,0.012,0.0274,0.0347,0.0088,0.0055,0.0729,0.0061,0.0077,5,True,True,False,True,True
+drop_context_volume,local_outlier_factor,0.0762,0.7017,0.092,0.158,0.2,0.003,0.0061,0.008,0.0131,0.0166,0.0138,0.0075,0.1119,0.0111,0.0141,5,False,False,False,True,True

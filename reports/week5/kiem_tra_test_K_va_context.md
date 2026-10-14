@@ -1,5 +1,7 @@
 # Bỏ nhóm context và kiểm tra trên test: bộ 28, K = 15, K = 18
 
+> **Quyết định cuối (14/10/2026): chốt K = 18, tức bộ 22 đặc trưng**, không dùng bộ 28 đề xuất ở mục 4–4b. Lý do: K = 18 là mức cắt có căn cứ (đúng 18 đặc trưng dưới mức chia đều ở mọi mô hình và mọi run), K = 20 không tốt hơn, và trên test K = 18 ngang bộ 30 với OCSVM, tốt hơn rõ với IF và LOF (bảng C.3). Bộ 22 bao trùm bộ 28: hai đặc trưng context bỏ ở bộ 28 đều nằm trong 19 đặc trưng bỏ của K = 18. Benchmark cuối: [`configs/benchmark_grid_test_22f.yaml`](../../configs/benchmark_grid_test_22f.yaml), báo cáo tuần 5 mục 4–5.
+
 > Tiếp theo [`chon_so_dac_trung_K.md`](chon_so_dac_trung_K.md). Phân khúc User, cấu hình mô hình chốt, model seed 42 / 7 / 2024 / 1 / 2.
 > - **Dev:** 5 run `dev_seed20261036`–`040`, fit ngày 1–35, chấm ngày 36–42.
 > - **Test:** 5 run `test_seed20261061`–`065`, fit ngày 1–42, chấm ngày 43–60.
@@ -113,7 +115,34 @@ Chạy theo yêu cầu: K = 15 (tốt nhất cho OCSVM trên dev), K = 18 (tốt
 
 **Việc cần làm nếu chốt bộ 28:**
 1. Thêm `remote_logon_ratio`, `custom_proc_share` vào `drop_features` trong `configs/benchmark_grid_test_30f.yaml` (hoặc tạo cấu hình lưới mới cho bộ 28) và chạy lại lưới test chính thức. Không đổi `configs/feature_schema.yaml`.
-2. Cập nhật báo cáo tuần 5 (mục 4.2, 4.3) và slide từ "bộ 30" sang "bộ 28".
+2. Cập nhật báo cáo tuần 5 (mục 4–5) và slide từ "bộ 30" sang "bộ 28".
+
+## 4b. Kiểm tra cuối: nhóm volume và chọn giữa bộ của OCSVM và bộ của IF
+
+**Volume.** Bộ 30 đã bỏ `log_total_logons` và `volume_robust_z_7d`; chỉ còn `delta_mean_count_7d`. Bỏ nốt nó khỏi bộ 28 (còn 27), 5 run dev, hiệu ghép cặp so với bộ 28:
+
+| | OCSVM | IF | LOF |
+|---|---|---|---|
+| ΔRecall top-100/ngày | −0,001 ± 0,003 | +0,008 ± 0,015 | +0,028 ± 0,024 |
+| ΔPR-AUC | +0,000 ± 0,001 | +0,004 ± 0,013 | +0,010 ± 0,021 |
+| ΔRecall dormant_wakeup | −0,017 | −0,020 | +0,033 |
+
+Không mô hình nào thay đổi rõ (mọi |Δ| < 1 std; LOF dao động trong nhiễu). Bỏ không có lợi, nhưng làm OCSVM và IF giảm nhẹ ở dormant_wakeup, kịch bản yếu nhất và đúng là kịch bản SHAP cho thấy đặc trưng này đóng góp (top-5 ở cả 3 run). **Giữ `delta_mean_count_7d`.** Không đưa bộ 27 lên test.
+
+**Bộ tốt cho OCSVM hay bộ tốt cho IF?** Recall top-100/ngày (PR-AUC trong ngoặc), TB 5 run:
+
+| Bộ | Khối | OCSVM | IF | LOF |
+|---|---|---|---|---|
+| 30 | dev | 0,380 (0,230) | 0,228 (0,096) | 0,200 (0,076) |
+| **28** | dev | **0,388 (0,235)** | 0,255 (**0,132**) | 0,189 (0,070) |
+| 22 (K = 18) | dev | 0,383 (0,227) | **0,264** (0,128) | 0,170 (0,062) |
+| 30 | test | 0,376 (0,192) | 0,209 (0,089) | 0,145 (0,058) |
+| **28** | test | **0,381 (0,196)** | 0,240 (**0,120**) | 0,155 (0,061) |
+| 22 (K = 18) | test | 0,373 (0,189) | **0,242** (0,111) | **0,174 (0,072)** |
+
+Bộ 28 không phải thỏa hiệp: nó **tốt nhất cho OCSVM ở cả dev và test**, và cho IF gần như toàn bộ lợi ích của bộ 22 (test: recall 0,240 so với 0,242; PR-AUC 0,120 so với 0,111). Chỉ LOF trên test thích bộ 22 hơn, nhưng trên dev thì ngược lại. **Chọn bộ 28 làm bộ chung**; không cần bộ riêng cho IF.
+
+📁 Bộ 27: `experiments/ablation/context/` (cấu hình `drop_context_volume`).
 
 ## 5. Hạn chế
 

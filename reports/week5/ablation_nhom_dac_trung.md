@@ -1,5 +1,7 @@
 # Tuần 5: Ablation theo nhóm đặc trưng
 
+> **Tài liệu tham khảo:** báo cáo tuần 5 không còn dùng ablation theo từng nhóm; bộ đặc trưng cuối là **bộ 22** chọn bằng đường cong K ([`chon_so_dac_trung_K.md`](chon_so_dac_trung_K.md)). File này giữ lại số liệu gốc của bộ 30.
+
 ## Thiết lập
 
 - **Dữ liệu:** khối **dev**, 5 run (`dev_seed20261036`–`040`), phân khúc User. Fit ngày 1–35, chấm 36–42. Model seed giống lưới dev (42, 7, 2024, 1, 2).

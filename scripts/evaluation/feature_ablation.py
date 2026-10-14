@@ -64,7 +64,7 @@ def ablation_configs(origin: dict) -> dict:
 def addback_configs(origin: dict) -> dict:
     """Thêm lại TỪNG đặc trưng trong 11 đặc trưng đã bỏ vào bộ 30: ``base30`` + ``add_<f>`` (31 đặc trưng).
 
-    Trả lời "có đặc trưng nào bị bỏ oan không" ở mức từng đặc trưng (ablation trên chỉ bỏ theo cụm)."""
+    Trả lời "có đặc trưng nào bị bỏ oan không" ở mức từng đặc trưng (ablation trên chỉ bỏ theo nhóm)."""
     dropped = ablation_configs(origin)["drop_rhythm_low_shap10"]
     cfgs = {ADDBACK_REF: list(dropped)}
     for f in dropped:
@@ -108,6 +108,9 @@ def context_configs(origin: dict) -> dict:
     for f in rest:
         cfgs[f"drop_{f}"] = base + [f]
     cfgs["drop_context"] = base + rest
+    # bộ 28 bỏ nốt đặc trưng volume cuối cùng còn giữ (log_total_logons, volume_robust_z_7d đã bỏ ở bộ 30)
+    vol = [f for f in ABLATION_GROUPS["volume"] if f not in base]
+    cfgs["drop_context_volume"] = base + rest + vol
     cfgs[REPEAT] = list(base)
     return cfgs
 

@@ -1,5 +1,5 @@
 """
-SHAP theo TỪNG đặc trưng: độ ổn định giữa các run dev, top đặc trưng mỗi kịch bản, và cụm đặc trưng theo tương quan.
+SHAP theo TỪNG đặc trưng: độ ổn định giữa các run dev và top đặc trưng mỗi kịch bản.
 
     python scripts/evaluation/shap_feature_stability.py
 
@@ -7,12 +7,9 @@ SHAP theo TỪNG đặc trưng: độ ổn định giữa các run dev, top đ�
 khối test.
 
 1. **Độ ổn định:** với mỗi mô hình, tỷ phần |SHAP| trung bình trên nạn nhân của 41 đặc trưng ở từng run; Spearman
-   của hạng giữa các cặp run, trùng top-10; cùng phép đo ở mức nhóm theo nghĩa (8 nhóm) và mức cụm tương quan.
+   của hạng giữa các cặp run, trùng top-10; cùng phép đo ở mức nhóm theo nghĩa (8 nhóm).
 2. **Top đặc trưng theo kịch bản:** tỷ phần trung bình qua run; ``n_runs_top5`` = số run mà đặc trưng lọt top-5.
-3. **Cụm theo tương quan:** |Spearman| giữa 41 đặc trưng trên dòng train User (ngày 1–35) của run dev đầu, phân cụm
-   phân cấp (average linkage, khoảng cách 1 − |ρ|, cắt tại ``--cut``). Tỷ phần của cụm = tổng tỷ phần các đặc trưng
-   trong cụm, không phụ thuộc cách KernelSHAP chia công giữa các đặc trưng tương quan trong cụm.
-4. **11 đặc trưng đã bỏ** (bộ 30): tỷ phần và hạng ở từng run, vì danh sách SHAP thấp ban đầu chỉ lấy từ một run.
+3. **11 đặc trưng đã bỏ** (bộ 30): tỷ phần và hạng ở từng run, vì danh sách SHAP thấp ban đầu chỉ lấy từ một run.
 
 Đầu ra: experiments/analysis/explain_stability/
 """
@@ -26,10 +23,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-import polars as pl
 import yaml
-from scipy.cluster.hierarchy import fcluster, leaves_list, linkage
-from scipy.spatial.distance import squareform
 from scipy.stats import spearmanr
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -57,7 +51,7 @@ def load_shap(dirs: dict) -> pd.DataFrame:
 
 
 def unit_share(shap: pd.DataFrame, mapping: dict) -> pd.DataFrame:
-    """Tổng tỷ phần theo đơn vị (đặc trưng / nhóm / cụm) trên từng dòng, rồi TB trên nạn nhân -> (model, run, unit)."""
+    """Tổng tỷ phần theo đơn vị (đặc trưng / nhóm) trên từng dòng, rồi TB trên nạn nhân -> (model, run, unit)."""
     v = shap[shap["kind"] == "victim"].assign(unit=lambda d: d["feature"].map(mapping))
     per_row = v.groupby(["model", "run", "row", "unit"], observed=True)["share"].sum().reset_index()
     return per_row.groupby(["model", "run", "unit"])["share"].mean().reset_index()
@@ -73,24 +67,6 @@ def stability(share: pd.DataFrame, level: str, k: int) -> pd.DataFrame:
                          "spearman": spearmanr(piv[a], piv[b]).statistic, f"top_overlap": len(top_a & top_b) / k,
                          "top_k": k})
     return pd.DataFrame(rows)
-
-
-def correlation_clusters(run_dir: Path, features: list, max_day: int, cut: float, n_rows: int):
-    df = (pl.read_parquet(run_dir / "processed/feature_matrix_processed.parquet", columns=["entity_type", "day",
-                                                                                         *features])
-          .filter((pl.col("entity_type") == "User") & (pl.col("day") <= max_day)).select(features).to_pandas())
-    df = df.astype(float).fillna(df.median())
-    df = df.sample(n=min(n_rows, len(df)), random_state=0)
-    rho = pd.DataFrame(spearmanr(df.to_numpy()).statistic, index=features, columns=features).fillna(0)
-    dist = 1 - rho.abs().to_numpy()
-    np.fill_diagonal(dist, 0)
-    z = linkage(squareform(np.clip(dist, 0, None), checks=False), method="average")
-    labels = fcluster(z, t=cut, criterion="distance")
-    clusters = pd.Series(labels, index=features)
-    # đặt tên cụm theo đặc trưng đầu tiên (thứ tự schema) + số thành viên
-    names = {c: (f"{g.index[0]}" if len(g) == 1 else f"C{c}:{g.index[0]}+{len(g) - 1}")
-             for c, g in clusters.groupby(clusters)}
-    return rho, z, clusters.map(names)
 
 
 def plot_feature_stability(feat: pd.DataFrame, dropped: set, out: Path) -> None:
@@ -152,41 +128,12 @@ def plot_feature_by_scenario(scen: pd.DataFrame, order: list, dropped: set, out:
     plt.close(fig)
 
 
-def plot_clusters(rho: pd.DataFrame, z, clusters: pd.Series, out: Path) -> None:
-    import matplotlib
-    matplotlib.use("Agg")
-    import matplotlib.pyplot as plt
-
-    order = list(rho.index[leaves_list(z)])
-    r = rho.loc[order, order].abs()
-    fig, ax = plt.subplots(figsize=(12, 10.5))
-    im = ax.imshow(r.to_numpy(), cmap="viridis", vmin=0, vmax=1)
-    ax.set_xticks(range(len(order)), order, rotation=90, fontsize=6.5)
-    ax.set_yticks(range(len(order)), [f"{f}  [{FEATURE_GROUP[f]}]" for f in order], fontsize=6.5)
-    c = clusters.loc[order].to_numpy()
-    start = 0
-    for i in range(1, len(c) + 1):
-        if i == len(c) or c[i] != c[start]:
-            if i - start > 1:
-                ax.add_patch(plt.Rectangle((start - .5, start - .5), i - start, i - start, fill=False,
-                                           edgecolor="red", lw=1.8))
-            start = i
-    fig.colorbar(im, ax=ax, fraction=0.04, label="|Spearman|")
-    ax.set_title("|Spearman| giữa 41 đặc trưng (train User, ngày 1–35) · khung đỏ = cụm tương quan")
-    fig.savefig(out / "figures" / "feature_correlation_clusters.png", dpi=150, bbox_inches="tight")
-    plt.close(fig)
-
-
 def main() -> None:
     p = argparse.ArgumentParser(description=__doc__.split("\n")[1])
     p.add_argument("--explain-dirs", nargs="+", default=[
         "dev_seed20261036=experiments/analysis/explain",
         "dev_seed20261037=experiments/analysis/explain_runs/dev_seed20261037",
         "dev_seed20261038=experiments/analysis/explain_runs/dev_seed20261038"])
-    p.add_argument("--corr-run", default="data/injection_runs/dev_seed20261036")
-    p.add_argument("--max-day", type=int, default=35)
-    p.add_argument("--cut", type=float, default=0.3, help="cắt cây tại khoảng cách 1 − |ρ| (0,3 ⇔ |ρ| TB ≥ 0,7)")
-    p.add_argument("--corr-rows", type=int, default=200_000)
     p.add_argument("--frozen-grid", default="configs/benchmark_grid_test_30f.yaml")
     p.add_argument("--out", default="experiments/analysis/explain_stability")
     args = p.parse_args()
@@ -199,20 +146,10 @@ def main() -> None:
     dropped = set(yaml.safe_load(Path(args.frozen_grid).read_text(encoding="utf-8")).get("drop_features") or [])
     n_runs = shap["run"].nunique()
 
-    # 3. cụm tương quan
-    rho, z, clusters = correlation_clusters(Path(args.corr_run), core, args.max_day, args.cut, args.corr_rows)
-    cl = pd.DataFrame({"feature": core, "group": [FEATURE_GROUP[f] for f in core], "cluster": clusters[core].values})
-    cl["cluster_size"] = cl.groupby("cluster")["feature"].transform("size")
-    cl.sort_values(["cluster_size", "cluster"], ascending=[False, True]).to_csv(
-        out / "correlation_clusters.csv", index=False, encoding="utf-8-sig")
-    plot_clusters(rho, z, clusters, out)
-
-    # 1. độ ổn định: đặc trưng / nhóm / cụm
+    # 1. độ ổn định: đặc trưng / nhóm
     f_share = unit_share(shap, {f: f for f in core})
     g_share = unit_share(shap, FEATURE_GROUP)
-    c_share = unit_share(shap, clusters.to_dict())
-    stab = pd.concat([stability(f_share, "feature", 10), stability(g_share, "group", 3),
-                      stability(c_share, "cluster", 5)])
+    stab = pd.concat([stability(f_share, "feature", 10), stability(g_share, "group", 3)])
     stab.round(3).to_csv(out / "rank_stability.csv", index=False, encoding="utf-8-sig")
     stab_sum = stab.groupby(["level", "model"])[["spearman", "top_overlap"]].mean().round(3).reset_index()
     stab_sum.to_csv(out / "rank_stability_summary.csv", index=False, encoding="utf-8-sig")
@@ -225,7 +162,6 @@ def main() -> None:
     rk["model"] = rk["model"].map(SHORT)
     feat = feat.merge(rk.rename(columns={"unit": "feature"}), on=["model", "feature"])
     feat["group"] = feat["feature"].map(FEATURE_GROUP)
-    feat["cluster"] = feat["feature"].map(clusters)
     feat["dropped_in_30"] = feat["feature"].isin(dropped)
     feat["n_runs"] = n_runs
     feat.sort_values(["model", "share_mean"], ascending=[True, False]).round(4).to_csv(
@@ -245,7 +181,7 @@ def main() -> None:
     order = [f for g in ABLATION_GROUPS.values() for f in g]
     plot_feature_by_scenario(scen, order, dropped, out)
 
-    # 4. 11 đặc trưng đã bỏ
+    # 3. 11 đặc trưng đã bỏ
     drop_tab = feat[feat["dropped_in_30"]].pivot(index="feature", columns="model",
                                                  values=["share_mean", "rank_best"]).round(3)
     drop_tab.to_csv(out / "dropped_features.csv", encoding="utf-8-sig")
@@ -253,7 +189,6 @@ def main() -> None:
     with pd.option_context("display.width", 220, "display.max_rows", 300):
         print(f"{n_runs} run dev: {sorted(dirs)}")
         print(stab_sum.to_string(index=False))
-        print(cl[cl["cluster_size"] > 1].sort_values("cluster").to_string(index=False))
         print(drop_tab.to_string())
         print(top.round(3).to_string(index=False))
 

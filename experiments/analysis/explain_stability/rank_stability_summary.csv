@@ -1,7 +1,4 @@
 ﻿level,model,spearman,top_overlap
-cluster,IF,0.995,0.867
-cluster,LOF,0.97,0.867
-cluster,OCSVM,0.922,0.867
 feature,IF,0.989,1.0
 feature,LOF,0.964,0.933
 feature,OCSVM,0.934,1.0

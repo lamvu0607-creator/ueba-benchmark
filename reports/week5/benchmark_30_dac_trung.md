@@ -1,5 +1,7 @@
 # Tuần 5: Bảng benchmark cuối trên khối test với bộ 30 đặc trưng
 
+> **Đã thay thế:** bộ đặc trưng cuối là **bộ 22** (K = 18), xem báo cáo tuần 5 mục 4–5 và `experiments/grid/test_22f/`. File này giữ lại kết quả bộ 30 để so sánh.
+
 ## Thiết lập
 
 - **Lưới:** `configs/benchmark_grid_test_30f.yaml`, bản sao của lưới test tuần 4 (`configs/benchmark_grid_test.yaml`).
