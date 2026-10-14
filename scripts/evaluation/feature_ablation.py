@@ -44,6 +44,8 @@ KEYS = ["run_id", "seed_index", "ablation", "model"]
 OVERALL = ["pr_auc", "roc_auc", "precision_at_50", "precision_at_100_per_day", "recall_at_100_per_day"]
 SCEN = ["pr_auc", "roc_auc", "recall_top100_day"]
 CONTROL = "control_shuffle_rows"
+ADDBACK_REF = "base30"
+REPEAT = "control_refit_base30"
 
 
 def ablation_configs(origin: dict) -> dict:
@@ -56,6 +58,19 @@ def ablation_configs(origin: dict) -> dict:
     cfgs["drop_low_shap10"] = LOW_SHAP_FEATURES
     cfgs["drop_rhythm_low_shap10"] = list(dict.fromkeys(g["rhythm"] + LOW_SHAP_FEATURES))  # bộ gọn ứng viên (30)
     cfgs[CONTROL] = []  # đủ 41 đặc trưng nhưng xáo thứ tự dòng train -> mức nhiễu của riêng thứ tự dòng
+    return cfgs
+
+
+def addback_configs(origin: dict) -> dict:
+    """Thêm lại TỪNG đặc trưng trong 11 đặc trưng đã bỏ vào bộ 30: ``base30`` + ``add_<f>`` (31 đặc trưng).
+
+    Trả lời "có đặc trưng nào bị bỏ oan không" ở mức từng đặc trưng (ablation trên chỉ bỏ theo cụm)."""
+    dropped = ablation_configs(origin)["drop_rhythm_low_shap10"]
+    cfgs = {ADDBACK_REF: list(dropped)}
+    for f in dropped:
+        cfgs[f"add_{f}"] = [d for d in dropped if d != f]
+    # fit lại y nguyên base30: đo nhiễu không tất định (LOF dùng HNSW đa luồng, n_jobs=-1 -> thứ tự chèn đổi)
+    cfgs[REPEAT] = list(dropped)
     return cfgs
 
 
@@ -77,13 +92,14 @@ def run(args) -> None:
     c0 = float(frozen.get("contamination", 0.05))
     origin = schema_origin(ROOT / "configs/feature_schema.yaml")
     core = list(origin)
-    cfgs = ablation_configs(origin)
+    make = addback_configs if args.mode == "addback" else ablation_configs
+    cfgs = make(origin)
     if args.only:
         cfgs = {k: v for k, v in cfgs.items() if k in set(args.only)}
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     (out / "ablation_configs.json").write_text(json.dumps(
-        {k: {"dropped": v, "n_features": len(core) - len(v)} for k, v in ablation_configs(origin).items()},
+        {k: {"dropped": v, "n_features": len(core) - len(v)} for k, v in make(origin).items()},
         indent=2, ensure_ascii=False), encoding="utf-8")
     runs_csv, scen_csv = out / "runs.csv", out / "scenario_runs.csv"
     done = _done(runs_csv)
@@ -116,10 +132,10 @@ def run(args) -> None:
                         met["pr_auc"], res["fit_seconds"] + res["score_seconds"])
 
 
-def paired_delta(df: pd.DataFrame, keys: list, metrics: list) -> pd.DataFrame:
-    """Hiệu (cấu hình − full) trên cùng run + mô hình (+ kịch bản), rồi TB ± std qua run."""
-    full = df[df["ablation"] == "full"].drop(columns="ablation")
-    d = df[df["ablation"] != "full"].merge(full, on=["run_id", "seed_index", *keys], suffixes=("", "_full"))
+def paired_delta(df: pd.DataFrame, keys: list, metrics: list, ref: str = "full") -> pd.DataFrame:
+    """Hiệu (cấu hình − ``ref``) trên cùng run + mô hình (+ kịch bản), rồi TB ± std qua run (cột mốc: ``*_full``)."""
+    full = df[df["ablation"] == ref].drop(columns="ablation")
+    d = df[df["ablation"] != ref].merge(full, on=["run_id", "seed_index", *keys], suffixes=("", "_full"))
     for m in metrics:
         d[f"d_{m}"] = d[m] - d[f"{m}_full"]
     g = d.groupby(["ablation", *keys], sort=False)
@@ -132,25 +148,25 @@ def paired_delta(df: pd.DataFrame, keys: list, metrics: list) -> pd.DataFrame:
     return res
 
 
-def analyze(out: Path) -> None:
+def analyze(out: Path, ref: str = "full") -> None:
     runs = pd.read_csv(out / "runs.csv")
     scen = pd.read_csv(out / "scenario_runs.csv")
     summarize(runs, ["ablation", "model"], OVERALL + ["n_features"]).to_csv(
         out / "summary.csv", index=False, encoding="utf-8-sig")
     summarize(scen, ["ablation", "model", "scenario"], SCEN).to_csv(
         out / "scenario_summary.csv", index=False, encoding="utf-8-sig")
-    dov = paired_delta(runs.drop(columns=["n_features", "fit_seconds"]), ["model"], OVERALL)
+    dov = paired_delta(runs.drop(columns=["n_features", "fit_seconds"]), ["model"], OVERALL, ref=ref)
     dov.round(4).to_csv(out / "delta_overall.csv", index=False, encoding="utf-8-sig")
-    dsc = paired_delta(scen, ["model", "scenario"], SCEN)
+    dsc = paired_delta(scen, ["model", "scenario"], SCEN, ref=ref)
     dsc.round(4).to_csv(out / "delta_scenario.csv", index=False, encoding="utf-8-sig")
-    plot(dsc, out)
+    plot(dsc, out, ref_label="bộ 30 đặc trưng" if ref == ADDBACK_REF else "đủ 41 đặc trưng")
     with pd.option_context("display.width", 220, "display.max_rows", 200):
         print(dov[["ablation", "model", "pr_auc_full", "d_pr_auc_mean", "d_pr_auc_std",
                    "recall_at_100_per_day_full", "d_recall_at_100_per_day_mean", "d_recall_at_100_per_day_std",
                    "d_precision_at_50_mean"]].round(3).to_string(index=False))
 
 
-def plot(dsc: pd.DataFrame, out: Path) -> None:
+def plot(dsc: pd.DataFrame, out: Path, ref_label: str = "đủ 41 đặc trưng") -> None:
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -170,10 +186,11 @@ def plot(dsc: pd.DataFrame, out: Path) -> None:
         ax.set_yticks(range(len(abl)), abl, fontsize=8)
         for (r, c), v in np.ndenumerate(piv.to_numpy()):
             ax.text(c, r, f"{v:+.2f}" + ("*" if clear.iat[r, c] else ""), ha="center", va="center", fontsize=7)
-        ax.set_title(f"{SHORT[m]}: Δ recall top-100/ngày so với đủ 41 đặc trưng")
+        ax.set_title(f"{SHORT[m]}: Δ recall top-100/ngày so với {ref_label}")
     fig.colorbar(im, ax=axes, fraction=0.015)
-    fig.text(0.01, -0.12, "* = |Δ TB| > 1 std của Δ qua 5 run dev; control_shuffle_rows = mức nhiễu do thứ tự dòng",
-             fontsize=8)
+    control = (f"{REPEAT} = fit lại y nguyên bộ 30 (nhiễu không tất định của LOF/HNSW)" if REPEAT in abl
+               else f"{CONTROL} = mức nhiễu do thứ tự dòng")
+    fig.text(0.01, -0.12, f"* = |Δ TB| > 1 std của Δ qua 5 run dev; {control}", fontsize=8)
     fig.savefig(out / "figures" / "delta_recall_by_scenario.png", dpi=150, bbox_inches="tight")
     plt.close(fig)
 
@@ -184,11 +201,14 @@ def main() -> None:
     p.add_argument("--frozen-grid", default="configs/benchmark_grid_test.yaml")
     p.add_argument("--only", nargs="*", help="chỉ chạy các cấu hình này (luôn nên có 'full')")
     p.add_argument("--analyze-only", action="store_true")
-    p.add_argument("--out", default="experiments/ablation/feature_groups")
+    p.add_argument("--mode", choices=["groups", "addback"], default="groups",
+                   help="groups: bỏ theo nhóm so với đủ 41; addback: thêm lại từng đặc trưng đã bỏ vào bộ 30")
+    p.add_argument("--out", default=None, help="mặc định experiments/ablation/feature_groups | .../addback")
     args = p.parse_args()
+    args.out = args.out or f"experiments/ablation/{'addback' if args.mode == 'addback' else 'feature_groups'}"
     if not args.analyze_only:
         run(args)
-    analyze(Path(args.out))
+    analyze(Path(args.out), ref=ADDBACK_REF if args.mode == "addback" else "full")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,76 @@
+{
+  "run": "data/injection_runs/dev_seed20261037",
+  "seed": 42,
+  "segment": "User",
+  "configs": {
+    "one_class_svm": "ocsvm_standard_nc1000",
+    "isolation_forest": "if_n300_ms1024",
+    "local_outlier_factor": "lof_k20_robust"
+  },
+  "n_features": 41,
+  "n_victims_per_scenario": 30,
+  "n_false_alarms_per_model": 30,
+  "n_background": 50,
+  "shap_nsamples": 1000,
+  "lime_samples": null,
+  "lime_every": 2,
+  "ablation_groups": {
+    "volume": [
+      "log_total_logons",
+      "volume_robust_z_7d",
+      "delta_mean_count_7d"
+    ],
+    "failure": [
+      "failure_ratio",
+      "failure_locked_out_share",
+      "delta_mean_share_fail_7d",
+      "delta_mean_distinct_fail_host_7d",
+      "novelty_fail_host_7d",
+      "novelty_fail_failreason_7d"
+    ],
+    "time": [
+      "off_hours_ratio",
+      "activity_peak_hour_sin",
+      "activity_peak_hour_cos",
+      "hour_entropy",
+      "dist_shift_hour_7d",
+      "jaccard_hour_7d",
+      "peer_z_share_night",
+      "delta_mean_share_night_7d"
+    ],
+    "rhythm": [
+      "interarrival_dt_mean",
+      "delta_t_cv",
+      "same_second_share",
+      "is_single_event"
+    ],
+    "logon_type": [
+      "interactive_ratio",
+      "rare_logon_type_count_log",
+      "ntlm_ratio",
+      "dist_shift_logontype_7d",
+      "jaccard_logontype_7d",
+      "novelty_logontype_7d"
+    ],
+    "fanout": [
+      "log_distinct_hosts",
+      "distinct_sources_count",
+      "dst_host_entropy",
+      "delta_mean_distinct_source_7d",
+      "peer_z_distinct_source",
+      "delta_mean_distinct_pair_7d"
+    ],
+    "novelty": [
+      "new_source_count_7d",
+      "new_host_count_7d",
+      "days_since_last_activity",
+      "jaccard_source_7d",
+      "novelty_share_pair_7d"
+    ],
+    "context": [
+      "missing_source_ratio",
+      "remote_logon_ratio",
+      "custom_proc_share"
+    ]
+  }
+}

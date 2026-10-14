@@ -13,7 +13,10 @@ python scripts/evaluation/scenario_analysis.py             # theo kịch bản -
 python scripts/evaluation/build_review_set.py              # bộ review top 50 làm mù -> experiments/analysis/review_top50/
 python scripts/evaluation/review_agreement.py              # Cohen's kappa sau khi hai người chấm xong
 python scripts/evaluation/explain_models.py                # SHAP/LIME -> experiments/analysis/explain/
+python scripts/evaluation/shap_feature_stability.py        # SHAP từng đặc trưng qua 3 run dev -> experiments/analysis/explain_stability/
 python scripts/evaluation/feature_ablation.py              # ablation trên dev -> experiments/ablation/feature_groups/
+python scripts/evaluation/feature_ablation.py --mode addback   # thêm lại từng đặc trưng vào bộ 30 -> experiments/ablation/addback/
+python scripts/evaluation/plot_scenario_heatmap.py         # heatmap PR-AUC theo kịch bản -> reports/week5/figures/
 python scripts/evaluation/run_grid.py --config configs/benchmark_grid_test_30f.yaml   # benchmark cuối
 ```
 

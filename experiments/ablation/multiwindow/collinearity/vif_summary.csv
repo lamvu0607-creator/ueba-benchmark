@@ -1,0 +1,7 @@
+﻿set,n_features,max_vif,argmax_vif,n_vif_gt_5,n_vif_gt_10,condition_number
+base30,30,5.55,delta_mean_distinct_pair_7d,1,0,6.68
+A21 (base30 + 21d),47,371.64,new_host_count_7d,23,13,73.76
+B21 (base30 + 21d failure),34,11.7,novelty_fail_host_7d,5,1,12.79
+A (base30 + 14d + 21d),64,2823.65,new_host_count_14d,42,35,228.9
+B (base30 + 14d/21d failure),38,38.5,novelty_fail_host_14d,8,6,25.68
+"C21 (base30 + 21d, R² < 0.75)",38,9.15,delta_mean_distinct_pair_7d,4,0,10.33

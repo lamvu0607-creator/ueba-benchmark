@@ -1,0 +1,14 @@
+﻿,share_mean,share_mean,share_mean,rank_best,rank_best,rank_best
+model,IF,LOF,OCSVM,IF,LOF,OCSVM
+feature,,,,,,
+activity_peak_hour_sin,0.011,0.011,0.011,36.0,32.0,30.0
+delta_t_cv,0.011,0.016,0.011,36.0,17.0,28.0
+dst_host_entropy,0.012,0.012,0.014,35.0,28.0,17.0
+interarrival_dt_mean,0.013,0.024,0.007,33.0,11.0,38.0
+is_single_event,0.007,0.001,0.01,40.0,41.0,30.0
+log_distinct_hosts,0.008,0.012,0.012,38.0,29.0,24.0
+log_total_logons,0.014,0.015,0.009,33.0,20.0,35.0
+missing_source_ratio,0.008,0.015,0.011,38.0,25.0,21.0
+peer_z_share_night,0.015,0.016,0.013,28.0,18.0,23.0
+same_second_share,0.016,0.016,0.012,27.0,21.0,28.0
+volume_robust_z_7d,0.014,0.018,0.016,29.0,15.0,12.0

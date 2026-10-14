@@ -1,0 +1,9 @@
+﻿group,n_features,uniform_share,OCSVM_victims,OCSVM_top_scenario,OCSVM_false_alarm,IF_victims,IF_top_scenario,IF_false_alarm,LOF_victims,LOF_top_scenario,LOF_false_alarm,near_unused_features
+volume,3,0.073,0.047,dormant_wakeup (0.08),0.085,0.044,dormant_wakeup (0.07),0.065,0.052,dormant_wakeup (0.06),0.047,
+failure,6,0.146,0.215,brute_force (0.74),0.181,0.163,brute_force (0.52),0.252,0.216,brute_force (0.43),0.31,
+time,8,0.195,0.158,off_hours (0.50),0.064,0.19,off_hours (0.51),0.158,0.149,off_hours (0.27),0.134,
+rhythm,4,0.098,0.045,password_spraying (0.08),0.273,0.049,password_spraying (0.08),0.053,0.061,logon_type_switch (0.07),0.118,
+logon_type,6,0.146,0.148,logon_type_switch (0.46),0.079,0.161,logon_type_switch (0.42),0.182,0.141,logon_type_switch (0.23),0.192,
+fanout,6,0.146,0.147,new_workstation_burst (0.35),0.096,0.139,new_workstation_burst (0.36),0.083,0.109,new_workstation_burst (0.17),0.073,
+novelty,5,0.122,0.208,dormant_wakeup (0.52),0.18,0.213,dormant_wakeup (0.41),0.14,0.226,new_workstation_burst (0.41),0.091,
+context,3,0.073,0.033,off_hours (0.06),0.042,0.042,off_hours (0.07),0.068,0.046,dormant_wakeup (0.06),0.036,
