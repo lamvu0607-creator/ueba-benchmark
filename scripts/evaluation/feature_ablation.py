@@ -108,6 +108,9 @@ def context_configs(origin: dict) -> dict:
     for f in rest:
         cfgs[f"drop_{f}"] = base + [f]
     cfgs["drop_context"] = base + rest
+    # bộ 28 bỏ nốt đặc trưng volume cuối cùng còn giữ (log_total_logons, volume_robust_z_7d đã bỏ ở bộ 30)
+    vol = [f for f in ABLATION_GROUPS["volume"] if f not in base]
+    cfgs["drop_context_volume"] = base + rest + vol
     cfgs[REPEAT] = list(base)
     return cfgs
 
