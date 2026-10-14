@@ -156,7 +156,7 @@ def _rule_flagged(common: Dict[str, Any]) -> pl.DataFrame:
 
 # --------------------------------------------------------------------------- hiện diện test
 
-def _read_presence(interim: Path, days: Sequence[int]) -> pl.DataFrame:
+def _read_presence(interim: Path, days: Sequence[int], eval_dir: Optional[Path] = None) -> pl.DataFrame:
     """(DomainName chuẩn hoá, UserName, day) có ≥ 1 sự kiện trong các ngày test (đọc nhẹ 2 cột)."""
     def norm() -> pl.Expr:
         c = pl.col("DomainName")
@@ -165,7 +165,7 @@ def _read_presence(interim: Path, days: Sequence[int]) -> pl.DataFrame:
 
     parts = []
     for d in days:
-        files = [interim_day_path(interim, e, d) for e in EVENT_IDS]
+        files = [_eval_day_path(interim, eval_dir, e, d) for e in EVENT_IDS]
         if not all(p.is_file() for p in files):
             raise FileNotFoundError(f"Missing interim day {d}: cannot infer inactivity from missing logs.")
         lf = pl.concat([pl.scan_parquet(p).select(["UserName", "DomainName"]) for p in files])
@@ -177,6 +177,15 @@ def _read_presence(interim: Path, days: Sequence[int]) -> pl.DataFrame:
     if not parts:
         return pl.DataFrame(schema={"DomainName": pl.String, "UserName": pl.String, "day": pl.Int64})
     return pl.concat(parts)
+
+
+def _eval_day_path(interim: Path, eval_dir: Optional[Path], event_id: int, day: int) -> Path:
+    """File log GỐC của một ngày đánh giá: ``eval_dir`` nếu có file ngày đó (vd. log mới ngày 61 của demo), ngược lại interim."""
+    if eval_dir is not None:
+        p = interim_day_path(eval_dir, event_id, day)
+        if p.is_file():
+            return p
+    return interim_day_path(interim, event_id, day)
 
 
 # --------------------------------------------------------------------------- runner
@@ -191,6 +200,8 @@ class InjectionRunner:
         if max(int(d) for d in self.profiles.network["train_days"]) > cfg.split_day:
             raise ValueError("Hồ sơ chứa ngày > split_day — dựng lại hồ sơ chỉ từ train.")
         self.interim = Path(cfg.common["interim_dir"])
+        # Tuỳ chọn: ngày đánh giá chưa có trong interim (log mới) — kho khuôn train vẫn đọc từ interim.
+        self.eval_interim = Path(cfg.common["eval_interim_dir"]) if cfg.common.get("eval_interim_dir") else None
         self._feature_cfg = feature_cfg
         self._pool: Optional[TemplatePool] = None
         self._own_dir: Optional[Path] = None
@@ -200,7 +211,8 @@ class InjectionRunner:
         self._target: Dict[str, Any] = {}                       # thông tin tỉ lệ mục tiêu (ghi run_config.json)
         self._flagged = _rule_flagged(cfg.common)
         # Include earlier evaluation days: a test block must not mistake dev activity for dormancy.
-        self._presence = _read_presence(self.interim, range(cfg.split_day + 1, max(cfg.days) + 1))
+        self._presence = _read_presence(self.interim, range(cfg.split_day + 1, max(cfg.days) + 1),
+                                        self.eval_interim)
         self._domain_raw = self._build_domain_raw_map()
 
     # ---- kho khuôn (đọc train MỘT LẦN bằng lazy scan; own để trên đĩa, chỉ peer nằm trong RAM)
@@ -714,7 +726,7 @@ class InjectionRunner:
         for day in days:
             for e in EVENT_IDS:
                 overlay = day_col.filter((pl.col("day") == day) & (pl.col("EventID") == e)).select(INTERIM_COLUMNS)
-                orig = conform_to_interim(_as_interim(pl.read_parquet(interim_day_path(self.interim, e, day))))
+                orig = conform_to_interim(_as_interim(pl.read_parquet(_eval_day_path(self.interim, self.eval_interim, e, day))))
                 merged = pl.concat([orig, overlay], how="vertical").sort("Time")
                 out = layout.events_file(e, day)
                 out.parent.mkdir(parents=True, exist_ok=True)
@@ -731,7 +743,7 @@ class InjectionRunner:
         for day in ov:
             added = sum(
                 pl.scan_parquet(layout.events_file(e, day)).select(pl.len()).collect().item()
-                - pl.scan_parquet(interim_day_path(self.interim, e, day)).select(pl.len()).collect().item()
+                - pl.scan_parquet(_eval_day_path(self.interim, self.eval_interim, e, day)).select(pl.len()).collect().item()
                 for e in EVENT_IDS
             )
             want = inj_day.filter(pl.col("day") == day).height

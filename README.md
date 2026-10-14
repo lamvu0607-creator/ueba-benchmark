@@ -27,6 +27,19 @@ Cấu hình mô hình của benchmark cuối chọn trên lưới dev 22 đặc 
 OCSVM `ocsvm_standard_g01` (trước đó `nc1000`, chọn với 41 đặc trưng; kết quả test của `nc1000` giữ ở
 `experiments/grid/test_22f_nc1000/` để đối chiếu).
 
+**Demo: chấm log một ngày mới bằng mô hình đã train** (`scripts/demo_score_day.py`). Script chạy lần lượt: nạp log ngày t
+(file `wls_day-NN.bz2` thô hoặc parquet 4624/4625), tuỳ chọn tiêm 6 kịch bản tấn công, trích 22 đặc trưng, chấm điểm
+bằng `.joblib`, rồi in top-K cảnh báo kèm lý do. Chỉ cần log của ngày t; 7 ngày lịch sử đọc từ `data/interim`.
+Log phải đủ mọi User trong ngày vì `peer_z` so mỗi tài khoản với cả quần thể. Một lần chạy mất khoảng 4–5 phút.
+
+```bash
+python scripts/demo_score_day.py --log path/to/wls_day-61.bz2 --inject        # log thật ngày 61 + tiêm 1% User
+python scripts/demo_score_day.py --simulate-from-day 47 --day 61 --inject     # diễn tập: dời log ngày 47 sang ngày 61
+python scripts/demo_score_day.py --day 60 --check-against-matrix              # kiểm tra: 22 đặc trưng khớp ma trận gốc
+```
+
+Đầu ra: `experiments/demo/day<t>/` (`alerts_<model>.csv`, `scores_<model>.parquet`); log đã tiêm ở `data/injection_runs/demo_day<t>/`.
+
 ---
 
 ## 1. Cấu trúc thư mục dự án
