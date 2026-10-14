@@ -1,0 +1,131 @@
+{
+  "full": {
+    "dropped": [],
+    "n_features": 41
+  },
+  "drop_rhythm": {
+    "dropped": [
+      "interarrival_dt_mean",
+      "delta_t_cv",
+      "same_second_share",
+      "is_single_event"
+    ],
+    "n_features": 37
+  },
+  "drop_rhythm_low_shap10": {
+    "dropped": [
+      "interarrival_dt_mean",
+      "delta_t_cv",
+      "same_second_share",
+      "is_single_event",
+      "activity_peak_hour_sin",
+      "log_distinct_hosts",
+      "missing_source_ratio",
+      "log_total_logons",
+      "dst_host_entropy",
+      "volume_robust_z_7d",
+      "peer_z_share_night"
+    ],
+    "n_features": 30
+  },
+  "drop_rhythm_k5": {
+    "dropped": [
+      "interarrival_dt_mean",
+      "delta_t_cv",
+      "same_second_share",
+      "is_single_event",
+      "activity_peak_hour_sin",
+      "log_distinct_hosts",
+      "missing_source_ratio",
+      "dst_host_entropy"
+    ],
+    "n_features": 33
+  },
+  "drop_rhythm_k10": {
+    "dropped": [
+      "interarrival_dt_mean",
+      "delta_t_cv",
+      "same_second_share",
+      "is_single_event",
+      "activity_peak_hour_sin",
+      "log_distinct_hosts",
+      "missing_source_ratio",
+      "dst_host_entropy",
+      "log_total_logons",
+      "custom_proc_share",
+      "delta_mean_distinct_pair_7d",
+      "new_host_count_7d"
+    ],
+    "n_features": 29
+  },
+  "drop_rhythm_k15": {
+    "dropped": [
+      "interarrival_dt_mean",
+      "delta_t_cv",
+      "same_second_share",
+      "is_single_event",
+      "activity_peak_hour_sin",
+      "log_distinct_hosts",
+      "missing_source_ratio",
+      "dst_host_entropy",
+      "log_total_logons",
+      "custom_proc_share",
+      "delta_mean_distinct_pair_7d",
+      "new_host_count_7d",
+      "peer_z_share_night",
+      "rare_logon_type_count_log",
+      "remote_logon_ratio",
+      "volume_robust_z_7d"
+    ],
+    "n_features": 25
+  },
+  "drop_rhythm_k18": {
+    "dropped": [
+      "interarrival_dt_mean",
+      "delta_t_cv",
+      "same_second_share",
+      "is_single_event",
+      "activity_peak_hour_sin",
+      "log_distinct_hosts",
+      "missing_source_ratio",
+      "dst_host_entropy",
+      "log_total_logons",
+      "custom_proc_share",
+      "delta_mean_distinct_pair_7d",
+      "new_host_count_7d",
+      "peer_z_share_night",
+      "rare_logon_type_count_log",
+      "remote_logon_ratio",
+      "volume_robust_z_7d",
+      "off_hours_ratio",
+      "delta_mean_distinct_fail_host_7d",
+      "jaccard_logontype_7d"
+    ],
+    "n_features": 22
+  },
+  "drop_rhythm_k20": {
+    "dropped": [
+      "interarrival_dt_mean",
+      "delta_t_cv",
+      "same_second_share",
+      "is_single_event",
+      "activity_peak_hour_sin",
+      "log_distinct_hosts",
+      "missing_source_ratio",
+      "dst_host_entropy",
+      "log_total_logons",
+      "custom_proc_share",
+      "delta_mean_distinct_pair_7d",
+      "new_host_count_7d",
+      "peer_z_share_night",
+      "rare_logon_type_count_log",
+      "remote_logon_ratio",
+      "volume_robust_z_7d",
+      "off_hours_ratio",
+      "delta_mean_distinct_fail_host_7d",
+      "jaccard_logontype_7d",
+      "activity_peak_hour_cos"
+    ],
+    "n_features": 21
+  }
+}

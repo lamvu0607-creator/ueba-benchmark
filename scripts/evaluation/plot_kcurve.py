@@ -23,7 +23,7 @@ import pandas as pd  # noqa: E402
 
 SHORT = {"one_class_svm": "OCSVM", "isolation_forest": "IF", "local_outlier_factor": "LOF"}
 COLOR = {"one_class_svm": "#2a78d6", "isolation_forest": "#eb6834", "local_outlier_factor": "#1baf7a"}
-CURVE = ["full", "drop_rhythm", "drop_rhythm_k5", "drop_rhythm_k10", "drop_rhythm_k15", "drop_rhythm_k18"]
+CURVE = ["full", "drop_rhythm", "drop_rhythm_k5", "drop_rhythm_k10", "drop_rhythm_k15", "drop_rhythm_k18", "drop_rhythm_k20"]
 OLD30 = "drop_rhythm_low_shap10"
 METRICS = {"recall_at_100_per_day": "Recall top-100/ngày (chỉ số chính)", "pr_auc": "PR-AUC"}
 
@@ -63,9 +63,9 @@ def main() -> None:
             ax.plot(nfeat[OLD30], s.loc[OLD30, "mean"], marker="*", ms=14, color=COLOR[m], mec="black", ls="none")
             b = s["best"].iloc[0]
             ax.plot(nfeat[b], s.loc[b, "mean"], marker="o", ms=13, mfc="none", mec="red", mew=2, ls="none")
-        ax.set_xticks([41, 37, 33, 30, 29, 25, 22])
+        ax.set_xticks([41, 37, 33, 30, 29, 25, 22, 21])
         ax.invert_xaxis()
-        ax.set_xlabel("số đặc trưng còn lại  (41 → bỏ rhythm 37 → K = 5 / 10 / 15 / 18)")
+        ax.set_xlabel("số đặc trưng còn lại  (41 → bỏ rhythm 37 → K = 5 / 10 / 15 / 18 / 20)")
         ax.set_title(title)
         ax.grid(axis="y", color="#ddd")
         for sp in ("top", "right"):

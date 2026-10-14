@@ -75,7 +75,7 @@ def addback_configs(origin: dict) -> dict:
 
 
 SHAP_SHARE = ROOT / "experiments/analysis/explain_stability/feature_share_by_run.csv"
-K_VALUES = (5, 10, 15, 18)
+K_VALUES = (5, 10, 15, 18, 20)
 
 
 def shap_low_order(path: Path = SHAP_SHARE) -> list:
@@ -100,6 +100,18 @@ def kcurve_configs(origin: dict) -> dict:
     return cfgs
 
 
+def context_configs(origin: dict) -> dict:
+    """Bỏ nốt nhóm context khỏi bộ 30 (``missing_source_ratio`` đã bỏ sẵn): từng đặc trưng và cả hai."""
+    base = ablation_configs(origin)["drop_rhythm_low_shap10"]
+    rest = [f for f in ABLATION_GROUPS["context"] if f not in base]
+    cfgs = {ADDBACK_REF: list(base)}
+    for f in rest:
+        cfgs[f"drop_{f}"] = base + [f]
+    cfgs["drop_context"] = base + rest
+    cfgs[REPEAT] = list(base)
+    return cfgs
+
+
 def _done(path: Path) -> set:
     if not path.is_file():
         return set()
@@ -118,7 +130,8 @@ def run(args) -> None:
     c0 = float(frozen.get("contamination", 0.05))
     origin = schema_origin(ROOT / "configs/feature_schema.yaml")
     core = list(origin)
-    make = {"addback": addback_configs, "kcurve": kcurve_configs}.get(args.mode, ablation_configs)
+    make = {"addback": addback_configs, "kcurve": kcurve_configs, "context": context_configs}.get(
+        args.mode, ablation_configs)
     cfgs = make(origin)
     if args.only:
         cfgs = {k: v for k, v in cfgs.items() if k in set(args.only)}
@@ -241,16 +254,16 @@ def main() -> None:
     p.add_argument("--frozen-grid", default="configs/benchmark_grid_test.yaml")
     p.add_argument("--only", nargs="*", help="chỉ chạy các cấu hình này (luôn nên có 'full')")
     p.add_argument("--analyze-only", action="store_true")
-    p.add_argument("--mode", choices=["groups", "addback", "kcurve"], default="groups",
+    p.add_argument("--mode", choices=["groups", "addback", "kcurve", "context"], default="groups",
                    help="groups: bỏ theo nhóm so với đủ 41; addback: thêm lại từng đặc trưng đã bỏ vào bộ 30; "
-                        "kcurve: bỏ rhythm + K đặc trưng SHAP thấp nhất, K = 5/10/15/18")
-    p.add_argument("--out", default=None, help="mặc định experiments/ablation/feature_groups | addback | kcurve")
+                        "kcurve: bỏ rhythm + K đặc trưng SHAP thấp nhất, K = 5/10/15/18/20; context: bỏ nốt nhóm context khỏi bộ 30")
+    p.add_argument("--out", default=None, help="mặc định experiments/ablation/feature_groups | addback | kcurve | context")
     args = p.parse_args()
-    args.out = args.out or "experiments/ablation/" + {"addback": "addback", "kcurve": "kcurve"}.get(
+    args.out = args.out or "experiments/ablation/" + {"addback": "addback", "kcurve": "kcurve", "context": "context"}.get(
         args.mode, "feature_groups")
     if not args.analyze_only:
         run(args)
-    analyze(Path(args.out), ref=ADDBACK_REF if args.mode == "addback" else "full")
+    analyze(Path(args.out), ref=ADDBACK_REF if args.mode in ("addback", "context") else "full")
 
 
 if __name__ == "__main__":
