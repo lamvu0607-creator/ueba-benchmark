@@ -74,6 +74,32 @@ def addback_configs(origin: dict) -> dict:
     return cfgs
 
 
+SHAP_SHARE = ROOT / "experiments/analysis/explain_stability/feature_share_by_run.csv"
+K_VALUES = (5, 10, 15, 18)
+
+
+def shap_low_order(path: Path = SHAP_SHARE) -> list:
+    """41 đặc trưng xếp từ ít đến nhiều đóng góp: tỷ phần |SHAP| cao nhất qua 3 mô hình × 3 run dev.
+
+    Một đặc trưng chỉ bị xếp thấp khi nó thấp ở MỌI mô hình và MỌI run; 18 đặc trưng đầu là các đặc trưng
+    dưới mức chia đều 1/41 ở mọi nơi."""
+    d = pd.read_csv(path)
+    return list(d.groupby("feature")["share_max"].max().sort_values(kind="stable").index)
+
+
+def kcurve_configs(origin: dict) -> dict:
+    """Đường cong chọn K: bỏ rhythm + K đặc trưng SHAP thấp nhất (xếp theo 3 run dev), K trong ``K_VALUES``.
+
+    ``drop_rhythm`` là K = 0; ``drop_rhythm_low_shap10`` là bộ 30 cũ (danh sách 10 lấy từ 1 run) để đối chiếu."""
+    g = ABLATION_GROUPS
+    order = shap_low_order()
+    cfgs = {"full": [], "drop_rhythm": g["rhythm"],
+            "drop_rhythm_low_shap10": list(dict.fromkeys(g["rhythm"] + LOW_SHAP_FEATURES))}
+    for k in K_VALUES:
+        cfgs[f"drop_rhythm_k{k}"] = list(dict.fromkeys(g["rhythm"] + order[:k]))
+    return cfgs
+
+
 def _done(path: Path) -> set:
     if not path.is_file():
         return set()
@@ -92,7 +118,7 @@ def run(args) -> None:
     c0 = float(frozen.get("contamination", 0.05))
     origin = schema_origin(ROOT / "configs/feature_schema.yaml")
     core = list(origin)
-    make = addback_configs if args.mode == "addback" else ablation_configs
+    make = {"addback": addback_configs, "kcurve": kcurve_configs}.get(args.mode, ablation_configs)
     cfgs = make(origin)
     if args.only:
         cfgs = {k: v for k, v in cfgs.items() if k in set(args.only)}
@@ -190,10 +216,15 @@ def plot(dsc: pd.DataFrame, out: Path, ref_label: str = "đủ 41 đặc trưng"
             ax.text(c, r, f"{v:+.2f}" + ("*" if clear.iat[r, c] else ""), ha="center", va="center", fontsize=7)
         ax.set_title(f"{SHORT[m]}: Δ recall top-100/ngày so với {ref_label}")
     fig.colorbar(im, ax=axes, fraction=0.015)
-    control = (f"{REPEAT} = đối chứng: fit lại y nguyên bộ 30, không đổi đặc trưng. Ô khác 0 ở hàng này là nhiễu "
-               "do LOF không tất định (chỉ mục HNSW dựng đa luồng)." if REPEAT in abl
-               else f"{CONTROL} = đối chứng: giữ đủ 41 đặc trưng, chỉ xáo thứ tự dòng train. "
-                    "Ô khác 0 ở hàng này là nhiễu do thứ tự dòng.")
+    if REPEAT in abl:
+        control = (f"{REPEAT} = đối chứng: fit lại y nguyên bộ 30, không đổi đặc trưng. Ô khác 0 ở hàng này là nhiễu "
+                   "do LOF không tất định (chỉ mục HNSW dựng đa luồng).")
+    elif CONTROL in abl:
+        control = (f"{CONTROL} = đối chứng: giữ đủ 41 đặc trưng, chỉ xáo thứ tự dòng train. "
+                   "Ô khác 0 ở hàng này là nhiễu do thứ tự dòng.")
+    else:
+        control = ("Không có hàng đối chứng; nhiễu fit lại của LOF đo ở thí nghiệm thêm lại là khoảng ±0,015 recall, "
+                   "OCSVM và IF tất định.")
     note = [f"Số trong ô = Δ recall top-100/ngày = (cấu hình ở hàng) − ({ref_label}), trung bình qua {runs_label}. "
             "Xanh = tốt hơn, đỏ = tệ hơn.",
             "Dấu * = thay đổi rõ: |Δ trung bình| lớn hơn độ lệch chuẩn của Δ giữa các run. "
@@ -210,11 +241,13 @@ def main() -> None:
     p.add_argument("--frozen-grid", default="configs/benchmark_grid_test.yaml")
     p.add_argument("--only", nargs="*", help="chỉ chạy các cấu hình này (luôn nên có 'full')")
     p.add_argument("--analyze-only", action="store_true")
-    p.add_argument("--mode", choices=["groups", "addback"], default="groups",
-                   help="groups: bỏ theo nhóm so với đủ 41; addback: thêm lại từng đặc trưng đã bỏ vào bộ 30")
-    p.add_argument("--out", default=None, help="mặc định experiments/ablation/feature_groups | .../addback")
+    p.add_argument("--mode", choices=["groups", "addback", "kcurve"], default="groups",
+                   help="groups: bỏ theo nhóm so với đủ 41; addback: thêm lại từng đặc trưng đã bỏ vào bộ 30; "
+                        "kcurve: bỏ rhythm + K đặc trưng SHAP thấp nhất, K = 5/10/15/18")
+    p.add_argument("--out", default=None, help="mặc định experiments/ablation/feature_groups | addback | kcurve")
     args = p.parse_args()
-    args.out = args.out or f"experiments/ablation/{'addback' if args.mode == 'addback' else 'feature_groups'}"
+    args.out = args.out or "experiments/ablation/" + {"addback": "addback", "kcurve": "kcurve"}.get(
+        args.mode, "feature_groups")
     if not args.analyze_only:
         run(args)
     analyze(Path(args.out), ref=ADDBACK_REF if args.mode == "addback" else "full")
