@@ -370,9 +370,18 @@ Kiểm tra bộ 30 & Train ngày 1--42, test 43--60 & 5 run test, cấu hình gi
 \sourceinfo{Bảng 1.1, báo cáo tuần 5.}
 \end{frame}
 
+% SOURCE: Hình 01, mục 1 báo cáo tuần 5.
+\begin{frame}{05. Hình: recall và PR-AUC theo độ dài cửa sổ}
+\centering
+\chenanh[width=\linewidth,height=.76\textheight,keepaspectratio]{figures/01-window_comparison.png}
+\keyline{Kéo cửa sổ từ 7 lên 14--21 ngày không làm recall top-100/ngày tăng.}
+\sourceinfo{Hình 01, mục 1 báo cáo tuần 5.}
+\end{frame}
+
+
 % NOTE: Phân biệt ROC-AUC theo kịch bản với recall top-100/ngày. Không trình bày giả thuyết warm-up như nguyên nhân đã chứng minh.
 % SOURCE: Bảng 1.3--1.4 và phân tích mục 1.
-\begin{frame}{05. Cửa sổ dài tăng chi phí và thay đổi vùng lịch sử}
+\begin{frame}{06. Cửa sổ dài tăng chi phí và thay đổi vùng lịch sử}
 
 \small
 \begin{tabularx}{\linewidth}{@{}p{3.3cm}X@{}}
@@ -388,7 +397,7 @@ LOF giảm mạnh & \textbf{Giả thuyết chưa kiểm chứng}: warm-up dài l
 
 % NOTE: Nêu rõ đây là bộ 41, trước ablation. Không dùng những giá trị này làm kết quả theo kịch bản của bộ 30.
 % SOURCE: Bảng 2.1, báo cáo tuần 5.
-\begin{frame}{06. Kết quả theo sáu kịch bản với 41 đặc trưng}
+\begin{frame}{07. Kết quả theo sáu kịch bản với 41 đặc trưng}
 
 \footnotesize\scenariotable
 \keyline{OCSVM dẫn đầu 4/6 kịch bản. IF dẫn đầu spraying và ngoài giờ.}
@@ -396,9 +405,18 @@ LOF giảm mạnh & \textbf{Giả thuyết chưa kiểm chứng}: warm-up dài l
 \sourceinfo{Bảng 2.1, báo cáo tuần 5.}
 \end{frame}
 
+% SOURCE: Hình 02, mục 2 báo cáo tuần 5.
+\begin{frame}{08. Hình: recall top-100/ngày theo kịch bản}
+\centering
+\chenanh[width=\linewidth,height=.76\textheight,keepaspectratio]{figures/02-scenario_recall_heatmap.png}
+\keyline{Mỗi ô là recall top-100/ngày TB 5 run test; ô càng đậm càng bắt được nhiều nạn nhân.}
+\sourceinfo{Hình 02, mục 2 báo cáo tuần 5.}
+\end{frame}
+
+
 % NOTE: Hạng là phần trăm từ đầu danh sách, càng nhỏ càng tốt. Không suy ra recall trực tiếp từ trung vị vì phân bố vẫn trải rộng.
 % SOURCE: Bảng 2.2 và phân tích mục 2.
-\begin{frame}{07. Vị trí nạn nhân giải thích khả năng lọt top-100}
+\begin{frame}{09. Vị trí nạn nhân giải thích khả năng lọt top-100}
 
 \small
 \begin{tabularx}{\linewidth}{@{}XccX@{}}
@@ -414,9 +432,18 @@ Password spraying & top 26\% & 0,19 & Mỗi nạn nhân chỉ có 1--3 lần th�
 \sourceinfo{Bảng 2.2 và phân tích mục 2.}
 \end{frame}
 
-% NOTE: PR-AUC theo kịch bản so nạn nhân của MỘT kịch bản với mọi dòng bình thường, nên mức ngẫu nhiên chỉ ~0,0018, không so trực tiếp với PR-AUC tổng ~0,01. Ô tô màu theo bội số so với ngẫu nhiên. Đây là bộ 30, khác slide 06 (bộ 41).
+% SOURCE: Hình 03, mục 2 báo cáo tuần 5.
+\begin{frame}{10. Hình: phân bố hạng của nạn nhân}
+\centering
+\chenanh[width=\linewidth,height=.76\textheight,keepaspectratio]{figures/03-victim_rank_boxplot.png}
+\keyline{Hộp càng gần 0 thì nạn nhân càng nằm ở đầu danh sách cảnh báo.}
+\sourceinfo{Hình 03, mục 2 báo cáo tuần 5.}
+\end{frame}
+
+
+% NOTE: PR-AUC theo kịch bản so nạn nhân của MỘT kịch bản với mọi dòng bình thường, nên mức ngẫu nhiên chỉ ~0,0018, không so trực tiếp với PR-AUC tổng ~0,01. Ô tô màu theo bội số so với ngẫu nhiên. Đây là bộ 30, khác slide 07 (bộ 41).
 % SOURCE: Bảng 2.3, mục 2.1 báo cáo tuần 5; experiments/grid/test_30f/scenario_pr_auc_table.csv.
-\begin{frame}{08. PR-AUC theo kịch bản với 30 đặc trưng}
+\begin{frame}{11. PR-AUC theo kịch bản với 30 đặc trưng}
 
 \footnotesize
 \begin{tabularx}{\linewidth}{@{}Xccccc@{}}
@@ -439,9 +466,18 @@ Ngoài giờ & 0,008 ($\times$4) & \cellcolor{socteal!10}\textbf{0,010} ($\times
 \sourceinfo{Bảng 2.3, mục 2.1 báo cáo tuần 5.}
 \end{frame}
 
+% SOURCE: Hình 04, mục 2.1 báo cáo tuần 5.
+\begin{frame}{12. Hình: PR-AUC theo kịch bản với 30 đặc trưng}
+\centering
+\chenanh[width=\linewidth,height=.76\textheight,keepaspectratio]{figures/04-scenario_pr_auc_heatmap.png}
+\keyline{Trái: PR-AUC và bội số so với ngẫu nhiên; phải: thay đổi so với bộ 41.}
+\sourceinfo{Hình 04, mục 2.1 báo cáo tuần 5.}
+\end{frame}
+
+
 % NOTE: Đề xuất feature mới là hướng thử nghiệm tiếp theo, chưa có kết quả thực nghiệm. Chỉ chỉnh ngưỡng sẽ tăng tải cảnh báo.
 % SOURCE: Mục 2 và 4.2, báo cáo tuần 5.
-\begin{frame}{09. Hai điểm mù cần đặc trưng mới}
+\begin{frame}{13. Hai điểm mù cần đặc trưng mới}
 
 \begin{columns}[T,onlytextwidth]
 \begin{column}{.48\textwidth}
@@ -471,14 +507,14 @@ Ngoài giờ & 0,008 ($\times$4) & \cellcolor{socteal!10}\textbf{0,010} ($\times
 
 % NOTE: SHAP giải thích hàm chấm điểm của mô hình. Dòng không tiêm điểm cao chỉ là âm tính theo nhãn tổng hợp, chưa chứng minh là hoạt động lành tính.
 % SOURCE: Thiết lập mục 3, báo cáo tuần 5.
-\begin{frame}{10. SHAP/LIME giải thích điểm trên dev}
+\begin{frame}{14. SHAP/LIME giải thích điểm trên dev}
 
 \small
 \begin{columns}[T,onlytextwidth]
 \begin{column}{.53\textwidth}
 \begin{block}{Cách chạy}
 \begin{itemize}\setlength\itemsep{4pt}
-\item 1 run dev, seed mô hình 42 (+2 run dev chỉ SHAP, slide 13).
+\item 1 run dev, seed mô hình 42 (+2 run dev chỉ SHAP, slide 19).
 \item SHAP: 180 nạn nhân (6 kịch bản) và 30 \textbf{báo nhầm} / mô hình.
 \item Báo nhầm \emph{không phải kịch bản}: dòng không tiêm có điểm cao nhất, để xem đặc trưng nào làm mô hình báo sai.
 \item KernelSHAP: nền 50 dòng train, 1.000 mẫu.
@@ -507,7 +543,7 @@ Ngữ cảnh (context) & 3\\\bottomrule
 
 % NOTE: Điểm đáng chú ý để ablation là rhythm. Tỷ phần 52% của time không có nghĩa bắt được 52% tấn công ngoài giờ.
 % SOURCE: Bảng 3.1--3.2, báo cáo tuần 5.
-\begin{frame}{11. SHAP cho thấy nhóm nào đóng góp vào điểm}
+\begin{frame}{15. SHAP cho thấy nhóm nào đóng góp vào điểm}
 
 \footnotesize
 \begin{tabularx}{\linewidth}{@{}XXccc@{}}
@@ -528,9 +564,18 @@ Thức dậy sau ngủ đông & novelty & 0,49 & 0,40 & 0,30\\\bottomrule
 \sourceinfo{Bảng 3.1--3.2, báo cáo tuần 5.}
 \end{frame}
 
+% SOURCE: Hình 05, mục 3.1 báo cáo tuần 5.
+\begin{frame}{16. Hình: tỷ phần $|$SHAP$|$ theo nhóm và kịch bản}
+\centering
+\chenanh[width=\linewidth,height=.76\textheight,keepaspectratio]{figures/05-shap_group_by_scenario.png}
+\keyline{Sau vạch đen: tất cả nạn nhân và báo nhầm (dòng không tiêm điểm cao), không phải kịch bản.}
+\sourceinfo{Hình 05, mục 3.1 báo cáo tuần 5.}
+\end{frame}
+
+
 % NOTE: Chỉ một run dev, một seed. SHAP cộng đúng điểm không bảo đảm phân bổ đóng góp duy nhất khi các feature tương quan.
 % SOURCE: Bảng 3.3 và hạn chế mục 3.
-\begin{frame}{12. SHAP và LIME chưa đồng thuận tốt ở từng dòng}
+\begin{frame}{17. SHAP và LIME chưa đồng thuận tốt ở từng dòng}
 
 \small
 \begin{tabularx}{\linewidth}{@{}Xccc@{}}
@@ -549,9 +594,18 @@ LOF & 0,23 & 0,32 & \textcolor{socred}{\textbf{0,06}}\\\bottomrule
 \sourceinfo{Bảng 3.3, mục 3.2 báo cáo tuần 5.}
 \end{frame}
 
+% SOURCE: Hình 06, mục 3.2 báo cáo tuần 5.
+\begin{frame}{18. Hình: top 15 đặc trưng theo SHAP và LIME}
+\centering
+\chenanh[width=\linewidth,height=.76\textheight,keepaspectratio]{figures/06-top_features_shap_lime.png}
+\keyline{Hai thanh dài gần bằng nhau nghĩa là SHAP và LIME đồng ý.}
+\sourceinfo{Hình 06, mục 3.2 báo cáo tuần 5.}
+\end{frame}
+
+
 % NOTE: Trả lời phản biện "vì sao gộp nhóm ngay": SHAP vốn tính theo từng đặc trưng; bổ sung 2 run dev cho thấy hạng từng đặc trưng ổn định gần như nhóm. Nhóm theo nghĩa do nhóm tự đặt, phần lớn không phải cụm tương quan; chỉ 6 cụm có |rho| >= 0,7.
 % SOURCE: Bảng 3.4 và nhận xét 1--2, mục 3.4 báo cáo tuần 5.
-\begin{frame}{13. SHAP theo từng đặc trưng ổn định qua 3 run dev}
+\begin{frame}{19. SHAP theo từng đặc trưng ổn định qua 3 run dev}
 
 \begin{columns}[T,onlytextwidth]
 \begin{column}{.52\textwidth}
@@ -582,9 +636,26 @@ Top-10 đặc trưng của OCSVM và IF trùng hoàn toàn giữa 3 run.
 \sourceinfo{Bảng 3.4, mục 3.4 báo cáo tuần 5.}
 \end{frame}
 
-% NOTE: Tỷ phần 0,52 của nhóm time ở off_hours thực chất gần như chỉ từ delta_mean_share_night_7d. Báo nhầm của OCSVM do delta_t_cv, nhưng slide 19 cho thấy bỏ riêng nó chưa đủ.
+% SOURCE: Hình 07, mục 3.4 báo cáo tuần 5.
+\begin{frame}{20. Hình: tỷ phần $|$SHAP$|$ từng đặc trưng qua 3 run}
+\centering
+\chenanh[width=\linewidth,height=.76\textheight,keepaspectratio]{figures/07-feature_shap_stability.png}
+\keyline{Râu ngắn: thứ hạng gần như không đổi giữa các run; tên đỏ là 11 đặc trưng đã bỏ.}
+\sourceinfo{Hình 07, mục 3.4 báo cáo tuần 5.}
+\end{frame}
+
+% SOURCE: Hình 09, mục 3.4 báo cáo tuần 5.
+\begin{frame}{21. Hình: cụm tương quan giữa 41 đặc trưng}
+\centering
+\chenanh[width=\linewidth,height=.76\textheight,keepaspectratio]{figures/09-feature_correlation_clusters.png}
+\keyline{Chỉ 6 khung đỏ (14/41 đặc trưng) có $|\rho|\geq0,7$; phần lớn nhóm theo nghĩa không phải cụm.}
+\sourceinfo{Hình 09, mục 3.4 báo cáo tuần 5.}
+\end{frame}
+
+
+% NOTE: Tỷ phần 0,52 của nhóm time ở off_hours thực chất gần như chỉ từ delta_mean_share_night_7d. Báo nhầm của OCSVM do delta_t_cv, nhưng slide 29 cho thấy bỏ riêng nó chưa đủ.
 % SOURCE: Bảng 3.5, mục 3.4 báo cáo tuần 5.
-\begin{frame}{14. Mỗi kịch bản do 1--2 đặc trưng dẫn dắt}
+\begin{frame}{22. Mỗi kịch bản do 1--2 đặc trưng dẫn dắt}
 
 \footnotesize
 \begin{tabularx}{\linewidth}{@{}p{3.0cm}Xc@{}}
@@ -606,9 +677,18 @@ Thức dậy sau ngủ đông & \feat{days_since_last_activity} & 0,46\\[3pt]
 \sourceinfo{Bảng 3.5, mục 3.4 báo cáo tuần 5.}
 \end{frame}
 
+% SOURCE: Hình 08, mục 3.4 báo cáo tuần 5.
+\begin{frame}{23. Hình: tỷ phần $|$SHAP$|$ từng đặc trưng theo kịch bản}
+\centering
+\chenanh[width=\linewidth,height=.76\textheight,keepaspectratio]{figures/08-feature_shap_by_scenario.png}
+\keyline{Mỗi cột kịch bản chỉ có 1--2 ô đậm; cột sau vạch đen là báo nhầm.}
+\sourceinfo{Hình 08, mục 3.4 báo cáo tuần 5.}
+\end{frame}
+
+
 % NOTE: Dấu vượt 1 std trong báo cáo là quy ước mô tả, không phải kiểm định ý nghĩa thống kê hoặc khoảng tin cậy.
 % SOURCE: Thiết lập mục 4 và ablation_nhom_dac_trung.md.
-\begin{frame}{15. Ablation giữ cố định dữ liệu và tham số}
+\begin{frame}{24. Ablation giữ cố định dữ liệu và tham số}
 
 \small
 \begin{tabularx}{\linewidth}{@{}p{3.3cm}X@{}}
@@ -628,7 +708,7 @@ Ghép cặp & So cùng run và model seed, lặp trên 5 run dev.\\[9pt]
 
 % NOTE: Mức tăng PR-AUC OCSVM bộ 30 là +0,064 ±0,014 so với đối chứng -0,020 ±0,019. Dev có thể lạc quan do chọn trên chính dev.
 % SOURCE: Bảng 4.1, báo cáo tuần 5.
-\begin{frame}{16. Bỏ rhythm và đặc trưng SHAP thấp tốt nhất trên dev}
+\begin{frame}{25. Bỏ rhythm và đặc trưng SHAP thấp tốt nhất trên dev}
 
 \footnotesize
 \begin{tabularx}{\linewidth}{@{}Xcccc@{}}
@@ -652,7 +732,7 @@ Bỏ template v4 & 24 & -0,04 & -0,07 & -0,08\\[2pt]
 
 % NOTE: Bỏ một nhóm kiểm tra đóng góp khi nhóm đó vắng mặt sau huấn luyện lại. Các nhóm còn lại có thể bù tín hiệu nên không coi delta là đóng góp cộng tuyến tính.
 % SOURCE: Phân tích mục 4.1.
-\begin{frame}{17. Các nhóm mạnh bảo vệ những kịch bản khác nhau}
+\begin{frame}{26. Các nhóm mạnh bảo vệ những kịch bản khác nhau}
 
 \small
 \begin{tabularx}{\linewidth}{@{}p{3.3cm}X@{}}
@@ -667,9 +747,18 @@ Fanout & OCSVM mất 0,14 recall ở bùng nổ máy mới.\\\bottomrule
 \sourceinfo{Phân tích mục 4.1.}
 \end{frame}
 
+% SOURCE: Hình 10, mục 4.1 báo cáo tuần 5.
+\begin{frame}{27. Hình: $\Delta$ recall khi bỏ từng nhóm (dev)}
+\centering
+\chenanh[width=\linewidth,height=.76\textheight,keepaspectratio]{figures/10-ablation_delta_recall_dev.png}
+\keyline{Xanh = tốt hơn, đỏ = tệ hơn so với đủ 41 đặc trưng; * = $|\Delta|$ TB $>$ 1 std.}
+\sourceinfo{Hình 10, mục 4.1 báo cáo tuần 5.}
+\end{frame}
+
+
 % NOTE: Giải thích vì sao không phải bỏ 14. Giữ một số feature volume/time/context, không bỏ cả mọi nhóm đóng góp thấp.
 % SOURCE: Danh sách bộ 30 ở mục 4.1.
-\begin{frame}{18. Bộ 30 bỏ tổng cộng 11 đặc trưng}
+\begin{frame}{28. Bộ 30 bỏ tổng cộng 11 đặc trưng}
 
 \begin{columns}[T,onlytextwidth]
 \begin{column}{.47\textwidth}
@@ -705,7 +794,7 @@ Fanout & OCSVM mất 0,14 recall ở bùng nổ máy mới.\\\bottomrule
 
 % NOTE: Mốc là bộ 30 (không phải 41). OCSVM và IF tất định (fit lại Δ = 0); LOF dùng HNSW đa luồng nên fit lại đã lệch -0,016 ± 0,014 PR-AUC -- mọi hiệu LOF nhỏ hơn ~0,03 cần thận trọng. interarrival_dt_mean: SHAP hạng 11-12 ở LOF nhưng thêm lại làm LOF tệ nhất.
 % SOURCE: Bảng 4.4, mục 4.4 báo cáo tuần 5; experiments/ablation/addback/.
-\begin{frame}{19. Thêm lại từng đặc trưng: không có đặc trưng bị bỏ oan}
+\begin{frame}{29. Thêm lại từng đặc trưng: không có đặc trưng bị bỏ oan}
 
 \footnotesize
 \begin{tabularx}{\linewidth}{@{}Xccc@{}}
@@ -728,9 +817,18 @@ Fanout & OCSVM mất 0,14 recall ở bùng nổ máy mới.\\\bottomrule
 \sourceinfo{Bảng 4.4, mục 4.4 báo cáo tuần 5.}
 \end{frame}
 
+% SOURCE: Hình 12, mục 4.4 báo cáo tuần 5.
+\begin{frame}{30. Hình: $\Delta$ recall khi thêm lại từng đặc trưng}
+\centering
+\chenanh[width=\linewidth,height=.76\textheight,keepaspectratio]{figures/12-addback_delta_recall.png}
+\keyline{Gần như không có ô xanh rõ: không đặc trưng nào bị bỏ oan.}
+\sourceinfo{Hình 12, mục 4.4 báo cáo tuần 5.}
+\end{frame}
+
+
 % NOTE: Bảng 4.2 là ablation test, khác lưới cuối ở vài số do cách tổng hợp/chạy. Không thay LOF PR-AUC 0,064 của ablation bằng 0,062 của lưới cuối.
 % SOURCE: Bảng 4.2, báo cáo tuần 5.
-\begin{frame}{20. Bộ 30 cải thiện trên khối test}
+\begin{frame}{31. Bộ 30 cải thiện trên khối test}
 
 \footnotesize\testtable
 \vspace{.8em}
@@ -745,9 +843,18 @@ Fanout & OCSVM mất 0,14 recall ở bùng nổ máy mới.\\\bottomrule
 \sourceinfo{Bảng 4.2, báo cáo tuần 5.}
 \end{frame}
 
+% SOURCE: Hình 11, mục 4.2 báo cáo tuần 5.
+\begin{frame}{32. Hình: $\Delta$ recall của bộ 30 trên test}
+\centering
+\chenanh[width=\linewidth,height=.76\textheight,keepaspectratio]{figures/11-ablation_delta_recall_test.png}
+\keyline{So hàng bộ 30 với hàng đối chứng xáo dòng để tách hiệu thật khỏi nhiễu.}
+\sourceinfo{Hình 11, mục 4.2 báo cáo tuần 5.}
+\end{frame}
+
+
 % NOTE: Nguồn phụ benchmark_30_dac_trung bổ sung các baseline. Theo recall, luật thất bại 0,098 cao hơn z-score 0,075; z-score chỉ là baseline tốt nhất theo PR-AUC.
 % SOURCE: Bảng 4.3 và benchmark_30_dac_trung.md, mục 1.
-\begin{frame}{21. Benchmark cuối với 30 đặc trưng}
+\begin{frame}{33. Benchmark cuối với 30 đặc trưng}
 
 \footnotesize\benchmarktable
 \keyline{OCSVM bắt 37,6\% nạn nhân trong ngân sách 100 cảnh báo/ngày.}
@@ -757,7 +864,7 @@ Fanout & OCSVM mất 0,14 recall ở bùng nổ máy mới.\\\bottomrule
 
 % NOTE: Thanh là giá trị trung bình 5 run. Không thêm sai số vì báo cáo bảng cuối chưa đưa std recall.
 % SOURCE: Lưới test_30f, benchmark_30_dac_trung.md, mục 1.
-\begin{frame}{22. OCSVM giữ lợi thế ở đầu danh sách cảnh báo}
+\begin{frame}{34. OCSVM giữ lợi thế ở đầu danh sách cảnh báo}
 
 \begin{columns}[c,onlytextwidth]
 \begin{column}{.73\textwidth}\centering\finalplot\end{column}
@@ -777,7 +884,7 @@ Fanout & OCSVM mất 0,14 recall ở bùng nổ máy mới.\\\bottomrule
 
 % NOTE: OCSVM triển khai SGD nên có nhạy thứ tự. Những delta ghép cặp có thể khác phép trừ số trung bình đã làm tròn.
 % SOURCE: benchmark_30_dac_trung.md, mục 2.
-\begin{frame}{23. So với tuần 4 phải kiểm soát thứ tự dòng}
+\begin{frame}{35. So với tuần 4 phải kiểm soát thứ tự dòng}
 
 \footnotesize
 \begin{tabularx}{\linewidth}{@{}Xccc@{}}
@@ -799,7 +906,7 @@ LOF & $0,047\pm0,004$ & $0,048\pm0,003$ & $0,062\pm0,004$\\\bottomrule
 
 % NOTE: Không tuyên bố tuần 5 hoàn thành 100%. Tài liệu review_top50.md có nhãn Claude trên bộ 41, không tính là nghiệm thu review hai thực tập sinh.
 % SOURCE: Báo cáo tuần 5 mục 5, đề cương tuần 5, review_top50.md.
-\begin{frame}{24. Review top-50 và kiểm tra tái lập còn cần hoàn tất}
+\begin{frame}{36. Review top-50 và kiểm tra tái lập còn cần hoàn tất}
 
 \begin{columns}[T,onlytextwidth]
 \begin{column}{.50\textwidth}
@@ -831,7 +938,7 @@ LOF & $0,047\pm0,004$ & $0,048\pm0,003$ & $0,062\pm0,004$\\\bottomrule
 
 % NOTE: Kết quả áp dụng cho phạm vi benchmark này, chưa chứng minh hiệu quả phát hiện tấn công thực tế. LOF có suy giảm dormant theo ROC-AUC; không nói bộ 30 tốt hơn mọi kịch bản.
 % SOURCE: Báo cáo tuần 5 và benchmark_30_dac_trung.md.
-\begin{frame}{25. Kết luận và hướng hoàn thiện}
+\begin{frame}{37. Kết luận và hướng hoàn thiện}
 
 \small
 \begin{tabularx}{\linewidth}{@{}p{3.3cm}X@{}}
