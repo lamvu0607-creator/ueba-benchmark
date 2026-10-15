@@ -7,6 +7,8 @@ Hệ thống pipeline benchmark các mô hình phát hiện bất thường (Ano
 **Tuần 5:** xem [tóm tắt tuần 5](reports/week5/tom_tat_tuan5.md) (phân tích theo kịch bản, review top 50, SHAP,
 chọn số đặc trưng bỏ theo SHAP (K = 18), bảng benchmark cuối với 22 đặc trưng). Lệnh chạy lại:
 
+**Hướng dẫn từ nguồn dữ liệu LANL đến kết quả cuối và demo:** [Xem quy trình đầy đủ](docs/chay_tu_du_lieu_den_ket_qua.md).
+
 ```bash
 python -X utf8 scripts/experiments/window_ablation.py --run data/injection_runs/test_seed20261061 --windows 7 14 21
 python scripts/evaluation/scenario_analysis.py             # theo kịch bản -> experiments/analysis/scenario/
@@ -169,8 +171,9 @@ pip install -e .
 
 `data/` và phần lớn `experiments/results/` bị `.gitignore`, nên sau khi clone cần làm thêm hai việc:
 
-1. **Tải dữ liệu interim** (khoảng 22 GB, xem mục 6). Giải nén sao cho có
+1. **Tải dữ liệu interim** (khoảng 12 GB với bộ Parquet đã kiểm tra, xem mục 6). Giải nén sao cho có
    `data/interim/event_4624/event_4624_day-01.parquet … day-60`, và tương tự với `event_4625`.
+   Xác minh 120 file bằng `python -c "from pathlib import Path; from scripts.reproduce import verify_interim; verify_interim(Path('data/interim'))"`.
 2. **Tạo lại các artifact**, đúng thứ tự (`baselines` đọc `data/processed/` nên phải chạy sau `features`):
 
 ```bash

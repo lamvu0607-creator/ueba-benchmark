@@ -498,6 +498,7 @@ def build_account_day_matrix(
     events_dir: Optional[Path | str] = None,
     history_window_days: int = 7,
     prior_activity: Optional[pl.DataFrame] = None,
+    prefer_interim: bool = False,
 ) -> pl.DataFrame:
     """
     Điều phối trích xuất ma trận đặc trưng cho dải ngày [start_day, end_day].
@@ -520,7 +521,7 @@ def build_account_day_matrix(
             logger.info("Có events_dir -> bỏ qua kho log sạch '%s', đọc interim '%s'.", cleaned_dir, data_source)
         else:
             logger.info(f"Nguồn dữ liệu trích xuất: Kho log interim '{data_source}'.")
-    elif has_cleaned:
+    elif has_cleaned and not prefer_interim:
         # Ưu tiên kho log sạch (data/cleaned), fallback sang log interim
         data_source = cleaned_dir
         logger.info(f"Nguồn dữ liệu trích xuất: Kho log sạch '{data_source}'.")

@@ -102,6 +102,7 @@ def run_pipeline(args):
             output_dir=raw_feature_out,
             config=sys_cfg,
             events_dir=args.events_dir,
+            prefer_interim=args.interim_only,
         )
 
         if df_raw.height > 0:
@@ -334,6 +335,11 @@ def main():
         type=int,
         default=None,
         help="Ending day for feature extraction (default: last available day in interim)",
+    )
+    parser.add_argument(
+        "--interim-only",
+        action="store_true",
+        help="Stage features: read verified interim logs even when data/cleaned exists",
     )
     parser.add_argument(
         "--seed",

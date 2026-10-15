@@ -26,6 +26,8 @@ Mã thoát 0 nếu mọi bước chạy được và đối chiếu đạt; 1 n�
 from __future__ import annotations
 
 import argparse
+import hashlib
+import math
 import subprocess
 import sys
 from pathlib import Path
@@ -36,6 +38,23 @@ ROOT = Path(__file__).resolve().parents[1]
 TEST_SEEDS = (20261061, 20261062, 20261063, 20261064, 20261065)
 METRICS = ("recall_at_100_per_day", "pr_auc", "roc_auc", "precision_at_50")
 ML = ("one_class_svm", "isolation_forest", "local_outlier_factor")
+INTERIM_HASHES = ROOT / "configs/interim_sha256.txt"
+
+
+def verify_interim(interim_dir: Path, manifest: Path = INTERIM_HASHES) -> None:
+    expected = {}
+    for line in manifest.read_text(encoding="utf-8").splitlines():
+        digest, name = line.split(maxsplit=1)
+        expected[name] = digest
+    actual = {p.relative_to(interim_dir).as_posix() for event in (4624, 4625)
+              for p in (interim_dir / f"event_{event}").glob("*.parquet")}
+    if actual != set(expected):
+        raise ValueError(f"Kho interim khác danh sách đã chốt: thiếu {sorted(set(expected) - actual)}, dư {sorted(actual - set(expected))}")
+    for name, digest in expected.items():
+        with (interim_dir / name).open("rb") as source:
+            if hashlib.file_digest(source, "sha256").hexdigest() != digest:
+                raise ValueError(f"Hash interim không khớp: {name}")
+    print(f"Đã xác minh SHA-256 của {len(expected)} file interim.", flush=True)
 
 
 def step(title: str, cmd: list) -> None:
@@ -46,14 +65,17 @@ def step(title: str, cmd: list) -> None:
 def compare(new_path: Path, ref_path: Path, tol: float, lof_tol: float) -> bool:
     new = pd.read_csv(new_path).set_index("model")
     ref = pd.read_csv(ref_path).set_index("model")
+    if (not new.index.is_unique or not ref.index.is_unique or set(ref.index) - set(new.index)
+            or any(f"{m}_mean" not in new.columns or f"{m}_mean" not in ref.columns for m in METRICS)):
+        raise ValueError("Bảng đối chiếu thiếu model/metric hoặc có model trùng.")
     rows, ok = [], True
     for model in ref.index:
         limit = lof_tol if model == "local_outlier_factor" else tol
         for m in METRICS:
             col = f"{m}_mean"
-            if col not in ref.columns or model not in new.index:
-                continue
             a, b = float(ref.loc[model, col]), float(new.loc[model, col])
+            if not math.isfinite(a) or not math.isfinite(b):
+                raise ValueError(f"Metric không hữu hạn: {model}/{m}")
             rel = abs(b - a) / abs(a) if a else abs(b - a)
             counted = not (model == "local_outlier_factor" and m == "precision_at_50")
             passed = rel <= limit
@@ -86,10 +108,11 @@ def main() -> int:
         if not (ROOT / "data/interim/event_4624").exists():
             print("Thiếu data/interim/event_4624 — tải dữ liệu interim theo README §6 trước.", file=sys.stderr)
             return 1
+        verify_interim(ROOT / "data/interim")
         if not args.skip_tests:
             step("1. Kiểm thử", [py, "-m", "pytest", "tests", "-q"])
         if not (args.skip_existing and (ROOT / "data/processed/feature_matrix_processed.parquet").exists()):
-            step("2. Ma trận đặc trưng log gốc", [py, "main.py", "--stage", "features"])
+            step("2. Ma trận đặc trưng log gốc", [py, "main.py", "--stage", "features", "--interim-only"])
         if not (args.skip_existing and (ROOT / "data/features/train_profiles").exists()):
             step("3a. Hồ sơ train", [py, "scripts/injection_profiles_summary.py"])
         if not (args.skip_existing and (ROOT / "experiments/results/baselines").exists()):

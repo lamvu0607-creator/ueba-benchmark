@@ -8,6 +8,7 @@ import math
 
 import polars as pl
 import pytest
+from src.features import extractor
 from src.features.extractor import (
     DEFAULT_FEATURE_CFG,
     HISTORY_V3_FEATURES,
@@ -27,6 +28,22 @@ from src.models.detectors import IsolationForestDetector
 from src.models.pipeline import AnomalyPipeline
 
 PROCESSED_MATRIX = Path(__file__).resolve().parents[1] / "data" / "processed" / "feature_matrix_processed.parquet"
+
+
+def test_feature_source_can_force_interim_with_cleaned_present(tmp_path, monkeypatch):
+    cleaned = tmp_path / "cleaned"
+    interim = tmp_path / "interim"
+    cleaned.mkdir()
+    interim.mkdir()
+    (cleaned / "cleaned_day-01.parquet").touch()
+    chosen = []
+    monkeypatch.setattr(extractor, "available_days", lambda path: chosen.append(path) or [])
+    config = {"paths": {"cleaned_data_dir": str(cleaned), "interim_data_dir": str(interim)}}
+
+    extractor.build_account_day_matrix(config=config, prefer_interim=True)
+    extractor.build_account_day_matrix(config=config)
+
+    assert chosen == [interim, cleaned]
 
 
 def test_entity_type_classification():
