@@ -113,14 +113,28 @@ def _pair_novelty_REMOVED_DO_NOT_USE(*args, **kwargs):  # pragma: no cover
     raise NotImplementedError("source_host_pair_novelty đã bị bác bỏ (ρ = 0,9052 với new_host_count)")
 
 
-def _days_since_last_activity(df: pl.DataFrame, keys: List[str], day_col: str) -> pl.DataFrame:
-    """Số ngày kể từ phiên hoạt động trước đó của tài khoản (NULL ở dòng hoạt động đầu tiên)."""
+def _days_since_last_activity(
+    df: pl.DataFrame,
+    keys: List[str],
+    day_col: str,
+    prior_activity: Optional[pl.DataFrame] = None,
+) -> pl.DataFrame:
+    """Số ngày từ hoạt động trước; `prior_activity` giữ lần cuối trước cửa sổ hiện tại."""
     activity = df.select(keys + [day_col]).unique().sort(keys + [day_col])
-    return activity.with_columns(
+    if prior_activity is not None and not prior_activity.is_empty():
+        missing = [c for c in keys + [day_col] if c not in prior_activity.columns]
+        if missing:
+            raise ValueError(f"prior_activity thiếu cột {missing}.")
+        if prior_activity[day_col].max() >= df[day_col].min():
+            raise ValueError("prior_activity phải nằm trước ngày đầu của cửa sổ hiện tại.")
+        prior = prior_activity.select(keys + [pl.col(day_col).cast(activity[day_col].dtype)])
+        activity = pl.concat([prior, activity]).unique().sort(keys + [day_col])
+    result = activity.with_columns(
         (pl.col(day_col) - pl.col(day_col).shift(1).over(keys))
         .cast(pl.Int32)
         .alias("days_since_last_activity")
     )
+    return result.join(df.select(keys + [day_col]).unique(), on=keys + [day_col], how="semi")
 
 
 
@@ -225,6 +239,7 @@ def add_history_features(
     keys: Optional[List[str]] = None,
     window: int = HISTORY_WINDOW_DAYS,
     day_col: str = "day",
+    prior_activity: Optional[pl.DataFrame] = None,
 ) -> pl.DataFrame:
     """
     Bổ sung **4 đặc trưng lịch sử** (Tier A đã qua cổng, schema v3.0) vào ma trận Tài khoản × Ngày.
@@ -241,6 +256,8 @@ def add_history_features(
     An toàn rò rỉ: mọi phép tính dùng ``shift``/``min``/``max`` trên các ngày **trước t**; thêm
     ngày tương lai vào đầu vào **không** làm đổi giá trị của các dòng cũ (kiểm bằng test
     ``test_history_features_are_causal``).
+
+    ``prior_activity`` chỉ cấp lịch sử xa hơn cửa sổ cho ``days_since_last_activity``.
     """
     keys = list(keys or HISTORY_KEYS)
     if day_col not in df.columns or "total_logons" not in df.columns:
@@ -270,7 +287,7 @@ def add_history_features(
     host = _entity_novelty(entities, keys, "LogHost", "host", window, day_col).select(
         keys + [day_col, "new_host_count_7d"]
     )
-    activity = _days_since_last_activity(df, keys, day_col)
+    activity = _days_since_last_activity(df, keys, day_col, prior_activity)
     volume_z = _volume_robust_z(df, keys, window, day_col)
 
     join_on = keys + [day_col]
