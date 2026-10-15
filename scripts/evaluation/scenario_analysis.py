@@ -43,13 +43,26 @@ def score_runs(cfg: dict, params_path: str):
     params = load_params(params_path)
     c0 = float(cfg.get("contamination", 0.05))
     jobs = [(m, c["id"], c.get("scaler", "robust"), c.get("params") or {}) for m, cs in cfg["models"].items() for c in cs]
+    # drop_features (vd. bộ 22 đặc trưng) chỉ áp cho mô hình ML, baseline giữ nguyên — như run_grid.py.
+    drop = set(cfg.get("drop_features") or [])
+    ml_features = None
+    if drop:
+        from src.features.schema import FeatureSchema
+
+        core = FeatureSchema().core_features
+        unknown = sorted(drop - set(core))
+        if unknown:
+            raise ValueError(f"drop_features không phải đặc trưng core: {unknown}")
+        ml_features = [f for f in core if f not in drop]
+        logger.info("Bỏ %d đặc trưng -> mô hình ML dùng %d đặc trưng.", len(drop), len(ml_features))
     jobs += [(b, "default", None, {}) for b in cfg.get("baselines") or []]
     parts, auc_rows = [], []
     for i, (run_dir, mseed) in enumerate(zip(cfg["runs"], cfg["model_seeds"])):
         data = load_run_data(run_dir, cfg.get("segment"), run_split_day(run_dir), sort_rows=True)
         keys = data["eval"][["DomainName", "UserName", "day"]].reset_index(drop=True)
         for model, cid, scaler, override in jobs:
-            res = fit_and_score(data, model, _params_with(params, model, override), scaler, int(mseed), c0)
+            res = fit_and_score(data, model, _params_with(params, model, override), scaler, int(mseed), c0,
+                                feature_names=ml_features if model in cfg["models"] else None)
             parts.append(keys.assign(run_id=data["run_id"], seed_index=i, model=model, config_id=cid,
                                      y=data["y"], scenario=data["scenario"], score=res["scores"],
                                      flag=res["flags"]))

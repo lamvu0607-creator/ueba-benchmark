@@ -1,0 +1,64 @@
+# Phân tích theo kịch bản cho OCSVM nc1000 (22 đặc trưng) — chỉ để đối chiếu với g01, KHÔNG phải cấu hình chọn trên dev.
+# Sinh từ configs/benchmark_grid_test_22f.yaml: giữ runs/seeds/drop_features, chỉ thay OCSVM và bỏ baseline.
+#   python scripts/evaluation/scenario_analysis.py --config configs/scenario_test_22f_nc1000.yaml --out experiments/analysis/scenario_22f_nc1000
+block: test
+segment: User
+output_dir: experiments/grid/test_22f_nc1000
+runs:
+- data/injection_runs/test_seed20261061
+- data/injection_runs/test_seed20261062
+- data/injection_runs/test_seed20261063
+- data/injection_runs/test_seed20261064
+- data/injection_runs/test_seed20261065
+model_seeds:
+- 42
+- 7
+- 2024
+- 1
+- 2
+contamination: 0.05
+precision_ks:
+- 10
+- 50
+- 100
+daily_budgets:
+- 10
+- 50
+- 100
+models:
+  one_class_svm:
+  - id: ocsvm_standard_nc1000
+    scaler: standard
+    params:
+      n_components: 1000
+baselines: []
+contamination_sweep:
+- 0.001
+- 0.002
+- 0.005
+- 0.01
+- 0.02
+- 0.05
+- 0.1
+- 0.2
+sort_rows: true
+drop_features:
+- interarrival_dt_mean
+- delta_t_cv
+- same_second_share
+- is_single_event
+- activity_peak_hour_sin
+- log_distinct_hosts
+- missing_source_ratio
+- dst_host_entropy
+- log_total_logons
+- custom_proc_share
+- delta_mean_distinct_pair_7d
+- new_host_count_7d
+- peer_z_share_night
+- rare_logon_type_count_log
+- remote_logon_ratio
+- volume_robust_z_7d
+- off_hours_ratio
+- delta_mean_distinct_fail_host_7d
+- jaccard_logontype_7d

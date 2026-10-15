@@ -1,4 +1,4 @@
-# UEBA Benchmark: Windows Security Event Log (4624 / 4625) bu cac
+# UEBA Benchmark: Windows Security Event Log (4624 / 4625)
 
 Hệ thống pipeline benchmark các mô hình phát hiện bất thường (Anomaly Detection) cho bài toán **Phân tích hành vi người dùng (UEBA)**, khai thác các sự kiện đăng nhập thành công (`EventID 4624`) và thất bại (`EventID 4625`) trên hệ điều hành Windows.
 
@@ -10,6 +10,7 @@ chọn số đặc trưng bỏ theo SHAP (K = 18), bảng benchmark cuối với
 ```bash
 python -X utf8 scripts/experiments/window_ablation.py --run data/injection_runs/test_seed20261061 --windows 7 14 21
 python scripts/evaluation/scenario_analysis.py             # theo kịch bản -> experiments/analysis/scenario/
+python scripts/evaluation/scenario_analysis.py --config configs/benchmark_grid_test_22f.yaml --out experiments/analysis/scenario_22f   # theo kịch bản, 22 đặc trưng
 python scripts/evaluation/build_review_set.py --config configs/benchmark_grid_test_22f.yaml --out experiments/analysis/review_top50_22f   # bộ review top 50 làm mù, 22 đặc trưng
 python scripts/evaluation/review_agreement.py              # Cohen's kappa sau khi hai người chấm xong
 python scripts/evaluation/explain_models.py                # SHAP/LIME -> experiments/analysis/explain/ (--replot: chỉ vẽ lại hình)

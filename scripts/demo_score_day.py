@@ -36,7 +36,7 @@ import logging
 import shutil
 import sys
 import time
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 
 import numpy as np
 import polars as pl
@@ -235,7 +235,8 @@ def main() -> None:
         print("    (không in đặc trưng nào = khớp hoàn toàn)")
 
     banner(f"3. Chấm điểm bằng {args.model} ({manifest['models'][args.model]['config_id']})")
-    pipe = AnomalyPipeline.load(manifest["models"][args.model]["path"])
+    # manifest ghi đường dẫn của máy train (Windows: dấu \) -> chỉ lấy tên file, nạp từ --models-dir
+    pipe = AnomalyPipeline.load(Path(args.models_dir) / PureWindowsPath(manifest["models"][args.model]["path"]).name)
     t0 = time.time()
     scores = np.asarray(pipe.score(users.select(feats).to_pandas()), dtype=np.float64)
     thr = float(manifest["models"][args.model]["threshold"])

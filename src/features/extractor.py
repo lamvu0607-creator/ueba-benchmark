@@ -497,6 +497,7 @@ def build_account_day_matrix(
     config: Optional[Dict[str, Any]] = None,
     events_dir: Optional[Path | str] = None,
     history_window_days: int = 7,
+    prior_activity: Optional[pl.DataFrame] = None,
 ) -> pl.DataFrame:
     """
     Điều phối trích xuất ma trận đặc trưng cho dải ngày [start_day, end_day].
@@ -588,7 +589,9 @@ def build_account_day_matrix(
     # sau khi đã ghép các ngày. Hàm bảo đảm chỉ dùng dữ liệu ≤ t−1 (xem src/features/history.py).
     t_hist = time.time()
     entities_full = pl.concat(entity_dfs, how="vertical") if entity_dfs else None
-    df_full = add_history_features(df_full, entities=entities_full, window=history_window_days)
+    df_full = add_history_features(
+        df_full, entities=entities_full, window=history_window_days, prior_activity=prior_activity
+    )
     if v4_specs:
         # Schema v4.0: tầng lịch sử/peer của engine template (chỉ dùng ngày ≤ t−1 / cắt ngang ngày t)
         intraday = pl.concat([t.intraday for t in template_days])
