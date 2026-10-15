@@ -1,7 +1,8 @@
 # Báo cáo kỹ thuật: Benchmark Isolation Forest / LOF / One-Class SVM trên log xác thực Windows
 
 **Đề tài:** Benchmark Isolation Forest / LOF / One-Class SVM trên log xác thực (Event 4624/4625)
-**Chương trình:** Thực chiến AI, đề tài thực tập 6 tuần, 2 thực tập sinh
+**Chương trình:** Thực chiến AI, đề tài thực tập 6 tuần
+**Thành viên:** Lâm Vũ, Đinh Xuân Hiệp
 **Phiên bản:** 1.0, ngày 15/10/2026. Mã nguồn và số liệu ở nhánh `feature/target-rate-1pct`, commit `ee0d52f`
 **Căn cứ:** [`docs/Tong quan de tai ueba.md`](../../docs/Tong%20quan%20de%20tai%20ueba.md) (gọi tắt là *đề cương*)
 
@@ -89,7 +90,7 @@ tấn công nào?
 
 | Hạng mục | Đề cương | Báo cáo này | Lý do |
 |---|---|---|---|
-| LOF | `LocalOutlierFactor(novelty=True)` của scikit-learn | LOF tính trên láng giềng xấp xỉ HNSW (thư viện `hnswlib`) | LOF chính xác không chạy được trên khoảng 315.000 dòng User với nhiều cấu hình. Khi fit trên mẫu con 20.000 dòng (tuần 3), danh sách Top-20 gần như không trùng giữa các seed (trùng 0,03), nên kết quả không dùng được |
+| LOF | `LocalOutlierFactor(novelty=True)` của scikit-learn | LOF tính trên láng giềng xấp xỉ HNSW (thư viện `hnswlib`) | LOF chính xác không chạy được trên khoảng 315.000 dòng User với nhiều cấu hình, nên tuần 3 chỉ fit trên mẫu con. Thứ hạng khi đó phụ thuộc mẫu và seed: với mẫu 50.000 dòng, Top-20 qua 3 seed chỉ trùng trung bình 72% (thấp nhất 65%); với mẫu 20.000 dòng, chỉ trùng 3%. HNSW cho phép fit trên toàn bộ dữ liệu train |
 | One-Class SVM | `OneClassSVM(kernel="rbf")` | Nhân RBF xấp xỉ bằng Nystroem, rồi `SGDOneClassSVM` | Bản gốc của scikit-learn có thời gian chạy tăng theo bậc 2–3 của số dòng |
 | Chỉ số chính | PR-AUC | Recall top-100 cảnh báo/ngày. PR-AUC vẫn có trong mọi bảng | Khớp với việc SOC chỉ xem được một số cảnh báo cố định mỗi ngày, và so được giữa các loại tấn công (mục 3.4.3) |
 | Chia tập | Train / test theo thời gian | Thêm khối dev (ngày 36–42) nằm trong train | Chọn cấu hình và đặc trưng mà không dùng nhãn của test (một ngoại lệ ở mục 5.3.3) |
@@ -104,7 +105,7 @@ Vì hai thuật toán là bản xấp xỉ, mọi kết luận về "LOF" và "O
 ### 2.1. Nguồn
 
 Bộ **LANL Unified Host and Network Dataset**: log Windows Security của mạng doanh nghiệp Los Alamos, đã ẩn danh,
-**60 ngày**. Dự án dùng hai loại sự kiện:
+**60 ngày** (bộ gốc dài 90 ngày, mỗi ngày khoảng 400 triệu bản ghi đủ loại; đề tài dùng 60 ngày). Dự án dùng hai loại sự kiện:
 
 | Sự kiện | Ý nghĩa | Ví dụ ngày 1 |
 |---|---|---|
