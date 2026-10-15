@@ -1,16 +1,13 @@
 # Báo cáo kỹ thuật: Benchmark Isolation Forest / LOF / One-Class SVM trên log xác thực Windows
 
-**Đề tài:** Benchmark Isolation Forest / LOF / One-Class SVM trên log xác thực (Event 4624/4625)
-**Chương trình:** Thực chiến AI, đề tài thực tập 6 tuần
-**Thành viên:** Lâm Vũ, Đinh Xuân Hiệp
-**Phiên bản:** 1.0, ngày 15/10/2026. Mã nguồn và số liệu ở nhánh `feature/target-rate-1pct`, commit `ee0d52f`
-**Căn cứ:** [`docs/Tong quan de tai ueba.md`](../../docs/Tong%20quan%20de%20tai%20ueba.md) (gọi tắt là *đề cương*)
+## 1. Phân công
 
-> Báo cáo này gom kết quả của tuần 1–5 thành một tài liệu độc lập. Người đọc không cần mở các báo cáo tuần để hiểu
-> phương pháp và kết quả; đường dẫn tới số liệu gốc được ghi ở cuối mỗi mục. Mọi số liệu định lượng tính trên
-> **nhãn tổng hợp** (tấn công được tiêm vào log thật) nên là **cận trên lạc quan** của hiệu năng trên tấn công thật.
-
----
+| Tuần | Lâm Vũ | Đinh Xuân Hiệp | Cả hai |
+|---|---|---|---|
+| 1 | Khám phá dữ liệu event 4624, làm data dictionary và value dictionary, viết báo cáo | Khám phá dữ liệu event 4625, vẽ đồ thị mô tả | Tìm và chọn bộ dữ liệu, lọc các event cần thiết |
+| 2 | Chuẩn hoá khoá và phân tầng User/Machine, thiết kế 18 đặc trưng, tổng hợp báo cáo | Thực hiện 5 nhóm kiểm định (tương quan, nén phân phối, chu kỳ, phân vị, kiểm tra User/Machine), dựng biểu đồ và slide | Đối chiếu định nghĩa đặc trưng với log 4624/4625, rà soát kết quả |
+| 3 | Làm giao diện chung và wrapper cho 3 thuật toán, dựng pipeline benchmark, viết báo cáo | Thống kê lần chạy thử đầu, review khung benchmark | – |
+| 4 | Bổ sung đặc trưng, xây dựng quy trình tiêm, chạy benchmark đánh giá | Kiểm tra lại quy trình tiêm và benchmark, làm slide, viết báo cáo | – |
 
 ## Tóm tắt
 
@@ -39,7 +36,7 @@
 
 ## Mục lục
 
-1. Giới thiệu
+1. Phân công
 2. Dữ liệu
 3. Phương pháp
 4. Kết quả
@@ -51,52 +48,6 @@
 10. Đối chiếu tiêu chí hoàn thành (đề cương mục 4.1)
 
 Phụ lục A: 22 đặc trưng của benchmark cuối · Phụ lục B: bản đồ số liệu
-
----
-
-## 1. Giới thiệu
-
-### 1.1. Bối cảnh
-
-UEBA (User and Entity Behavior Analytics) phát hiện tấn công bằng cách học hành vi bình thường của tài khoản rồi
-cảnh báo khi hành vi lệch đi. Log đăng nhập Windows là nguồn dữ liệu phổ biến nhất cho bài toán này: mỗi lần
-đăng nhập thành công sinh Event 4624, mỗi lần thất bại sinh Event 4625. Các tấn công như dò mật khẩu, chiếm đoạt
-tài khoản hay di chuyển ngang đều để lại dấu vết trong hai loại sự kiện này.
-
-Ba thuật toán phát hiện bất thường không giám sát thường được dùng làm mốc là **Isolation Forest (IF)**,
-**Local Outlier Factor (LOF)** và **One-Class SVM (OCSVM)**. Đề tài đặt câu hỏi: trên log xác thực thật, với một
-quy trình đánh giá chặt chẽ, ba mô hình này hơn một luật ngưỡng đơn giản bao nhiêu, và mỗi mô hình bắt được loại
-tấn công nào?
-
-### 1.2. Mục tiêu và câu hỏi
-
-| # | Câu hỏi | Trả lời ở |
-|---|---|---|
-| Q1 | Mô hình nào xếp hạng tài khoản bất thường tốt nhất trong ngân sách cảnh báo thực tế? | Mục 4.2 |
-| Q2 | Mô hình có vượt luật ngưỡng số lần thất bại và chấm điểm ngẫu nhiên không? | Mục 4.2 |
-| Q3 | Mỗi mô hình bắt tốt loại tấn công nào, bỏ sót loại nào, vì sao? | Mục 4.4, 5.5 |
-| Q4 | Đặc trưng nào đóng góp, đặc trưng nào gây nhiễu? | Mục 5.3 |
-| Q5 | Kết quả có ổn định qua seed, qua lần chạy lại và nhạy với tham số đến đâu? | Mục 4.3, 5.6 |
-
-### 1.3. Phạm vi
-
-- **Trong phạm vi:** log 4624/4625 đã ẩn danh của LANL; ma trận (tài khoản × ngày); 3 mô hình + 4 mốc tham chiếu;
-  nhãn tổng hợp 6 kịch bản; đánh giá phân khúc tài khoản người dùng (User).
-- **Ngoài phạm vi** (đề cương mục 2.2): mô hình học sâu, phát hiện theo thời gian thực, tích hợp SIEM, nhãn tấn công thật.
-
-### 1.4. Những điểm khác đề cương
-
-Đề cương cho phép điều chỉnh khi có lý do. Bảng dưới liệt kê các điều chỉnh để người đọc không phải tự đối chiếu.
-
-| Hạng mục | Đề cương | Báo cáo này | Lý do |
-|---|---|---|---|
-| LOF | `LocalOutlierFactor(novelty=True)` của scikit-learn | LOF tính trên láng giềng xấp xỉ HNSW (thư viện `hnswlib`) | LOF chính xác không chạy được trên khoảng 315.000 dòng User với nhiều cấu hình, nên tuần 3 chỉ fit trên mẫu con 20.000–50.000 dòng. Khi đó kết quả phụ thuộc vào mẫu được lấy: Top-20 qua 3 seed trùng trung bình 72% với mẫu 50.000 dòng (báo cáo tuần 3) nhưng chỉ 3% với mẫu 20.000 dòng (`reports/week3/tom_tat_tuan3.md`). HNSW cho phép fit trên toàn bộ dữ liệu train nên bỏ được phụ thuộc này |
-| One-Class SVM | `OneClassSVM(kernel="rbf")` | Nhân RBF xấp xỉ bằng Nystroem, rồi `SGDOneClassSVM` | Bản gốc của scikit-learn có thời gian chạy tăng theo bậc 2–3 của số dòng |
-| Chỉ số chính | PR-AUC | Recall top-100 cảnh báo/ngày. PR-AUC vẫn có trong mọi bảng | Khớp với việc SOC chỉ xem được một số cảnh báo cố định mỗi ngày, và so được giữa các loại tấn công (mục 3.4.3) |
-| Chia tập | Train / test theo thời gian | Thêm khối dev (ngày 36–42) nằm trong train | Chọn cấu hình và đặc trưng mà không dùng nhãn của test (một ngoại lệ ở mục 5.3.3) |
-
-Vì hai thuật toán là bản xấp xỉ, mọi kết luận về "LOF" và "OCSVM" trong báo cáo là kết luận về các bản xấp xỉ này
-(mục 7, hạn chế 5).
 
 ---
 
@@ -364,7 +315,7 @@ chọn. Mỗi run dev có khoảng 54.960 dòng chấm và 553 nạn nhân.
 Ghi chú: P@K tính trên cả khối 18 ngày; tỷ lệ cảnh báo ở contamination 5%; luật 6 điều kiện không có ngưỡng điều
 chỉnh được nên cờ 36% số dòng; thời gian đo trên 315 nghìn dòng train và 154 nghìn dòng test, CPU đa luồng.
 
-**Trả lời Q1 và Q2:**
+**Nhận xét:**
 1. **OCSVM tốt nhất** theo cả chỉ số chính lẫn PR-AUC. Với 100 cảnh báo/ngày, OCSVM bắt khoảng **một phần ba** số nạn
    nhân, và khoảng 29% cảnh báo là đúng (precision top-100/ngày 0,29).
 2. **Cả ba mô hình đều vượt hai mốc của đề cương.** So với luật thất bại ≥ 5: OCSVM gấp 3,4 lần về recall top-100/ngày
@@ -438,7 +389,7 @@ hạng kịch bản không đổi với bộ 22.
 
 **Hình 4.3.** Recall theo ngân sách k cảnh báo/ngày, mỗi ô một kịch bản (41 đặc trưng). Đường càng lên sớm càng tốt.
 
-**Trả lời Q3:**
+**Nhận xét:**
 - **Bắt tốt:** brute_force (OCSVM gần 0,7 ở 100 cảnh báo/ngày, gần 1,0 ở 5%), logon_type_switch (cả ba mô hình),
   new_workstation_burst (chủ yếu OCSVM).
 - **Bắt yếu:** dormant_wakeup; nạn nhân bị bỏ sót lại có **nhiều** sự kiện hơn nạn nhân bị bắt (trung vị 150 so

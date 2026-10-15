@@ -112,6 +112,7 @@
 \renewcommand{\tablename}{Bảng}
 \sloppy
 \usepackage{needspace}
+\setcounter{tocdepth}{2}
 \ifLuaTeX
   \usepackage{selnolig}  % disable illegal ligatures
 \fi
@@ -137,27 +138,46 @@
 \textbf{Thành viên:} Lâm Vũ – Đinh Xuân Hiệp \quad | \quad Báo cáo tổng tuần 1–6, ngày 15/10/2026
 \end{center}
 \vspace{2pt}
-Chương trình: Thực chiến AI, đề tài thực tập 6 tuần\\
-Phiên bản: 1.0, ngày 15/10/2026. Mã nguồn và số liệu ở nhánh
-\texttt{feature/\allowbreak{}target-rate-1pct}, commit
-\texttt{ee0d52f}\\
-Căn cứ: \texttt{docs/\allowbreak{}Tong quan de tai ueba.\allowbreak{}md}
-(gọi tắt là \emph{đề cương})
 
-\begin{quote}
-Báo cáo này gom kết quả của tuần 1--5 thành một tài liệu độc lập. Người
-đọc không cần mở các báo cáo tuần để hiểu phương pháp và kết quả; đường
-dẫn tới số liệu gốc được ghi ở cuối mỗi mục. Mọi số liệu định lượng tính
-trên nhãn tổng hợp (tấn công được tiêm vào log thật) nên là cận trên lạc
-quan của hiệu năng trên tấn công thật.
-\end{quote}
-\vspace{4pt}
+\hypertarget{phuxe2n-cuxf4ng}{%
+\section{1. Phân công}\label{phuxe2n-cuxf4ng}}
 
-{
-\hypersetup{linkcolor=}
-\setcounter{tocdepth}{2}
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 6\tabcolsep) * \real{0.0606}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 6\tabcolsep) * \real{0.3125}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 6\tabcolsep) * \real{0.3125}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 6\tabcolsep) * \real{0.2945}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Tuần
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Lâm Vũ
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Đinh Xuân Hiệp
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Cả hai
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+1 & Khám phá dữ liệu event 4624, làm data dictionary và value
+dictionary, viết báo cáo & Khám phá dữ liệu event 4625, vẽ đồ thị mô tả
+& Tìm và chọn bộ dữ liệu, lọc các event cần thiết \\
+2 & Chuẩn hoá khoá và phân tầng User/Machine, thiết kế 18 đặc trưng,
+tổng hợp báo cáo & Thực hiện 5 nhóm kiểm định (tương quan, nén phân
+phối, chu kỳ, phân vị, kiểm tra User/Machine), dựng biểu đồ và slide &
+Đối chiếu định nghĩa đặc trưng với log 4624/4625, rà soát kết quả \\
+3 & Làm giao diện chung và wrapper cho 3 thuật toán, dựng pipeline
+benchmark, viết báo cáo & Thống kê lần chạy thử đầu, review khung
+benchmark & -- \\
+4 & Bổ sung đặc trưng, xây dựng quy trình tiêm, chạy benchmark đánh giá
+& Kiểm tra lại quy trình tiêm và benchmark, làm slide, viết báo cáo &
+-- \\
+\end{longtable}
+
 \tableofcontents
-}
+
 \hypertarget{tuxf3m-tux1eaft}{%
 \section{Tóm tắt}\label{tuxf3m-tux1eaft}}
 
@@ -217,123 +237,6 @@ quan của hiệu năng trên tấn công thật.
   dò/rải mật khẩu; tài khoản dịch vụ, hệ thống và quản trị dùng luật và
   danh sách trắng thay cho học máy (mục 8).
 \end{enumerate}
-
-\hypertarget{giux1edbi-thiux1ec7u}{%
-\section{1. Giới thiệu}\label{giux1edbi-thiux1ec7u}}
-
-\hypertarget{bux1ed1i-cux1ea3nh}{%
-\subsection{1.1. Bối cảnh}\label{bux1ed1i-cux1ea3nh}}
-
-UEBA (User and Entity Behavior Analytics) phát hiện tấn công bằng cách
-học hành vi bình thường của tài khoản rồi cảnh báo khi hành vi lệch đi.
-Log đăng nhập Windows là nguồn dữ liệu phổ biến nhất cho bài toán này:
-mỗi lần đăng nhập thành công sinh Event 4624, mỗi lần thất bại sinh
-Event 4625. Các tấn công như dò mật khẩu, chiếm đoạt tài khoản hay di
-chuyển ngang đều để lại dấu vết trong hai loại sự kiện này.
-
-Ba thuật toán phát hiện bất thường không giám sát thường được dùng làm
-mốc là Isolation Forest (IF), Local Outlier Factor (LOF) và One-Class
-SVM (OCSVM). Đề tài đặt câu hỏi: trên log xác thực thật, với một quy
-trình đánh giá chặt chẽ, ba mô hình này hơn một luật ngưỡng đơn giản bao
-nhiêu, và mỗi mô hình bắt được loại tấn công nào?
-
-\hypertarget{mux1ee5c-tiuxeau-vuxe0-cuxe2u-hux1ecfi}{%
-\subsection{1.2. Mục tiêu và câu
-hỏi}\label{mux1ee5c-tiuxeau-vuxe0-cuxe2u-hux1ecfi}}
-
-\begin{longtable}[]{@{}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.1321}}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.6816}}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.1663}}@{}}
-\toprule\noalign{}
-\begin{minipage}[b]{\linewidth}\raggedright
-\#
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
-Câu hỏi
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
-Trả lời ở
-\end{minipage} \\
-\midrule\noalign{}
-\endhead
-\bottomrule\noalign{}
-\endlastfoot
-\textbf{Q1} & Mô hình nào xếp hạng tài khoản bất thường tốt nhất trong
-ngân sách cảnh báo thực tế? & Mục 4.2 \\
-\textbf{Q2} & Mô hình có vượt luật ngưỡng số lần thất bại và chấm điểm
-ngẫu nhiên không? & Mục 4.2 \\
-\textbf{Q3} & Mỗi mô hình bắt tốt loại tấn công nào, bỏ sót loại nào, vì
-sao? & Mục 4.4, 5.5 \\
-\textbf{Q4} & Đặc trưng nào đóng góp, đặc trưng nào gây nhiễu? & Mục
-5.3 \\
-\textbf{Q5} & Kết quả có ổn định qua seed, qua lần chạy lại và nhạy với
-tham số đến đâu? & Mục 4.3, 5.6 \\
-\end{longtable}
-
-\hypertarget{phux1ea1m-vi}{%
-\subsection{1.3. Phạm vi}\label{phux1ea1m-vi}}
-
-\begin{itemize}
-\tightlist
-\item
-  \textbf{Trong phạm vi:} log 4624/4625 đã ẩn danh của LANL; ma trận
-  (tài khoản × ngày); 3 mô hình + 4 mốc tham chiếu; nhãn tổng hợp 6 kịch
-  bản; đánh giá phân khúc tài khoản người dùng (User).
-\item
-  Ngoài phạm vi (đề cương mục 2.2): mô hình học sâu, phát hiện theo thời
-  gian thực, tích hợp SIEM, nhãn tấn công thật.
-\end{itemize}
-
-\hypertarget{nhux1eefng-ux111iux1ec3m-khuxe1c-ux111ux1ec1-cux1b0ux1a1ng}{%
-\subsection{1.4. Những điểm khác đề
-cương}\label{nhux1eefng-ux111iux1ec3m-khuxe1c-ux111ux1ec1-cux1b0ux1a1ng}}
-
-Đề cương cho phép điều chỉnh khi có lý do. Bảng dưới liệt kê các điều
-chỉnh để người đọc không phải tự đối chiếu.
-
-\begin{longtable}[]{@{}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 6\tabcolsep) * \real{0.0887}}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 6\tabcolsep) * \real{0.2565}}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 6\tabcolsep) * \real{0.2936}}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 6\tabcolsep) * \real{0.3412}}@{}}
-\toprule\noalign{}
-\begin{minipage}[b]{\linewidth}\raggedright
-Hạng mục
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
-Đề cương
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
-Báo cáo này
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
-Lý do
-\end{minipage} \\
-\midrule\noalign{}
-\endhead
-\bottomrule\noalign{}
-\endlastfoot
-\textbf{LOF} &
-\texttt{LocalOutlierFactor(\allowbreak{}novelty=\allowbreak{}True)} của
-scikit-learn & LOF tính trên láng giềng xấp xỉ HNSW (thư viện
-\texttt{hnswlib}) & LOF chính xác không chạy được trên khoảng 315.000
-dòng User với nhiều cấu hình, nên tuần 3 chỉ fit trên mẫu con
-20.000--50.000 dòng. Khi đó kết quả phụ thuộc vào mẫu được lấy: Top-20
-qua 3 seed trùng trung bình 72\% với mẫu 50.000 dòng (báo cáo tuần 3)
-nhưng chỉ 3\% với mẫu 20.000 dòng
-(\texttt{reports/\allowbreak{}week3/\allowbreak{}tom\_\allowbreak{}tat\_\allowbreak{}tuan3.\allowbreak{}md}).
-HNSW cho phép fit trên toàn bộ dữ liệu train nên bỏ được phụ thuộc
-này \\
-\textbf{One-Class SVM} &
-\texttt{OneClassSVM(\allowbreak{}kernel=\allowbreak{}"rbf")} & Nhân RBF
-xấp xỉ bằng Nystroem, rồi \texttt{SGDOneClassSVM} & Bản gốc của
-scikit-learn có thời gian chạy tăng theo bậc 2--3 của số dòng \\
-\textbf{Chỉ số chính} & PR-AUC & Recall top-100 cảnh báo/ngày. PR-AUC
-vẫn có trong mọi bảng & Khớp với việc SOC chỉ xem được một số cảnh báo
-cố định mỗi ngày, và so được giữa các loại tấn công (mục 3.4.3) \\
-\textbf{Chia tập} & Train / test theo thời gian & Thêm khối dev (ngày
-36--42) nằm trong train & Chọn cấu hình và đặc trưng mà không dùng nhãn
-của test (một ngoại lệ ở mục 5.3.3) \\
-\end{longtable}
-
-Vì hai thuật toán là bản xấp xỉ, mọi kết luận về ``LOF'' và ``OCSVM''
-trong báo cáo là kết luận về các bản xấp xỉ này (mục 7, hạn chế 5).
 
 \hypertarget{dux1eef-liux1ec7u}{%
 \section{2. Dữ liệu}\label{dux1eef-liux1ec7u}}
@@ -1051,7 +954,7 @@ Ghi chú: P@K tính trên cả khối 18 ngày; tỷ lệ cảnh báo ở contam
 dòng; thời gian đo trên 315 nghìn dòng train và 154 nghìn dòng test, CPU
 đa luồng.
 
-\textbf{Trả lời Q1 và Q2:}
+\textbf{Nhận xét:}
 
 \begin{enumerate}
 \def\labelenumi{\arabic{enumi}.}
@@ -1307,7 +1210,7 @@ top 7,7\% \\
 \textbf{Hình 4.3.} Recall theo ngân sách k cảnh báo/ngày, mỗi ô một kịch
 bản (41 đặc trưng). Đường càng lên sớm càng tốt.
 
-\textbf{Trả lời Q3:}
+\textbf{Nhận xét:}
 
 \begin{itemize}
 \tightlist
