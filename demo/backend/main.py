@@ -95,9 +95,9 @@ async def receive_file(request: Request, path: Path) -> str:
     return filename
 
 
-def create_app(artifact_dir: Path | None = None, cleaned_dir: Path | None = None) -> FastAPI:
+def create_app(artifact_dir: Path | None = None, interim_dir: Path | None = None) -> FastAPI:
     service = DemoService(**({"artifact_dir": artifact_dir} if artifact_dir else {}),
-                          **({"cleaned_dir": cleaned_dir} if cleaned_dir else {}))
+                          **({"interim_dir": interim_dir} if interim_dir else {}))
     busy = threading.Lock()
     worker = ThreadPoolExecutor(max_workers=1, thread_name_prefix="ueba-demo")
 
@@ -139,7 +139,7 @@ def create_app(artifact_dir: Path | None = None, cleaned_dir: Path | None = None
         try:
             if service.health()["status"] != "ready":
                 return error_response("artifact_unavailable", "Artifact demo chưa sẵn sàng.", 503)
-            with tempfile.TemporaryDirectory(prefix="ueba-upload-", dir=service.cleaned_dir.parent) as folder:
+            with tempfile.TemporaryDirectory(prefix="ueba-upload-", dir=service.interim_dir.parent) as folder:
                 path = Path(folder) / "upload.parquet"
                 filename = await receive_file(request, path)
                 future = worker.submit(service.analyze, path, filename)
