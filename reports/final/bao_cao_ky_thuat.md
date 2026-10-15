@@ -90,7 +90,7 @@ tấn công nào?
 
 | Hạng mục | Đề cương | Báo cáo này | Lý do |
 |---|---|---|---|
-| LOF | `LocalOutlierFactor(novelty=True)` của scikit-learn | LOF tính trên láng giềng xấp xỉ HNSW (thư viện `hnswlib`) | LOF chính xác không chạy được trên khoảng 315.000 dòng User với nhiều cấu hình, nên tuần 3 chỉ fit trên mẫu con. Thứ hạng khi đó phụ thuộc mẫu và seed: với mẫu 50.000 dòng, Top-20 qua 3 seed chỉ trùng trung bình 72% (thấp nhất 65%); với mẫu 20.000 dòng, chỉ trùng 3%. HNSW cho phép fit trên toàn bộ dữ liệu train |
+| LOF | `LocalOutlierFactor(novelty=True)` của scikit-learn | LOF tính trên láng giềng xấp xỉ HNSW (thư viện `hnswlib`) | LOF chính xác không chạy được trên khoảng 315.000 dòng User với nhiều cấu hình, nên tuần 3 chỉ fit trên mẫu con 20.000–50.000 dòng. Khi đó kết quả phụ thuộc vào mẫu được lấy: Top-20 qua 3 seed trùng trung bình 72% với mẫu 50.000 dòng (báo cáo tuần 3) nhưng chỉ 3% với mẫu 20.000 dòng (`reports/week3/tom_tat_tuan3.md`). HNSW cho phép fit trên toàn bộ dữ liệu train nên bỏ được phụ thuộc này |
 | One-Class SVM | `OneClassSVM(kernel="rbf")` | Nhân RBF xấp xỉ bằng Nystroem, rồi `SGDOneClassSVM` | Bản gốc của scikit-learn có thời gian chạy tăng theo bậc 2–3 của số dòng |
 | Chỉ số chính | PR-AUC | Recall top-100 cảnh báo/ngày. PR-AUC vẫn có trong mọi bảng | Khớp với việc SOC chỉ xem được một số cảnh báo cố định mỗi ngày, và so được giữa các loại tấn công (mục 3.4.3) |
 | Chia tập | Train / test theo thời gian | Thêm khối dev (ngày 36–42) nằm trong train | Chọn cấu hình và đặc trưng mà không dùng nhãn của test (một ngoại lệ ở mục 5.3.3) |
@@ -144,8 +144,8 @@ cài đặt trong `src/data/cleaner.py` và có unit test (`tests/test_cleaner.p
 | # | Vấn đề phát hiện | Quyết định | Lý do |
 |---|---|---|---|
 | 1 | `LogonTypeDescription` thiếu ở vài bản ghi 4624 | Điền theo bảng ánh xạ chuẩn của Microsoft từ `LogonType` | Quan hệ 1–1, không cần đoán |
-| 2 | `Subject*`, `Process*`, `Status` thiếu 92–100% | Bỏ cột (21 → 11 cột) | Không mang thông tin; giữ lại chỉ tốn bộ nhớ |
-| 3 | `Source`, `LogonID`, `DomainName` có giá trị thiếu | Điền nhãn `"Unknown"`, chuẩn hoá `DomainName` về chữ thường | Giữ đủ số dòng và trục thời gian; thiếu `Source` vẫn là thông tin (có đặc trưng `missing_source_ratio`) |
+| 2 | Ở 4624, `Process*` thiếu 92%, `Subject*` thiếu 99,9%; `Status`, `Destination`, `ServiceName`, `ParentProcess*` trống hoàn toàn ở cả hai sự kiện | Bỏ cột (21 → 11 cột) | Không mang thông tin; giữ lại chỉ tốn bộ nhớ |
+| 3 | `Source`, `LogonID`, `DomainName` có giá trị thiếu (ngày 16: `Source` thiếu 24% ở 4624 và 32% ở 4625; `LogonID` thiếu 49% ở 4625) | Điền nhãn `"Unknown"`, chuẩn hoá `DomainName` về chữ thường | Giữ đủ số dòng và trục thời gian; thiếu `Source` vẫn là thông tin (có đặc trưng `missing_source_ratio`) |
 | 4 | Bản ghi trùng hoàn toàn (ngày 1: 2,1%) | Xoá trùng tuyệt đối | Tránh thổi phồng số sự kiện |
 | 5 | Lệch giờ mùa hè từ ngày 42 | Trừ 3.600 giây cho ngày ≥ 42 | Đưa 60 ngày về cùng trục 24 giờ, quan trọng cho đặc trưng ngoài giờ |
 
@@ -197,7 +197,7 @@ Hệ quả cho thiết kế:
 
 #### 3.1.1. Quy trình xây bộ 41 đặc trưng
 
-Bộ đặc trưng đi qua 4 phiên bản (16 → 24 → 39 → 41). Phiên bản v4 dùng **không gian tổ hợp 4 trục** để sinh ứng
+Bộ đặc trưng đi qua 4 phiên bản: 18 ở tuần 2 (16 tính trong ngày, 2 lịch sử) → 24 ở tuần 3 → 39 → 41 ở tuần 4. Phiên bản v4 dùng **không gian tổ hợp 4 trục** để sinh ứng
 viên một cách có hệ thống thay vì liệt kê theo cảm tính:
 
 | Trục | Giá trị |
@@ -506,7 +506,8 @@ KernelSHAP trên một run dev, 180 nạn nhân (30 mỗi kịch bản) và 30 b
 | brute_force | failure 0,76 / 0,51 / 0,60 |
 | off_hours | time 0,52 / 0,50 / 0,29 |
 | logon_type_switch | logon_type 0,44 / 0,38 / 0,22 |
-| new_workstation_burst | novelty 0,44 / 0,34 / 0,39 và fanout |
+| password_spraying | failure 0,33 / 0,30 / 0,50, sau đó là time |
+| new_workstation_burst | novelty 0,44 / 0,34 / 0,39 và fanout 0,35 / 0,36 / 0,18 |
 | dormant_wakeup | novelty 0,49 / 0,40 / 0,30 (chủ yếu `days_since_last_activity`) |
 | **Báo nhầm** (dòng bình thường điểm cao nhất) | OCSVM: **rhythm 0,27**; IF, LOF: failure |
 
@@ -544,7 +545,8 @@ thứ tự dòng train đã làm PR-AUC OCSVM lệch −0,020 ± 0,019 (do SGD),
 
 Bộ 30 đặc trưng dùng trong tuần 5 được tạo bằng cách bỏ nhóm rhythm và **10 đặc trưng SHAP thấp nhất**. Con số 10 là
 một số tròn được chọn, không có quy tắc nào đứng sau: khi xếp 41 đặc trưng theo mức đóng góp SHAP, các giá trị giảm
-đều và không có chỗ gãy (hạng 10 là 0,0164, hạng 11 là 0,0171). Kết quả tốt của bộ 30 chỉ cho thấy bỏ các đặc trưng
+đều và không có chỗ gãy. Trên run dev dùng để chọn bộ 30, hạng 10 (`same_second_share`) là 0,0163 và hạng 11
+(`custom_proc_share`) là 0,0165, chỉ chênh 0,0002; tính trung bình 3 run thì hạng 10 là 0,0164, hạng 11 là 0,0171. Kết quả tốt của bộ 30 chỉ cho thấy bỏ các đặc trưng
 đó không gây hại, chứ không chứng minh 10 là con số đúng. Vì vậy số đặc trưng cần bỏ được chọn lại bằng **đường cong K**
 trên dev, với quy tắc chọn đặt ra trước khi xem kết quả.
 
@@ -553,14 +555,19 @@ Xếp 41 đặc trưng theo tỷ phần |SHAP| cao nhất qua 3 mô hình × 3 r
 
 | Còn lại | OCSVM | IF | LOF |
 |---|---|---|---|
-| 41 (đủ) | 0,317 | 0,139 | 0,165 |
-| 37 (bỏ rhythm) | 0,368 | 0,195 | 0,197 |
-| 30 (rhythm + 10 SHAP thấp, bộ của tuần 5) | 0,380 | 0,228 | **0,207** |
-| 25 (K = 15) | **0,385** | 0,246 | 0,181 |
-| **22 (K = 18, chốt)** | 0,383 | **0,264** | 0,170 |
-| 21 (K = 20) | 0,382 | 0,258 | 0,167 |
+| 41 (đủ) | 0,317 ± 0,058 | 0,139 ± 0,011 | 0,165 ± 0,017 |
+| 37 (bỏ rhythm, K = 0) | 0,368 ± 0,057 | 0,195 ± 0,023 | 0,197 ± 0,014 |
+| 33 (K = 5) | 0,377 ± 0,059 | 0,217 ± 0,014 | 0,197 ± 0,018 |
+| 30 (rhythm + 10 SHAP thấp, bộ của tuần 5) | 0,380 ± 0,059 | 0,228 ± 0,017 | **0,207 ± 0,014** |
+| 29 (K = 10) | 0,380 ± 0,061 | 0,235 ± 0,022 | 0,184 ± 0,015 |
+| 25 (K = 15) | **0,385 ± 0,059** | 0,246 ± 0,019 | 0,181 ± 0,015 |
+| **22 (K = 18, chốt)** | 0,383 ± 0,067 | **0,264 ± 0,012** | 0,170 ± 0,006 |
+| 21 (K = 20) | 0,382 ± 0,064 | 0,258 ± 0,021 | 0,167 ± 0,016 |
 
-Recall top-100/ngày, TB 5 run dev, cấu hình mô hình của 41 đặc trưng.
+Recall top-100/ngày, TB ± std qua 5 run dev, cấu hình mô hình của 41 đặc trưng. Bộ 30 dùng xếp hạng SHAP của 1 run,
+còn đường cong K xếp theo tỷ phần cao nhất qua 3 mô hình × 3 run, nên K = 10 cho 29 đặc trưng và không trùng với bộ 30
+(bộ 30 giữ `custom_proc_share`, `delta_mean_distinct_pair_7d`, `new_host_count_7d` nhưng bỏ `peer_z_share_night`, `volume_robust_z_7d`).
+Nguồn: [`experiments/ablation/kcurve/summary.csv`](../../experiments/ablation/kcurve/summary.csv).
 
 - **OCSVM phẳng** từ 33 đến 22 đặc trưng; **IF tăng đều** tới 22 rồi dừng; **LOF tốt nhất ở 30–33** rồi giảm.
 - **Không có K chung tốt nhất cho cả ba mô hình.** K = 18 được chốt vì là mức cắt có căn cứ, OCSVM không đổi, IF
