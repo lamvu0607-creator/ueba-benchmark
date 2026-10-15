@@ -1,10 +1,27 @@
-\usepackage{fontspec}
-\setmainfont{Liberation Serif}
-\setsansfont{Liberation Sans}
-\setmonofont{Liberation Mono}[Scale=0.9]
-\usepackage[a4paper,margin=2.2cm]{geometry}
+% Trình bày theo kiểu báo cáo tuần của nhóm: font Computer Modern tiếng Việt (vntex),
+% tiêu đề và đề mục màu xanh đậm, bảng booktabs, số trang ở giữa chân trang.
+\usepackage[utf8]{vietnam}
+\usepackage{newunicodechar}
+\newunicodechar{±}{\ensuremath{\pm}}
+\newunicodechar{−}{\ensuremath{-}}
+\newunicodechar{→}{\ensuremath{\rightarrow}}
+\newunicodechar{·}{\ensuremath{\cdot}}
+\newunicodechar{×}{\ensuremath{\times}}
+\newunicodechar{≤}{\ensuremath{\le}}
+\newunicodechar{≥}{\ensuremath{\ge}}
+\newunicodechar{≈}{\ensuremath{\approx}}
+\newunicodechar{∩}{\ensuremath{\cap}}
+\newunicodechar{γ}{\ensuremath{\gamma}}
+\newunicodechar{κ}{\ensuremath{\kappa}}
+\newunicodechar{π}{\ensuremath{\pi}}
+\newunicodechar{Δ}{\ensuremath{\Delta}}
+\newunicodechar{Σ}{\ensuremath{\Sigma}}
+\newunicodechar{½}{\ensuremath{\tfrac{1}{2}}}
+\usepackage[a4paper,top=2cm,bottom=2cm,left=2cm,right=2cm]{geometry}
+\usepackage{xcolor}
+\definecolor{tieude}{RGB}{31,73,125}
 \usepackage{etoolbox}
-\AtBeginEnvironment{longtable}{\small\setlength{\tabcolsep}{4pt}\renewcommand{\arraystretch}{1.15}}
+\AtBeginEnvironment{longtable}{\small\setlength{\tabcolsep}{5pt}}
 \usepackage{fvextra}
 \DefineVerbatimEnvironment{Highlighting}{Verbatim}{breaklines,breakanywhere,commandchars=\\\{\},fontsize=\footnotesize}
 \usepackage{float}
@@ -12,17 +29,19 @@
 \let\endorigfigure\endfigure
 \renewenvironment{figure}[1][2]{\origfigure[H]}{\endorigfigure}
 \usepackage{titlesec}
-\titleformat{\section}{\Large\bfseries\sffamily}{}{0pt}{}
-\titleformat{\subsection}{\large\bfseries\sffamily}{}{0pt}{}
-\titleformat{\subsubsection}{\normalsize\bfseries\sffamily}{}{0pt}{}
-\newcommand{\sectionbreak}{\clearpage}
-\usepackage{fancyhdr}
-\pagestyle{fancy}
-\fancyhf{}
-\fancyhead[L]{\small Báo cáo kỹ thuật – UEBA Benchmark}
-\fancyhead[R]{\small Lâm Vũ, Đinh Xuân Hiệp}
-\fancyfoot[C]{\small Trang \thepage}
+\titleformat{\section}{\color{tieude}\large\bfseries}{}{0pt}{}
+\titleformat{\subsection}{\color{tieude}\normalsize\bfseries}{}{0pt}{}
+\titleformat{\subsubsection}{\color{tieude}\normalsize\bfseries}{}{0pt}{}
+\titlespacing*{\section}{0pt}{12pt}{5pt}
+\titlespacing*{\subsection}{0pt}{9pt}{3pt}
+\titlespacing*{\subsubsection}{0pt}{7pt}{2pt}
+\usepackage{caption}
+\captionsetup{font=small,labelsep=colon}
+\captionsetup[table]{labelformat=empty,font=small}
+\pagestyle{plain}
+\setlength{\parskip}{3pt}
 \renewcommand{\contentsname}{Mục lục}
 \renewcommand{\figurename}{Hình}
 \renewcommand{\tablename}{Bảng}
 \sloppy
+\usepackage{needspace}

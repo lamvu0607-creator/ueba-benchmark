@@ -16,8 +16,10 @@ title_line, front = head.split("\n", 1)
 front = re.sub(r"^---\s*$", "", front, flags=re.M)
 # Mỗi dòng **Nhãn:** là một dòng riêng trên trang bìa.
 front = re.sub(r"^(\*\*[^*]+:\*\*.*)$", r"| \1", front, flags=re.M)
+# Tiêu đề, đề tài và thành viên đã nằm trong khối tiêu đề của build.sh.
+front = re.sub(r"^\| \*\*(Đề tài|Thành viên):\*\*.*\n", "", front, flags=re.M)
 open(front_out, "w", encoding="utf-8").write(front)
-text = title_line + "\n\n## Tóm tắt" + body
+text = "## Tóm tắt" + body
 
 # Mục lục viết tay: LaTeX tự sinh mục lục.
 text = re.sub(r"## Mục lục\n.*?(?=\n## )", "", text, flags=re.S)
@@ -27,7 +29,7 @@ text = re.sub(r"^---\s*$", "", text, flags=re.M)
 text = re.sub(r"(?m)^((?![ \t]*(?:[-*]|\d+\.)\s)(?!\|)\S.*)\n(?=(?:\d+\.|-) )", r"\1\n\n", text)
 replacements = {
     "📁 ": "Nguồn: ", "✅": "Đạt", "⚠️": "Một phần", "❌": "Chưa",
-    "✔ một phần": "Một phần", "✔": "Có", "10¹⁰": "10^10^",
+    "✔ một phần": "Một phần", "✔": "Có", "10¹⁰": "10^10^", "└─": "+-",
 }
 for old, new in replacements.items():
     text = text.replace(old, new)

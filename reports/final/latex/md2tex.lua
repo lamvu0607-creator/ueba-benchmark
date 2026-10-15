@@ -84,8 +84,74 @@ local function Table(tbl)
   return tbl
 end
 
+-- Bold, as in the weekly reports: only a lead-in label at the start of a paragraph or list item
+-- ("Lượng tiêm:", "Hình 4.1.") and the label column of tables. Every other bold is dropped.
+local function is_label(strong)
+  local t = pandoc.utils.stringify(strong)
+  return t:match('[:.]$') ~= nil
+end
+
+local function mark_leadin(block)
+  if (block.t == 'Para' or block.t == 'Plain') and #block.content > 0
+      and block.content[1].t == 'Strong' and is_label(block.content[1]) then
+    block.content[1] = pandoc.Span(block.content[1].content, {class = 'keepbold'})
+  end
+  return block
+end
+
+-- "**Bảng 4.1: ...**" right before a table becomes that table's caption, so it stays with the
+-- table across page breaks; it is set centred and not bold, like the weekly reports.
+local function attach_captions(doc)
+  local out = {}
+  local blocks = doc.blocks
+  local i = 1
+  while i <= #blocks do
+    local b, nxt = blocks[i], blocks[i + 1]
+    if b.t == 'Para' and nxt and nxt.t == 'Table' and #b.content >= 1 and b.content[1].t == 'Strong'
+        and pandoc.utils.stringify(b.content[1]):match('^Bảng [%dA-Z]') then
+      local inl = {}
+      for _, x in ipairs(b.content[1].content) do table.insert(inl, x) end
+      for k = 2, #b.content do table.insert(inl, b.content[k]) end
+      nxt.caption = {long = {pandoc.Plain(inl)}}
+      table.insert(out, nxt)
+      i = i + 2
+    else
+      table.insert(out, b)
+      i = i + 1
+    end
+  end
+  doc.blocks = out
+  return doc
+end
+
+local function first_column_bold(tbl)
+  local function cell_bold(cell)
+    local txt = pandoc.utils.stringify(cell.contents)
+    if txt == '' or txt:match('^[%d%-+–−,.%%]') then return end
+    local blocks = cell.contents
+    if #blocks == 1 and (blocks[1].t == 'Plain' or blocks[1].t == 'Para') then
+      blocks[1].content = {pandoc.Span(blocks[1].content, {class = 'keepbold'})}
+    end
+  end
+  for _, b in ipairs(tbl.bodies) do
+    for _, row in ipairs(b.body) do
+      if #row.cells > 1 then cell_bold(row.cells[1]) end
+    end
+  end
+  return tbl
+end
+
+local function Span(el)
+  if el.classes:includes('keepbold') then return pandoc.Strong(el.content) end
+end
+
 -- Table widths must be measured before inline code is turned into raw LaTeX.
 return {
+  {Pandoc = attach_captions},
+  {Para = mark_leadin, Plain = mark_leadin},
+  {Strong = function(el) return el.content end},
+  {Table = first_column_bold},
+  {Span = Span},
   {Table = Table},
   {Link = Link, Image = Image, Code = Code, Str = Str, CodeBlock = CodeBlock},
 }
