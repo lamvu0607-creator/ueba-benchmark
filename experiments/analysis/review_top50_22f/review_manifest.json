@@ -47,15 +47,15 @@
   "models": {
     "isolation_forest": "if_n300_ms1024",
     "local_outlier_factor": "lof_k20_robust",
-    "one_class_svm": "ocsvm_standard_nc1000"
+    "one_class_svm": "ocsvm_standard_g01"
   },
   "seed": 42,
   "top": 50,
-  "n_alerts": 142,
+  "n_alerts": 148,
   "top_overlap": {
     "isolation_forest&local_outlier_factor": 0,
-    "isolation_forest&one_class_svm": 6,
-    "local_outlier_factor&one_class_svm": 2,
+    "isolation_forest&one_class_svm": 2,
+    "local_outlier_factor&one_class_svm": 0,
     "all": 0
   },
   "labels": "a = đáng ngờ, cần điều tra | b = bất thường nhưng giải thích được | c = nhiễu"

@@ -1,0 +1,511 @@
+seed_index,run_id,injection_seed,model_seed,kind,model,config_id,scaler,params,scenario,n_positive,pr_auc,roc_auc
+0,dev_seed20261036,20261036,42,ml,isolation_forest,if_default,robust,{},brute_force,93,0.0112522,0.903357
+0,dev_seed20261036,20261036,42,ml,isolation_forest,if_default,robust,{},dormant_wakeup,92,0.0118442,0.928342
+0,dev_seed20261036,20261036,42,ml,isolation_forest,if_default,robust,{},logon_type_switch,92,0.0462599,0.951963
+0,dev_seed20261036,20261036,42,ml,isolation_forest,if_default,robust,{},new_workstation_burst,92,0.0185189,0.930675
+0,dev_seed20261036,20261036,42,ml,isolation_forest,if_default,robust,{},off_hours,92,0.00630555,0.849243
+0,dev_seed20261036,20261036,42,ml,isolation_forest,if_default,robust,{},password_spraying,92,0.0154872,0.817277
+0,dev_seed20261036,20261036,42,ml,isolation_forest,if_n300_ms1024,robust,"{""max_samples"": 1024, ""n_estimators"": 300}",brute_force,93,0.0218967,0.941222
+0,dev_seed20261036,20261036,42,ml,isolation_forest,if_n300_ms1024,robust,"{""max_samples"": 1024, ""n_estimators"": 300}",dormant_wakeup,92,0.0119289,0.930442
+0,dev_seed20261036,20261036,42,ml,isolation_forest,if_n300_ms1024,robust,"{""max_samples"": 1024, ""n_estimators"": 300}",logon_type_switch,92,0.0661602,0.965426
+0,dev_seed20261036,20261036,42,ml,isolation_forest,if_n300_ms1024,robust,"{""max_samples"": 1024, ""n_estimators"": 300}",new_workstation_burst,92,0.0200111,0.942232
+0,dev_seed20261036,20261036,42,ml,isolation_forest,if_n300_ms1024,robust,"{""max_samples"": 1024, ""n_estimators"": 300}",off_hours,92,0.00699098,0.858922
+0,dev_seed20261036,20261036,42,ml,isolation_forest,if_n300_ms1024,robust,"{""max_samples"": 1024, ""n_estimators"": 300}",password_spraying,92,0.0228583,0.802257
+0,dev_seed20261036,20261036,42,ml,isolation_forest,if_maxfeat05,robust,"{""max_features"": 0.5}",brute_force,93,0.0226418,0.942253
+0,dev_seed20261036,20261036,42,ml,isolation_forest,if_maxfeat05,robust,"{""max_features"": 0.5}",dormant_wakeup,92,0.00738347,0.88701
+0,dev_seed20261036,20261036,42,ml,isolation_forest,if_maxfeat05,robust,"{""max_features"": 0.5}",logon_type_switch,92,0.0183345,0.94215
+0,dev_seed20261036,20261036,42,ml,isolation_forest,if_maxfeat05,robust,"{""max_features"": 0.5}",new_workstation_burst,92,0.0105051,0.900084
+0,dev_seed20261036,20261036,42,ml,isolation_forest,if_maxfeat05,robust,"{""max_features"": 0.5}",off_hours,92,0.00688615,0.855052
+0,dev_seed20261036,20261036,42,ml,isolation_forest,if_maxfeat05,robust,"{""max_features"": 0.5}",password_spraying,92,0.030341,0.85045
+0,dev_seed20261036,20261036,42,ml,local_outlier_factor,lof_k20_robust,robust,{},brute_force,93,0.00231249,0.601202
+0,dev_seed20261036,20261036,42,ml,local_outlier_factor,lof_k20_robust,robust,{},dormant_wakeup,92,0.00174302,0.444575
+0,dev_seed20261036,20261036,42,ml,local_outlier_factor,lof_k20_robust,robust,{},logon_type_switch,92,0.100672,0.889582
+0,dev_seed20261036,20261036,42,ml,local_outlier_factor,lof_k20_robust,robust,{},new_workstation_burst,92,0.0152665,0.868916
+0,dev_seed20261036,20261036,42,ml,local_outlier_factor,lof_k20_robust,robust,{},off_hours,92,0.0100173,0.766317
+0,dev_seed20261036,20261036,42,ml,local_outlier_factor,lof_k20_robust,robust,{},password_spraying,92,0.01824,0.533123
+0,dev_seed20261036,20261036,42,ml,local_outlier_factor,lof_k20_standard,standard,{},brute_force,93,0.00772901,0.287049
+0,dev_seed20261036,20261036,42,ml,local_outlier_factor,lof_k20_standard,standard,{},dormant_wakeup,92,0.00140317,0.432172
+0,dev_seed20261036,20261036,42,ml,local_outlier_factor,lof_k20_standard,standard,{},logon_type_switch,92,0.00545905,0.781888
+0,dev_seed20261036,20261036,42,ml,local_outlier_factor,lof_k20_standard,standard,{},new_workstation_burst,92,0.00186148,0.58913
+0,dev_seed20261036,20261036,42,ml,local_outlier_factor,lof_k20_standard,standard,{},off_hours,92,0.00187363,0.5743
+0,dev_seed20261036,20261036,42,ml,local_outlier_factor,lof_k20_standard,standard,{},password_spraying,92,0.00135147,0.416081
+0,dev_seed20261036,20261036,42,ml,local_outlier_factor,lof_k20_quantile,quantile,{},brute_force,93,0.00121181,0.360147
+0,dev_seed20261036,20261036,42,ml,local_outlier_factor,lof_k20_quantile,quantile,{},dormant_wakeup,92,0.0502151,0.55504
+0,dev_seed20261036,20261036,42,ml,local_outlier_factor,lof_k20_quantile,quantile,{},logon_type_switch,92,0.0146121,0.882845
+0,dev_seed20261036,20261036,42,ml,local_outlier_factor,lof_k20_quantile,quantile,{},new_workstation_burst,92,0.00556639,0.849673
+0,dev_seed20261036,20261036,42,ml,local_outlier_factor,lof_k20_quantile,quantile,{},off_hours,92,0.00783945,0.864029
+0,dev_seed20261036,20261036,42,ml,local_outlier_factor,lof_k20_quantile,quantile,{},password_spraying,92,0.0016074,0.46567
+0,dev_seed20261036,20261036,42,ml,local_outlier_factor,lof_k100_standard,standard,"{""n_neighbors"": 100}",brute_force,93,0.015807,0.263063
+0,dev_seed20261036,20261036,42,ml,local_outlier_factor,lof_k100_standard,standard,"{""n_neighbors"": 100}",dormant_wakeup,92,0.00121767,0.361993
+0,dev_seed20261036,20261036,42,ml,local_outlier_factor,lof_k100_standard,standard,"{""n_neighbors"": 100}",logon_type_switch,92,0.00959049,0.843296
+0,dev_seed20261036,20261036,42,ml,local_outlier_factor,lof_k100_standard,standard,"{""n_neighbors"": 100}",new_workstation_burst,92,0.00289981,0.730247
+0,dev_seed20261036,20261036,42,ml,local_outlier_factor,lof_k100_standard,standard,"{""n_neighbors"": 100}",off_hours,92,0.00261398,0.676631
+0,dev_seed20261036,20261036,42,ml,local_outlier_factor,lof_k100_standard,standard,"{""n_neighbors"": 100}",password_spraying,92,0.00139222,0.407323
+0,dev_seed20261036,20261036,42,ml,one_class_svm,ocsvm_robust,robust,{},brute_force,93,0.0052335,0.489444
+0,dev_seed20261036,20261036,42,ml,one_class_svm,ocsvm_robust,robust,{},dormant_wakeup,92,0.0043308,0.737926
+0,dev_seed20261036,20261036,42,ml,one_class_svm,ocsvm_robust,robust,{},logon_type_switch,92,0.0020407,0.355146
+0,dev_seed20261036,20261036,42,ml,one_class_svm,ocsvm_robust,robust,{},new_workstation_burst,92,0.00103858,0.175401
+0,dev_seed20261036,20261036,42,ml,one_class_svm,ocsvm_robust,robust,{},off_hours,92,0.00210921,0.476056
+0,dev_seed20261036,20261036,42,ml,one_class_svm,ocsvm_robust,robust,{},password_spraying,92,0.0229327,0.486674
+0,dev_seed20261036,20261036,42,ml,one_class_svm,ocsvm_standard,standard,{},brute_force,93,0.298504,0.997624
+0,dev_seed20261036,20261036,42,ml,one_class_svm,ocsvm_standard,standard,{},dormant_wakeup,92,0.0176601,0.942729
+0,dev_seed20261036,20261036,42,ml,one_class_svm,ocsvm_standard,standard,{},logon_type_switch,92,0.111352,0.974454
+0,dev_seed20261036,20261036,42,ml,one_class_svm,ocsvm_standard,standard,{},new_workstation_burst,92,0.0474294,0.977784
+0,dev_seed20261036,20261036,42,ml,one_class_svm,ocsvm_standard,standard,{},off_hours,92,0.00654016,0.873221
+0,dev_seed20261036,20261036,42,ml,one_class_svm,ocsvm_standard,standard,{},password_spraying,92,0.00843671,0.722185
+0,dev_seed20261036,20261036,42,ml,one_class_svm,ocsvm_quantile,quantile,{},brute_force,93,0.0306324,0.974108
+0,dev_seed20261036,20261036,42,ml,one_class_svm,ocsvm_quantile,quantile,{},dormant_wakeup,92,0.00927189,0.917778
+0,dev_seed20261036,20261036,42,ml,one_class_svm,ocsvm_quantile,quantile,{},logon_type_switch,92,0.0178554,0.938537
+0,dev_seed20261036,20261036,42,ml,one_class_svm,ocsvm_quantile,quantile,{},new_workstation_burst,92,0.00524911,0.838779
+0,dev_seed20261036,20261036,42,ml,one_class_svm,ocsvm_quantile,quantile,{},off_hours,92,0.0105854,0.799194
+0,dev_seed20261036,20261036,42,ml,one_class_svm,ocsvm_quantile,quantile,{},password_spraying,92,0.0326242,0.599507
+0,dev_seed20261036,20261036,42,ml,one_class_svm,ocsvm_standard_nc1000,standard,"{""n_components"": 1000}",brute_force,93,0.0609043,0.987863
+0,dev_seed20261036,20261036,42,ml,one_class_svm,ocsvm_standard_nc1000,standard,"{""n_components"": 1000}",dormant_wakeup,92,0.0213148,0.944806
+0,dev_seed20261036,20261036,42,ml,one_class_svm,ocsvm_standard_nc1000,standard,"{""n_components"": 1000}",logon_type_switch,92,0.125479,0.974511
+0,dev_seed20261036,20261036,42,ml,one_class_svm,ocsvm_standard_nc1000,standard,"{""n_components"": 1000}",new_workstation_burst,92,0.0355561,0.975455
+0,dev_seed20261036,20261036,42,ml,one_class_svm,ocsvm_standard_nc1000,standard,"{""n_components"": 1000}",off_hours,92,0.00661563,0.876861
+0,dev_seed20261036,20261036,42,ml,one_class_svm,ocsvm_standard_nc1000,standard,"{""n_components"": 1000}",password_spraying,92,0.0115818,0.660768
+0,dev_seed20261036,20261036,42,ml,one_class_svm,ocsvm_standard_g0005,standard,"{""gamma"": 0.005}",brute_force,93,0.228607,0.996599
+0,dev_seed20261036,20261036,42,ml,one_class_svm,ocsvm_standard_g0005,standard,"{""gamma"": 0.005}",dormant_wakeup,92,0.0185852,0.942496
+0,dev_seed20261036,20261036,42,ml,one_class_svm,ocsvm_standard_g0005,standard,"{""gamma"": 0.005}",logon_type_switch,92,0.135969,0.970073
+0,dev_seed20261036,20261036,42,ml,one_class_svm,ocsvm_standard_g0005,standard,"{""gamma"": 0.005}",new_workstation_burst,92,0.0611897,0.982887
+0,dev_seed20261036,20261036,42,ml,one_class_svm,ocsvm_standard_g0005,standard,"{""gamma"": 0.005}",off_hours,92,0.00654224,0.881789
+0,dev_seed20261036,20261036,42,ml,one_class_svm,ocsvm_standard_g0005,standard,"{""gamma"": 0.005}",password_spraying,92,0.0101962,0.650826
+0,dev_seed20261036,20261036,42,ml,one_class_svm,ocsvm_standard_g01,standard,"{""gamma"": 0.1}",brute_force,93,0.375377,0.997928
+0,dev_seed20261036,20261036,42,ml,one_class_svm,ocsvm_standard_g01,standard,"{""gamma"": 0.1}",dormant_wakeup,92,0.0173502,0.937814
+0,dev_seed20261036,20261036,42,ml,one_class_svm,ocsvm_standard_g01,standard,"{""gamma"": 0.1}",logon_type_switch,92,0.10718,0.968652
+0,dev_seed20261036,20261036,42,ml,one_class_svm,ocsvm_standard_g01,standard,"{""gamma"": 0.1}",new_workstation_burst,92,0.0437592,0.972863
+0,dev_seed20261036,20261036,42,ml,one_class_svm,ocsvm_standard_g01,standard,"{""gamma"": 0.1}",off_hours,92,0.00607859,0.859473
+0,dev_seed20261036,20261036,42,ml,one_class_svm,ocsvm_standard_g01,standard,"{""gamma"": 0.1}",password_spraying,92,0.00805088,0.734562
+0,dev_seed20261036,20261036,42,baseline,zscore_baseline,default,none,{},brute_force,93,0.0059309,0.813504
+0,dev_seed20261036,20261036,42,baseline,zscore_baseline,default,none,{},dormant_wakeup,92,0.0051803,0.790311
+0,dev_seed20261036,20261036,42,baseline,zscore_baseline,default,none,{},logon_type_switch,92,0.00685994,0.792664
+0,dev_seed20261036,20261036,42,baseline,zscore_baseline,default,none,{},new_workstation_burst,92,0.00170279,0.528493
+0,dev_seed20261036,20261036,42,baseline,zscore_baseline,default,none,{},off_hours,92,0.00258051,0.678655
+0,dev_seed20261036,20261036,42,baseline,zscore_baseline,default,none,{},password_spraying,92,0.0379229,0.676623
+0,dev_seed20261036,20261036,42,baseline,rule_threshold_baseline,default,none,{},brute_force,93,0.0134547,0.77752
+0,dev_seed20261036,20261036,42,baseline,rule_threshold_baseline,default,none,{},dormant_wakeup,92,0.00169455,0.491226
+0,dev_seed20261036,20261036,42,baseline,rule_threshold_baseline,default,none,{},logon_type_switch,92,0.00175818,0.519832
+0,dev_seed20261036,20261036,42,baseline,rule_threshold_baseline,default,none,{},new_workstation_burst,92,0.00161261,0.475692
+0,dev_seed20261036,20261036,42,baseline,rule_threshold_baseline,default,none,{},off_hours,92,0.00306734,0.707098
+0,dev_seed20261036,20261036,42,baseline,rule_threshold_baseline,default,none,{},password_spraying,92,0.00622724,0.611006
+0,dev_seed20261036,20261036,42,baseline,failure_count_baseline,default,none,{},brute_force,93,0.0707764,0.989308
+0,dev_seed20261036,20261036,42,baseline,failure_count_baseline,default,none,{},dormant_wakeup,92,0.00165758,0.502972
+0,dev_seed20261036,20261036,42,baseline,failure_count_baseline,default,none,{},logon_type_switch,92,0.00168829,0.361317
+0,dev_seed20261036,20261036,42,baseline,failure_count_baseline,default,none,{},new_workstation_burst,92,0.0017681,0.49551
+0,dev_seed20261036,20261036,42,baseline,failure_count_baseline,default,none,{},off_hours,92,0.0018348,0.540479
+0,dev_seed20261036,20261036,42,baseline,failure_count_baseline,default,none,{},password_spraying,92,0.00661525,0.875253
+0,dev_seed20261036,20261036,42,baseline,random_baseline,default,none,{},brute_force,93,0.00248541,0.56832
+0,dev_seed20261036,20261036,42,baseline,random_baseline,default,none,{},dormant_wakeup,92,0.00192852,0.509791
+0,dev_seed20261036,20261036,42,baseline,random_baseline,default,none,{},logon_type_switch,92,0.00156892,0.461395
+0,dev_seed20261036,20261036,42,baseline,random_baseline,default,none,{},new_workstation_burst,92,0.00171744,0.497737
+0,dev_seed20261036,20261036,42,baseline,random_baseline,default,none,{},off_hours,92,0.00168419,0.501126
+0,dev_seed20261036,20261036,42,baseline,random_baseline,default,none,{},password_spraying,92,0.00165713,0.47991
+1,dev_seed20261037,20261037,7,ml,isolation_forest,if_default,robust,{},brute_force,93,0.0416841,0.941323
+1,dev_seed20261037,20261037,7,ml,isolation_forest,if_default,robust,{},dormant_wakeup,92,0.0101049,0.92032
+1,dev_seed20261037,20261037,7,ml,isolation_forest,if_default,robust,{},logon_type_switch,92,0.0377452,0.947162
+1,dev_seed20261037,20261037,7,ml,isolation_forest,if_default,robust,{},new_workstation_burst,92,0.0206573,0.956197
+1,dev_seed20261037,20261037,7,ml,isolation_forest,if_default,robust,{},off_hours,92,0.00517268,0.839177
+1,dev_seed20261037,20261037,7,ml,isolation_forest,if_default,robust,{},password_spraying,92,0.0387937,0.844444
+1,dev_seed20261037,20261037,7,ml,isolation_forest,if_n300_ms1024,robust,"{""max_samples"": 1024, ""n_estimators"": 300}",brute_force,93,0.0591825,0.951482
+1,dev_seed20261037,20261037,7,ml,isolation_forest,if_n300_ms1024,robust,"{""max_samples"": 1024, ""n_estimators"": 300}",dormant_wakeup,92,0.00986468,0.91819
+1,dev_seed20261037,20261037,7,ml,isolation_forest,if_n300_ms1024,robust,"{""max_samples"": 1024, ""n_estimators"": 300}",logon_type_switch,92,0.102942,0.968072
+1,dev_seed20261037,20261037,7,ml,isolation_forest,if_n300_ms1024,robust,"{""max_samples"": 1024, ""n_estimators"": 300}",new_workstation_burst,92,0.0310618,0.967886
+1,dev_seed20261037,20261037,7,ml,isolation_forest,if_n300_ms1024,robust,"{""max_samples"": 1024, ""n_estimators"": 300}",off_hours,92,0.00544794,0.845332
+1,dev_seed20261037,20261037,7,ml,isolation_forest,if_n300_ms1024,robust,"{""max_samples"": 1024, ""n_estimators"": 300}",password_spraying,92,0.0367254,0.807653
+1,dev_seed20261037,20261037,7,ml,isolation_forest,if_maxfeat05,robust,"{""max_features"": 0.5}",brute_force,93,0.049184,0.933081
+1,dev_seed20261037,20261037,7,ml,isolation_forest,if_maxfeat05,robust,"{""max_features"": 0.5}",dormant_wakeup,92,0.00835218,0.903752
+1,dev_seed20261037,20261037,7,ml,isolation_forest,if_maxfeat05,robust,"{""max_features"": 0.5}",logon_type_switch,92,0.0420665,0.937606
+1,dev_seed20261037,20261037,7,ml,isolation_forest,if_maxfeat05,robust,"{""max_features"": 0.5}",new_workstation_burst,92,0.0155728,0.946287
+1,dev_seed20261037,20261037,7,ml,isolation_forest,if_maxfeat05,robust,"{""max_features"": 0.5}",off_hours,92,0.00545066,0.848133
+1,dev_seed20261037,20261037,7,ml,isolation_forest,if_maxfeat05,robust,"{""max_features"": 0.5}",password_spraying,92,0.0515827,0.836162
+1,dev_seed20261037,20261037,7,ml,local_outlier_factor,lof_k20_robust,robust,{},brute_force,93,0.00194392,0.537662
+1,dev_seed20261037,20261037,7,ml,local_outlier_factor,lof_k20_robust,robust,{},dormant_wakeup,92,0.00398252,0.491613
+1,dev_seed20261037,20261037,7,ml,local_outlier_factor,lof_k20_robust,robust,{},logon_type_switch,92,0.0956627,0.895663
+1,dev_seed20261037,20261037,7,ml,local_outlier_factor,lof_k20_robust,robust,{},new_workstation_burst,92,0.0168451,0.90545
+1,dev_seed20261037,20261037,7,ml,local_outlier_factor,lof_k20_robust,robust,{},off_hours,92,0.00777347,0.779777
+1,dev_seed20261037,20261037,7,ml,local_outlier_factor,lof_k20_robust,robust,{},password_spraying,92,0.0027893,0.507558
+1,dev_seed20261037,20261037,7,ml,local_outlier_factor,lof_k20_standard,standard,{},brute_force,93,0.0133801,0.379033
+1,dev_seed20261037,20261037,7,ml,local_outlier_factor,lof_k20_standard,standard,{},dormant_wakeup,92,0.00127214,0.391688
+1,dev_seed20261037,20261037,7,ml,local_outlier_factor,lof_k20_standard,standard,{},logon_type_switch,92,0.00662221,0.825249
+1,dev_seed20261037,20261037,7,ml,local_outlier_factor,lof_k20_standard,standard,{},new_workstation_burst,92,0.00199113,0.60645
+1,dev_seed20261037,20261037,7,ml,local_outlier_factor,lof_k20_standard,standard,{},off_hours,92,0.0023648,0.617112
+1,dev_seed20261037,20261037,7,ml,local_outlier_factor,lof_k20_standard,standard,{},password_spraying,92,0.00152931,0.432346
+1,dev_seed20261037,20261037,7,ml,local_outlier_factor,lof_k20_quantile,quantile,{},brute_force,93,0.00133029,0.380294
+1,dev_seed20261037,20261037,7,ml,local_outlier_factor,lof_k20_quantile,quantile,{},dormant_wakeup,92,0.00760976,0.583911
+1,dev_seed20261037,20261037,7,ml,local_outlier_factor,lof_k20_quantile,quantile,{},logon_type_switch,92,0.020153,0.882945
+1,dev_seed20261037,20261037,7,ml,local_outlier_factor,lof_k20_quantile,quantile,{},new_workstation_burst,92,0.0055543,0.853659
+1,dev_seed20261037,20261037,7,ml,local_outlier_factor,lof_k20_quantile,quantile,{},off_hours,92,0.00887197,0.875567
+1,dev_seed20261037,20261037,7,ml,local_outlier_factor,lof_k20_quantile,quantile,{},password_spraying,92,0.00200627,0.533962
+1,dev_seed20261037,20261037,7,ml,local_outlier_factor,lof_k100_standard,standard,"{""n_neighbors"": 100}",brute_force,93,0.0104224,0.33255
+1,dev_seed20261037,20261037,7,ml,local_outlier_factor,lof_k100_standard,standard,"{""n_neighbors"": 100}",dormant_wakeup,92,0.0208321,0.348359
+1,dev_seed20261037,20261037,7,ml,local_outlier_factor,lof_k100_standard,standard,"{""n_neighbors"": 100}",logon_type_switch,92,0.0105788,0.877133
+1,dev_seed20261037,20261037,7,ml,local_outlier_factor,lof_k100_standard,standard,"{""n_neighbors"": 100}",new_workstation_burst,92,0.00262682,0.704112
+1,dev_seed20261037,20261037,7,ml,local_outlier_factor,lof_k100_standard,standard,"{""n_neighbors"": 100}",off_hours,92,0.00299199,0.70286
+1,dev_seed20261037,20261037,7,ml,local_outlier_factor,lof_k100_standard,standard,"{""n_neighbors"": 100}",password_spraying,92,0.00144468,0.426673
+1,dev_seed20261037,20261037,7,ml,one_class_svm,ocsvm_robust,robust,{},brute_force,93,0.0183928,0.544688
+1,dev_seed20261037,20261037,7,ml,one_class_svm,ocsvm_robust,robust,{},dormant_wakeup,92,0.00531458,0.800944
+1,dev_seed20261037,20261037,7,ml,one_class_svm,ocsvm_robust,robust,{},logon_type_switch,92,0.00173788,0.354909
+1,dev_seed20261037,20261037,7,ml,one_class_svm,ocsvm_robust,robust,{},new_workstation_burst,92,0.00098077,0.169023
+1,dev_seed20261037,20261037,7,ml,one_class_svm,ocsvm_robust,robust,{},off_hours,92,0.00184055,0.453959
+1,dev_seed20261037,20261037,7,ml,one_class_svm,ocsvm_robust,robust,{},password_spraying,92,0.0843111,0.544743
+1,dev_seed20261037,20261037,7,ml,one_class_svm,ocsvm_standard,standard,{},brute_force,93,0.346246,0.997944
+1,dev_seed20261037,20261037,7,ml,one_class_svm,ocsvm_standard,standard,{},dormant_wakeup,92,0.0150312,0.939516
+1,dev_seed20261037,20261037,7,ml,one_class_svm,ocsvm_standard,standard,{},logon_type_switch,92,0.114057,0.979576
+1,dev_seed20261037,20261037,7,ml,one_class_svm,ocsvm_standard,standard,{},new_workstation_burst,92,0.0534813,0.983779
+1,dev_seed20261037,20261037,7,ml,one_class_svm,ocsvm_standard,standard,{},off_hours,92,0.00649986,0.86562
+1,dev_seed20261037,20261037,7,ml,one_class_svm,ocsvm_standard,standard,{},password_spraying,92,0.0299937,0.721952
+1,dev_seed20261037,20261037,7,ml,one_class_svm,ocsvm_quantile,quantile,{},brute_force,93,0.0497107,0.977564
+1,dev_seed20261037,20261037,7,ml,one_class_svm,ocsvm_quantile,quantile,{},dormant_wakeup,92,0.00787661,0.903042
+1,dev_seed20261037,20261037,7,ml,one_class_svm,ocsvm_quantile,quantile,{},logon_type_switch,92,0.0208152,0.943426
+1,dev_seed20261037,20261037,7,ml,one_class_svm,ocsvm_quantile,quantile,{},new_workstation_burst,92,0.00592909,0.864934
+1,dev_seed20261037,20261037,7,ml,one_class_svm,ocsvm_quantile,quantile,{},off_hours,92,0.00781745,0.786882
+1,dev_seed20261037,20261037,7,ml,one_class_svm,ocsvm_quantile,quantile,{},password_spraying,92,0.066819,0.636403
+1,dev_seed20261037,20261037,7,ml,one_class_svm,ocsvm_standard_nc1000,standard,"{""n_components"": 1000}",brute_force,93,0.194666,0.996163
+1,dev_seed20261037,20261037,7,ml,one_class_svm,ocsvm_standard_nc1000,standard,"{""n_components"": 1000}",dormant_wakeup,92,0.0162369,0.942322
+1,dev_seed20261037,20261037,7,ml,one_class_svm,ocsvm_standard_nc1000,standard,"{""n_components"": 1000}",logon_type_switch,92,0.259422,0.981898
+1,dev_seed20261037,20261037,7,ml,one_class_svm,ocsvm_standard_nc1000,standard,"{""n_components"": 1000}",new_workstation_burst,92,0.0762595,0.988539
+1,dev_seed20261037,20261037,7,ml,one_class_svm,ocsvm_standard_nc1000,standard,"{""n_components"": 1000}",off_hours,92,0.00733587,0.867611
+1,dev_seed20261037,20261037,7,ml,one_class_svm,ocsvm_standard_nc1000,standard,"{""n_components"": 1000}",password_spraying,92,0.0264908,0.706165
+1,dev_seed20261037,20261037,7,ml,one_class_svm,ocsvm_standard_g0005,standard,"{""gamma"": 0.005}",brute_force,93,0.264677,0.996738
+1,dev_seed20261037,20261037,7,ml,one_class_svm,ocsvm_standard_g0005,standard,"{""gamma"": 0.005}",dormant_wakeup,92,0.0206664,0.941635
+1,dev_seed20261037,20261037,7,ml,one_class_svm,ocsvm_standard_g0005,standard,"{""gamma"": 0.005}",logon_type_switch,92,0.113755,0.972137
+1,dev_seed20261037,20261037,7,ml,one_class_svm,ocsvm_standard_g0005,standard,"{""gamma"": 0.005}",new_workstation_burst,92,0.0565823,0.98475
+1,dev_seed20261037,20261037,7,ml,one_class_svm,ocsvm_standard_g0005,standard,"{""gamma"": 0.005}",off_hours,92,0.00654083,0.881187
+1,dev_seed20261037,20261037,7,ml,one_class_svm,ocsvm_standard_g0005,standard,"{""gamma"": 0.005}",password_spraying,92,0.0167462,0.663212
+1,dev_seed20261037,20261037,7,ml,one_class_svm,ocsvm_standard_g01,standard,"{""gamma"": 0.1}",brute_force,93,0.447478,0.998264
+1,dev_seed20261037,20261037,7,ml,one_class_svm,ocsvm_standard_g01,standard,"{""gamma"": 0.1}",dormant_wakeup,92,0.0142496,0.937866
+1,dev_seed20261037,20261037,7,ml,one_class_svm,ocsvm_standard_g01,standard,"{""gamma"": 0.1}",logon_type_switch,92,0.118435,0.974817
+1,dev_seed20261037,20261037,7,ml,one_class_svm,ocsvm_standard_g01,standard,"{""gamma"": 0.1}",new_workstation_burst,92,0.0535271,0.982917
+1,dev_seed20261037,20261037,7,ml,one_class_svm,ocsvm_standard_g01,standard,"{""gamma"": 0.1}",off_hours,92,0.00643547,0.864001
+1,dev_seed20261037,20261037,7,ml,one_class_svm,ocsvm_standard_g01,standard,"{""gamma"": 0.1}",password_spraying,92,0.0297648,0.768822
+1,dev_seed20261037,20261037,7,baseline,zscore_baseline,default,none,{},brute_force,93,0.014778,0.846262
+1,dev_seed20261037,20261037,7,baseline,zscore_baseline,default,none,{},dormant_wakeup,92,0.00527847,0.792652
+1,dev_seed20261037,20261037,7,baseline,zscore_baseline,default,none,{},logon_type_switch,92,0.00687054,0.786793
+1,dev_seed20261037,20261037,7,baseline,zscore_baseline,default,none,{},new_workstation_burst,92,0.0017349,0.542212
+1,dev_seed20261037,20261037,7,baseline,zscore_baseline,default,none,{},off_hours,92,0.00245582,0.670632
+1,dev_seed20261037,20261037,7,baseline,zscore_baseline,default,none,{},password_spraying,92,0.0535628,0.707937
+1,dev_seed20261037,20261037,7,baseline,rule_threshold_baseline,default,none,{},brute_force,93,0.0138536,0.769589
+1,dev_seed20261037,20261037,7,baseline,rule_threshold_baseline,default,none,{},dormant_wakeup,92,0.00178728,0.510308
+1,dev_seed20261037,20261037,7,baseline,rule_threshold_baseline,default,none,{},logon_type_switch,92,0.00228839,0.608275
+1,dev_seed20261037,20261037,7,baseline,rule_threshold_baseline,default,none,{},new_workstation_burst,92,0.00145094,0.421801
+1,dev_seed20261037,20261037,7,baseline,rule_threshold_baseline,default,none,{},off_hours,92,0.00253312,0.653996
+1,dev_seed20261037,20261037,7,baseline,rule_threshold_baseline,default,none,{},password_spraying,92,0.0071144,0.67499
+1,dev_seed20261037,20261037,7,baseline,failure_count_baseline,default,none,{},brute_force,93,0.0723844,0.989573
+1,dev_seed20261037,20261037,7,baseline,failure_count_baseline,default,none,{},dormant_wakeup,92,0.00164755,0.483819
+1,dev_seed20261037,20261037,7,baseline,failure_count_baseline,default,none,{},logon_type_switch,92,0.00168814,0.361348
+1,dev_seed20261037,20261037,7,baseline,failure_count_baseline,default,none,{},new_workstation_burst,92,0.00163397,0.486214
+1,dev_seed20261037,20261037,7,baseline,failure_count_baseline,default,none,{},off_hours,92,0.00202722,0.527333
+1,dev_seed20261037,20261037,7,baseline,failure_count_baseline,default,none,{},password_spraying,92,0.00749004,0.886965
+1,dev_seed20261037,20261037,7,baseline,random_baseline,default,none,{},brute_force,93,0.00169002,0.454197
+1,dev_seed20261037,20261037,7,baseline,random_baseline,default,none,{},dormant_wakeup,92,0.0016726,0.506717
+1,dev_seed20261037,20261037,7,baseline,random_baseline,default,none,{},logon_type_switch,92,0.00167563,0.487164
+1,dev_seed20261037,20261037,7,baseline,random_baseline,default,none,{},new_workstation_burst,92,0.00207244,0.544106
+1,dev_seed20261037,20261037,7,baseline,random_baseline,default,none,{},off_hours,92,0.00146077,0.457698
+1,dev_seed20261037,20261037,7,baseline,random_baseline,default,none,{},password_spraying,92,0.00152556,0.47118
+2,dev_seed20261038,20261038,2024,ml,isolation_forest,if_default,robust,{},brute_force,93,0.0198822,0.929595
+2,dev_seed20261038,20261038,2024,ml,isolation_forest,if_default,robust,{},dormant_wakeup,92,0.0114971,0.928492
+2,dev_seed20261038,20261038,2024,ml,isolation_forest,if_default,robust,{},logon_type_switch,92,0.0625265,0.947392
+2,dev_seed20261038,20261038,2024,ml,isolation_forest,if_default,robust,{},new_workstation_burst,92,0.0156523,0.94706
+2,dev_seed20261038,20261038,2024,ml,isolation_forest,if_default,robust,{},off_hours,92,0.00888494,0.854399
+2,dev_seed20261038,20261038,2024,ml,isolation_forest,if_default,robust,{},password_spraying,92,0.0459324,0.882785
+2,dev_seed20261038,20261038,2024,ml,isolation_forest,if_n300_ms1024,robust,"{""max_samples"": 1024, ""n_estimators"": 300}",brute_force,93,0.0375057,0.950996
+2,dev_seed20261038,20261038,2024,ml,isolation_forest,if_n300_ms1024,robust,"{""max_samples"": 1024, ""n_estimators"": 300}",dormant_wakeup,92,0.0123065,0.929033
+2,dev_seed20261038,20261038,2024,ml,isolation_forest,if_n300_ms1024,robust,"{""max_samples"": 1024, ""n_estimators"": 300}",logon_type_switch,92,0.10712,0.955824
+2,dev_seed20261038,20261038,2024,ml,isolation_forest,if_n300_ms1024,robust,"{""max_samples"": 1024, ""n_estimators"": 300}",new_workstation_burst,92,0.0260333,0.959978
+2,dev_seed20261038,20261038,2024,ml,isolation_forest,if_n300_ms1024,robust,"{""max_samples"": 1024, ""n_estimators"": 300}",off_hours,92,0.00972439,0.863576
+2,dev_seed20261038,20261038,2024,ml,isolation_forest,if_n300_ms1024,robust,"{""max_samples"": 1024, ""n_estimators"": 300}",password_spraying,92,0.0561874,0.865255
+2,dev_seed20261038,20261038,2024,ml,isolation_forest,if_maxfeat05,robust,"{""max_features"": 0.5}",brute_force,93,0.0213736,0.932967
+2,dev_seed20261038,20261038,2024,ml,isolation_forest,if_maxfeat05,robust,"{""max_features"": 0.5}",dormant_wakeup,92,0.0104655,0.917614
+2,dev_seed20261038,20261038,2024,ml,isolation_forest,if_maxfeat05,robust,"{""max_features"": 0.5}",logon_type_switch,92,0.0287525,0.938864
+2,dev_seed20261038,20261038,2024,ml,isolation_forest,if_maxfeat05,robust,"{""max_features"": 0.5}",new_workstation_burst,92,0.0126703,0.929115
+2,dev_seed20261038,20261038,2024,ml,isolation_forest,if_maxfeat05,robust,"{""max_features"": 0.5}",off_hours,92,0.0109118,0.860792
+2,dev_seed20261038,20261038,2024,ml,isolation_forest,if_maxfeat05,robust,"{""max_features"": 0.5}",password_spraying,92,0.0560283,0.890752
+2,dev_seed20261038,20261038,2024,ml,local_outlier_factor,lof_k20_robust,robust,{},brute_force,93,0.00231261,0.588413
+2,dev_seed20261038,20261038,2024,ml,local_outlier_factor,lof_k20_robust,robust,{},dormant_wakeup,92,0.0093522,0.575936
+2,dev_seed20261038,20261038,2024,ml,local_outlier_factor,lof_k20_robust,robust,{},logon_type_switch,92,0.0941796,0.886267
+2,dev_seed20261038,20261038,2024,ml,local_outlier_factor,lof_k20_robust,robust,{},new_workstation_burst,92,0.0175033,0.914072
+2,dev_seed20261038,20261038,2024,ml,local_outlier_factor,lof_k20_robust,robust,{},off_hours,92,0.00958816,0.807991
+2,dev_seed20261038,20261038,2024,ml,local_outlier_factor,lof_k20_robust,robust,{},password_spraying,92,0.110058,0.635396
+2,dev_seed20261038,20261038,2024,ml,local_outlier_factor,lof_k20_standard,standard,{},brute_force,93,0.0127005,0.352107
+2,dev_seed20261038,20261038,2024,ml,local_outlier_factor,lof_k20_standard,standard,{},dormant_wakeup,92,0.00149763,0.454487
+2,dev_seed20261038,20261038,2024,ml,local_outlier_factor,lof_k20_standard,standard,{},logon_type_switch,92,0.00739924,0.815238
+2,dev_seed20261038,20261038,2024,ml,local_outlier_factor,lof_k20_standard,standard,{},new_workstation_burst,92,0.00191536,0.595035
+2,dev_seed20261038,20261038,2024,ml,local_outlier_factor,lof_k20_standard,standard,{},off_hours,92,0.00250483,0.629332
+2,dev_seed20261038,20261038,2024,ml,local_outlier_factor,lof_k20_standard,standard,{},password_spraying,92,0.00187358,0.464119
+2,dev_seed20261038,20261038,2024,ml,local_outlier_factor,lof_k20_quantile,quantile,{},brute_force,93,0.00131149,0.361983
+2,dev_seed20261038,20261038,2024,ml,local_outlier_factor,lof_k20_quantile,quantile,{},dormant_wakeup,92,0.00874892,0.512304
+2,dev_seed20261038,20261038,2024,ml,local_outlier_factor,lof_k20_quantile,quantile,{},logon_type_switch,92,0.0127896,0.855378
+2,dev_seed20261038,20261038,2024,ml,local_outlier_factor,lof_k20_quantile,quantile,{},new_workstation_burst,92,0.00512131,0.838004
+2,dev_seed20261038,20261038,2024,ml,local_outlier_factor,lof_k20_quantile,quantile,{},off_hours,92,0.00785135,0.867839
+2,dev_seed20261038,20261038,2024,ml,local_outlier_factor,lof_k20_quantile,quantile,{},password_spraying,92,0.00776144,0.657607
+2,dev_seed20261038,20261038,2024,ml,local_outlier_factor,lof_k100_standard,standard,"{""n_neighbors"": 100}",brute_force,93,0.0187876,0.364723
+2,dev_seed20261038,20261038,2024,ml,local_outlier_factor,lof_k100_standard,standard,"{""n_neighbors"": 100}",dormant_wakeup,92,0.00126793,0.386897
+2,dev_seed20261038,20261038,2024,ml,local_outlier_factor,lof_k100_standard,standard,"{""n_neighbors"": 100}",logon_type_switch,92,0.0114856,0.871432
+2,dev_seed20261038,20261038,2024,ml,local_outlier_factor,lof_k100_standard,standard,"{""n_neighbors"": 100}",new_workstation_burst,92,0.00273766,0.713558
+2,dev_seed20261038,20261038,2024,ml,local_outlier_factor,lof_k100_standard,standard,"{""n_neighbors"": 100}",off_hours,92,0.00263405,0.679515
+2,dev_seed20261038,20261038,2024,ml,local_outlier_factor,lof_k100_standard,standard,"{""n_neighbors"": 100}",password_spraying,92,0.00224626,0.516043
+2,dev_seed20261038,20261038,2024,ml,one_class_svm,ocsvm_robust,robust,{},brute_force,93,0.00914419,0.513533
+2,dev_seed20261038,20261038,2024,ml,one_class_svm,ocsvm_robust,robust,{},dormant_wakeup,92,0.0046059,0.749111
+2,dev_seed20261038,20261038,2024,ml,one_class_svm,ocsvm_robust,robust,{},logon_type_switch,92,0.00210777,0.39215
+2,dev_seed20261038,20261038,2024,ml,one_class_svm,ocsvm_robust,robust,{},new_workstation_burst,92,0.00102939,0.186877
+2,dev_seed20261038,20261038,2024,ml,one_class_svm,ocsvm_robust,robust,{},off_hours,92,0.00261522,0.454959
+2,dev_seed20261038,20261038,2024,ml,one_class_svm,ocsvm_robust,robust,{},password_spraying,92,0.120689,0.649383
+2,dev_seed20261038,20261038,2024,ml,one_class_svm,ocsvm_standard,standard,{},brute_force,93,0.124983,0.994218
+2,dev_seed20261038,20261038,2024,ml,one_class_svm,ocsvm_standard,standard,{},dormant_wakeup,92,0.0167527,0.94588
+2,dev_seed20261038,20261038,2024,ml,one_class_svm,ocsvm_standard,standard,{},logon_type_switch,92,0.332006,0.980819
+2,dev_seed20261038,20261038,2024,ml,one_class_svm,ocsvm_standard,standard,{},new_workstation_burst,92,0.114931,0.983175
+2,dev_seed20261038,20261038,2024,ml,one_class_svm,ocsvm_standard,standard,{},off_hours,92,0.00716859,0.875615
+2,dev_seed20261038,20261038,2024,ml,one_class_svm,ocsvm_standard,standard,{},password_spraying,92,0.0600979,0.765831
+2,dev_seed20261038,20261038,2024,ml,one_class_svm,ocsvm_quantile,quantile,{},brute_force,93,0.0265958,0.968728
+2,dev_seed20261038,20261038,2024,ml,one_class_svm,ocsvm_quantile,quantile,{},dormant_wakeup,92,0.00958121,0.916751
+2,dev_seed20261038,20261038,2024,ml,one_class_svm,ocsvm_quantile,quantile,{},logon_type_switch,92,0.0177757,0.938263
+2,dev_seed20261038,20261038,2024,ml,one_class_svm,ocsvm_quantile,quantile,{},new_workstation_burst,92,0.00528855,0.846696
+2,dev_seed20261038,20261038,2024,ml,one_class_svm,ocsvm_quantile,quantile,{},off_hours,92,0.0113248,0.799957
+2,dev_seed20261038,20261038,2024,ml,one_class_svm,ocsvm_quantile,quantile,{},password_spraying,92,0.0558733,0.695402
+2,dev_seed20261038,20261038,2024,ml,one_class_svm,ocsvm_standard_nc1000,standard,"{""n_components"": 1000}",brute_force,93,0.114074,0.993712
+2,dev_seed20261038,20261038,2024,ml,one_class_svm,ocsvm_standard_nc1000,standard,"{""n_components"": 1000}",dormant_wakeup,92,0.0146265,0.929241
+2,dev_seed20261038,20261038,2024,ml,one_class_svm,ocsvm_standard_nc1000,standard,"{""n_components"": 1000}",logon_type_switch,92,0.301904,0.980148
+2,dev_seed20261038,20261038,2024,ml,one_class_svm,ocsvm_standard_nc1000,standard,"{""n_components"": 1000}",new_workstation_burst,92,0.0727877,0.983406
+2,dev_seed20261038,20261038,2024,ml,one_class_svm,ocsvm_standard_nc1000,standard,"{""n_components"": 1000}",off_hours,92,0.00789763,0.878163
+2,dev_seed20261038,20261038,2024,ml,one_class_svm,ocsvm_standard_nc1000,standard,"{""n_components"": 1000}",password_spraying,92,0.0661207,0.808398
+2,dev_seed20261038,20261038,2024,ml,one_class_svm,ocsvm_standard_g0005,standard,"{""gamma"": 0.005}",brute_force,93,0.192729,0.994795
+2,dev_seed20261038,20261038,2024,ml,one_class_svm,ocsvm_standard_g0005,standard,"{""gamma"": 0.005}",dormant_wakeup,92,0.019395,0.945511
+2,dev_seed20261038,20261038,2024,ml,one_class_svm,ocsvm_standard_g0005,standard,"{""gamma"": 0.005}",logon_type_switch,92,0.171087,0.967478
+2,dev_seed20261038,20261038,2024,ml,one_class_svm,ocsvm_standard_g0005,standard,"{""gamma"": 0.005}",new_workstation_burst,92,0.0650528,0.982761
+2,dev_seed20261038,20261038,2024,ml,one_class_svm,ocsvm_standard_g0005,standard,"{""gamma"": 0.005}",off_hours,92,0.00671484,0.88082
+2,dev_seed20261038,20261038,2024,ml,one_class_svm,ocsvm_standard_g0005,standard,"{""gamma"": 0.005}",password_spraying,92,0.0249354,0.750072
+2,dev_seed20261038,20261038,2024,ml,one_class_svm,ocsvm_standard_g01,standard,"{""gamma"": 0.1}",brute_force,93,0.101403,0.992937
+2,dev_seed20261038,20261038,2024,ml,one_class_svm,ocsvm_standard_g01,standard,"{""gamma"": 0.1}",dormant_wakeup,92,0.0150228,0.941736
+2,dev_seed20261038,20261038,2024,ml,one_class_svm,ocsvm_standard_g01,standard,"{""gamma"": 0.1}",logon_type_switch,92,0.35984,0.977777
+2,dev_seed20261038,20261038,2024,ml,one_class_svm,ocsvm_standard_g01,standard,"{""gamma"": 0.1}",new_workstation_burst,92,0.133963,0.982016
+2,dev_seed20261038,20261038,2024,ml,one_class_svm,ocsvm_standard_g01,standard,"{""gamma"": 0.1}",off_hours,92,0.00606559,0.8425
+2,dev_seed20261038,20261038,2024,ml,one_class_svm,ocsvm_standard_g01,standard,"{""gamma"": 0.1}",password_spraying,92,0.062288,0.791689
+2,dev_seed20261038,20261038,2024,baseline,zscore_baseline,default,none,{},brute_force,93,0.00881804,0.82248
+2,dev_seed20261038,20261038,2024,baseline,zscore_baseline,default,none,{},dormant_wakeup,92,0.00513674,0.796037
+2,dev_seed20261038,20261038,2024,baseline,zscore_baseline,default,none,{},logon_type_switch,92,0.00677288,0.789754
+2,dev_seed20261038,20261038,2024,baseline,zscore_baseline,default,none,{},new_workstation_burst,92,0.00166501,0.533265
+2,dev_seed20261038,20261038,2024,baseline,zscore_baseline,default,none,{},off_hours,92,0.00321145,0.666646
+2,dev_seed20261038,20261038,2024,baseline,zscore_baseline,default,none,{},password_spraying,92,0.0760399,0.76161
+2,dev_seed20261038,20261038,2024,baseline,rule_threshold_baseline,default,none,{},brute_force,93,0.0113213,0.769765
+2,dev_seed20261038,20261038,2024,baseline,rule_threshold_baseline,default,none,{},dormant_wakeup,92,0.00206166,0.546549
+2,dev_seed20261038,20261038,2024,baseline,rule_threshold_baseline,default,none,{},logon_type_switch,92,0.0018913,0.534335
+2,dev_seed20261038,20261038,2024,baseline,rule_threshold_baseline,default,none,{},new_workstation_burst,92,0.00152161,0.442639
+2,dev_seed20261038,20261038,2024,baseline,rule_threshold_baseline,default,none,{},off_hours,92,0.00376898,0.703968
+2,dev_seed20261038,20261038,2024,baseline,rule_threshold_baseline,default,none,{},password_spraying,92,0.00548335,0.631629
+2,dev_seed20261038,20261038,2024,baseline,failure_count_baseline,default,none,{},brute_force,93,0.0681214,0.988947
+2,dev_seed20261038,20261038,2024,baseline,failure_count_baseline,default,none,{},dormant_wakeup,92,0.00188003,0.53123
+2,dev_seed20261038,20261038,2024,baseline,failure_count_baseline,default,none,{},logon_type_switch,92,0.00168795,0.361327
+2,dev_seed20261038,20261038,2024,baseline,failure_count_baseline,default,none,{},new_workstation_burst,92,0.00182884,0.526128
+2,dev_seed20261038,20261038,2024,baseline,failure_count_baseline,default,none,{},off_hours,92,0.00214595,0.571049
+2,dev_seed20261038,20261038,2024,baseline,failure_count_baseline,default,none,{},password_spraying,92,0.00824425,0.888581
+2,dev_seed20261038,20261038,2024,baseline,random_baseline,default,none,{},brute_force,93,0.001642,0.465861
+2,dev_seed20261038,20261038,2024,baseline,random_baseline,default,none,{},dormant_wakeup,92,0.00196606,0.483414
+2,dev_seed20261038,20261038,2024,baseline,random_baseline,default,none,{},logon_type_switch,92,0.00191989,0.531366
+2,dev_seed20261038,20261038,2024,baseline,random_baseline,default,none,{},new_workstation_burst,92,0.00190232,0.5241
+2,dev_seed20261038,20261038,2024,baseline,random_baseline,default,none,{},off_hours,92,0.00171931,0.50167
+2,dev_seed20261038,20261038,2024,baseline,random_baseline,default,none,{},password_spraying,92,0.001987,0.519037
+3,dev_seed20261039,20261039,1,ml,isolation_forest,if_default,robust,{},brute_force,93,0.0194958,0.919094
+3,dev_seed20261039,20261039,1,ml,isolation_forest,if_default,robust,{},dormant_wakeup,92,0.01226,0.926788
+3,dev_seed20261039,20261039,1,ml,isolation_forest,if_default,robust,{},logon_type_switch,92,0.0235615,0.935255
+3,dev_seed20261039,20261039,1,ml,isolation_forest,if_default,robust,{},new_workstation_burst,92,0.0222023,0.943242
+3,dev_seed20261039,20261039,1,ml,isolation_forest,if_default,robust,{},off_hours,92,0.00657149,0.863158
+3,dev_seed20261039,20261039,1,ml,isolation_forest,if_default,robust,{},password_spraying,92,0.0856667,0.906828
+3,dev_seed20261039,20261039,1,ml,isolation_forest,if_n300_ms1024,robust,"{""max_samples"": 1024, ""n_estimators"": 300}",brute_force,93,0.0604378,0.953888
+3,dev_seed20261039,20261039,1,ml,isolation_forest,if_n300_ms1024,robust,"{""max_samples"": 1024, ""n_estimators"": 300}",dormant_wakeup,92,0.0108656,0.918357
+3,dev_seed20261039,20261039,1,ml,isolation_forest,if_n300_ms1024,robust,"{""max_samples"": 1024, ""n_estimators"": 300}",logon_type_switch,92,0.0373907,0.95417
+3,dev_seed20261039,20261039,1,ml,isolation_forest,if_n300_ms1024,robust,"{""max_samples"": 1024, ""n_estimators"": 300}",new_workstation_burst,92,0.0232059,0.9481
+3,dev_seed20261039,20261039,1,ml,isolation_forest,if_n300_ms1024,robust,"{""max_samples"": 1024, ""n_estimators"": 300}",off_hours,92,0.00740381,0.873726
+3,dev_seed20261039,20261039,1,ml,isolation_forest,if_n300_ms1024,robust,"{""max_samples"": 1024, ""n_estimators"": 300}",password_spraying,92,0.0946451,0.893539
+3,dev_seed20261039,20261039,1,ml,isolation_forest,if_maxfeat05,robust,"{""max_features"": 0.5}",brute_force,93,0.0285902,0.939162
+3,dev_seed20261039,20261039,1,ml,isolation_forest,if_maxfeat05,robust,"{""max_features"": 0.5}",dormant_wakeup,92,0.0110503,0.923206
+3,dev_seed20261039,20261039,1,ml,isolation_forest,if_maxfeat05,robust,"{""max_features"": 0.5}",logon_type_switch,92,0.0376042,0.94827
+3,dev_seed20261039,20261039,1,ml,isolation_forest,if_maxfeat05,robust,"{""max_features"": 0.5}",new_workstation_burst,92,0.0226243,0.949407
+3,dev_seed20261039,20261039,1,ml,isolation_forest,if_maxfeat05,robust,"{""max_features"": 0.5}",off_hours,92,0.00689627,0.851787
+3,dev_seed20261039,20261039,1,ml,isolation_forest,if_maxfeat05,robust,"{""max_features"": 0.5}",password_spraying,92,0.0910864,0.915224
+3,dev_seed20261039,20261039,1,ml,local_outlier_factor,lof_k20_robust,robust,{},brute_force,93,0.00161703,0.490839
+3,dev_seed20261039,20261039,1,ml,local_outlier_factor,lof_k20_robust,robust,{},dormant_wakeup,92,0.00297372,0.522078
+3,dev_seed20261039,20261039,1,ml,local_outlier_factor,lof_k20_robust,robust,{},logon_type_switch,92,0.193199,0.905958
+3,dev_seed20261039,20261039,1,ml,local_outlier_factor,lof_k20_robust,robust,{},new_workstation_burst,92,0.017975,0.928676
+3,dev_seed20261039,20261039,1,ml,local_outlier_factor,lof_k20_robust,robust,{},off_hours,92,0.00720941,0.734854
+3,dev_seed20261039,20261039,1,ml,local_outlier_factor,lof_k20_robust,robust,{},password_spraying,92,0.165344,0.567683
+3,dev_seed20261039,20261039,1,ml,local_outlier_factor,lof_k20_standard,standard,{},brute_force,93,0.0130739,0.3448
+3,dev_seed20261039,20261039,1,ml,local_outlier_factor,lof_k20_standard,standard,{},dormant_wakeup,92,0.00143184,0.444809
+3,dev_seed20261039,20261039,1,ml,local_outlier_factor,lof_k20_standard,standard,{},logon_type_switch,92,0.00699997,0.829095
+3,dev_seed20261039,20261039,1,ml,local_outlier_factor,lof_k20_standard,standard,{},new_workstation_burst,92,0.00190002,0.589922
+3,dev_seed20261039,20261039,1,ml,local_outlier_factor,lof_k20_standard,standard,{},off_hours,92,0.0019638,0.585629
+3,dev_seed20261039,20261039,1,ml,local_outlier_factor,lof_k20_standard,standard,{},password_spraying,92,0.00147005,0.425567
+3,dev_seed20261039,20261039,1,ml,local_outlier_factor,lof_k20_quantile,quantile,{},brute_force,93,0.00123227,0.365029
+3,dev_seed20261039,20261039,1,ml,local_outlier_factor,lof_k20_quantile,quantile,{},dormant_wakeup,92,0.0260162,0.538323
+3,dev_seed20261039,20261039,1,ml,local_outlier_factor,lof_k20_quantile,quantile,{},logon_type_switch,92,0.0116915,0.883015
+3,dev_seed20261039,20261039,1,ml,local_outlier_factor,lof_k20_quantile,quantile,{},new_workstation_burst,92,0.0050435,0.830601
+3,dev_seed20261039,20261039,1,ml,local_outlier_factor,lof_k20_quantile,quantile,{},off_hours,92,0.00875122,0.861123
+3,dev_seed20261039,20261039,1,ml,local_outlier_factor,lof_k20_quantile,quantile,{},password_spraying,92,0.0021964,0.611316
+3,dev_seed20261039,20261039,1,ml,local_outlier_factor,lof_k100_standard,standard,"{""n_neighbors"": 100}",brute_force,93,0.0142526,0.320771
+3,dev_seed20261039,20261039,1,ml,local_outlier_factor,lof_k100_standard,standard,"{""n_neighbors"": 100}",dormant_wakeup,92,0.00117989,0.34981
+3,dev_seed20261039,20261039,1,ml,local_outlier_factor,lof_k100_standard,standard,"{""n_neighbors"": 100}",logon_type_switch,92,0.0101814,0.861232
+3,dev_seed20261039,20261039,1,ml,local_outlier_factor,lof_k100_standard,standard,"{""n_neighbors"": 100}",new_workstation_burst,92,0.00268024,0.70724
+3,dev_seed20261039,20261039,1,ml,local_outlier_factor,lof_k100_standard,standard,"{""n_neighbors"": 100}",off_hours,92,0.00257277,0.687667
+3,dev_seed20261039,20261039,1,ml,local_outlier_factor,lof_k100_standard,standard,"{""n_neighbors"": 100}",password_spraying,92,0.002255,0.547406
+3,dev_seed20261039,20261039,1,ml,one_class_svm,ocsvm_robust,robust,{},brute_force,93,0.0173591,0.500825
+3,dev_seed20261039,20261039,1,ml,one_class_svm,ocsvm_robust,robust,{},dormant_wakeup,92,0.00475937,0.765007
+3,dev_seed20261039,20261039,1,ml,one_class_svm,ocsvm_robust,robust,{},logon_type_switch,92,0.00187857,0.349651
+3,dev_seed20261039,20261039,1,ml,one_class_svm,ocsvm_robust,robust,{},new_workstation_burst,92,0.0018005,0.177957
+3,dev_seed20261039,20261039,1,ml,one_class_svm,ocsvm_robust,robust,{},off_hours,92,0.00346091,0.497825
+3,dev_seed20261039,20261039,1,ml,one_class_svm,ocsvm_robust,robust,{},password_spraying,92,0.0724677,0.606758
+3,dev_seed20261039,20261039,1,ml,one_class_svm,ocsvm_standard,standard,{},brute_force,93,0.351987,0.998346
+3,dev_seed20261039,20261039,1,ml,one_class_svm,ocsvm_standard,standard,{},dormant_wakeup,92,0.0260747,0.95485
+3,dev_seed20261039,20261039,1,ml,one_class_svm,ocsvm_standard,standard,{},logon_type_switch,92,0.0999378,0.971551
+3,dev_seed20261039,20261039,1,ml,one_class_svm,ocsvm_standard,standard,{},new_workstation_burst,92,0.0660626,0.981538
+3,dev_seed20261039,20261039,1,ml,one_class_svm,ocsvm_standard,standard,{},off_hours,92,0.00846513,0.901286
+3,dev_seed20261039,20261039,1,ml,one_class_svm,ocsvm_standard,standard,{},password_spraying,92,0.0343571,0.869351
+3,dev_seed20261039,20261039,1,ml,one_class_svm,ocsvm_quantile,quantile,{},brute_force,93,0.0501988,0.978564
+3,dev_seed20261039,20261039,1,ml,one_class_svm,ocsvm_quantile,quantile,{},dormant_wakeup,92,0.010746,0.923145
+3,dev_seed20261039,20261039,1,ml,one_class_svm,ocsvm_quantile,quantile,{},logon_type_switch,92,0.0164662,0.942272
+3,dev_seed20261039,20261039,1,ml,one_class_svm,ocsvm_quantile,quantile,{},new_workstation_burst,92,0.00511111,0.839875
+3,dev_seed20261039,20261039,1,ml,one_class_svm,ocsvm_quantile,quantile,{},off_hours,92,0.00924146,0.829108
+3,dev_seed20261039,20261039,1,ml,one_class_svm,ocsvm_quantile,quantile,{},password_spraying,92,0.0391845,0.724214
+3,dev_seed20261039,20261039,1,ml,one_class_svm,ocsvm_standard_nc1000,standard,"{""n_components"": 1000}",brute_force,93,0.165467,0.994727
+3,dev_seed20261039,20261039,1,ml,one_class_svm,ocsvm_standard_nc1000,standard,"{""n_components"": 1000}",dormant_wakeup,92,0.0165772,0.927547
+3,dev_seed20261039,20261039,1,ml,one_class_svm,ocsvm_standard_nc1000,standard,"{""n_components"": 1000}",logon_type_switch,92,0.213737,0.975799
+3,dev_seed20261039,20261039,1,ml,one_class_svm,ocsvm_standard_nc1000,standard,"{""n_components"": 1000}",new_workstation_burst,92,0.10127,0.984707
+3,dev_seed20261039,20261039,1,ml,one_class_svm,ocsvm_standard_nc1000,standard,"{""n_components"": 1000}",off_hours,92,0.0090121,0.899763
+3,dev_seed20261039,20261039,1,ml,one_class_svm,ocsvm_standard_nc1000,standard,"{""n_components"": 1000}",password_spraying,92,0.0676832,0.805786
+3,dev_seed20261039,20261039,1,ml,one_class_svm,ocsvm_standard_g0005,standard,"{""gamma"": 0.005}",brute_force,93,0.248936,0.996604
+3,dev_seed20261039,20261039,1,ml,one_class_svm,ocsvm_standard_g0005,standard,"{""gamma"": 0.005}",dormant_wakeup,92,0.0221038,0.940872
+3,dev_seed20261039,20261039,1,ml,one_class_svm,ocsvm_standard_g0005,standard,"{""gamma"": 0.005}",logon_type_switch,92,0.0861852,0.968532
+3,dev_seed20261039,20261039,1,ml,one_class_svm,ocsvm_standard_g0005,standard,"{""gamma"": 0.005}",new_workstation_burst,92,0.063821,0.983194
+3,dev_seed20261039,20261039,1,ml,one_class_svm,ocsvm_standard_g0005,standard,"{""gamma"": 0.005}",off_hours,92,0.00732897,0.895147
+3,dev_seed20261039,20261039,1,ml,one_class_svm,ocsvm_standard_g0005,standard,"{""gamma"": 0.005}",password_spraying,92,0.0381493,0.807576
+3,dev_seed20261039,20261039,1,ml,one_class_svm,ocsvm_standard_g01,standard,"{""gamma"": 0.1}",brute_force,93,0.444107,0.99868
+3,dev_seed20261039,20261039,1,ml,one_class_svm,ocsvm_standard_g01,standard,"{""gamma"": 0.1}",dormant_wakeup,92,0.0268837,0.94645
+3,dev_seed20261039,20261039,1,ml,one_class_svm,ocsvm_standard_g01,standard,"{""gamma"": 0.1}",logon_type_switch,92,0.106761,0.968838
+3,dev_seed20261039,20261039,1,ml,one_class_svm,ocsvm_standard_g01,standard,"{""gamma"": 0.1}",new_workstation_burst,92,0.0614287,0.977645
+3,dev_seed20261039,20261039,1,ml,one_class_svm,ocsvm_standard_g01,standard,"{""gamma"": 0.1}",off_hours,92,0.00806383,0.885129
+3,dev_seed20261039,20261039,1,ml,one_class_svm,ocsvm_standard_g01,standard,"{""gamma"": 0.1}",password_spraying,92,0.0353842,0.89786
+3,dev_seed20261039,20261039,1,baseline,zscore_baseline,default,none,{},brute_force,93,0.0137778,0.823653
+3,dev_seed20261039,20261039,1,baseline,zscore_baseline,default,none,{},dormant_wakeup,92,0.00525504,0.800893
+3,dev_seed20261039,20261039,1,baseline,zscore_baseline,default,none,{},logon_type_switch,92,0.00702925,0.790727
+3,dev_seed20261039,20261039,1,baseline,zscore_baseline,default,none,{},new_workstation_burst,92,0.00196011,0.547018
+3,dev_seed20261039,20261039,1,baseline,zscore_baseline,default,none,{},off_hours,92,0.00358922,0.699442
+3,dev_seed20261039,20261039,1,baseline,zscore_baseline,default,none,{},password_spraying,92,0.134222,0.777041
+3,dev_seed20261039,20261039,1,baseline,rule_threshold_baseline,default,none,{},brute_force,93,0.0111783,0.760801
+3,dev_seed20261039,20261039,1,baseline,rule_threshold_baseline,default,none,{},dormant_wakeup,92,0.0019611,0.514187
+3,dev_seed20261039,20261039,1,baseline,rule_threshold_baseline,default,none,{},logon_type_switch,92,0.00186768,0.541976
+3,dev_seed20261039,20261039,1,baseline,rule_threshold_baseline,default,none,{},new_workstation_burst,92,0.0015637,0.458308
+3,dev_seed20261039,20261039,1,baseline,rule_threshold_baseline,default,none,{},off_hours,92,0.00307361,0.696903
+3,dev_seed20261039,20261039,1,baseline,rule_threshold_baseline,default,none,{},password_spraying,92,0.00900221,0.725779
+3,dev_seed20261039,20261039,1,baseline,failure_count_baseline,default,none,{},brute_force,93,0.0660791,0.988501
+3,dev_seed20261039,20261039,1,baseline,failure_count_baseline,default,none,{},dormant_wakeup,92,0.00184059,0.507285
+3,dev_seed20261039,20261039,1,baseline,failure_count_baseline,default,none,{},logon_type_switch,92,0.00168767,0.361294
+3,dev_seed20261039,20261039,1,baseline,failure_count_baseline,default,none,{},new_workstation_burst,92,0.00179407,0.526205
+3,dev_seed20261039,20261039,1,baseline,failure_count_baseline,default,none,{},off_hours,92,0.00186001,0.536375
+3,dev_seed20261039,20261039,1,baseline,failure_count_baseline,default,none,{},password_spraying,92,0.00697421,0.87848
+3,dev_seed20261039,20261039,1,baseline,random_baseline,default,none,{},brute_force,93,0.00182761,0.502289
+3,dev_seed20261039,20261039,1,baseline,random_baseline,default,none,{},dormant_wakeup,92,0.0020301,0.530389
+3,dev_seed20261039,20261039,1,baseline,random_baseline,default,none,{},logon_type_switch,92,0.00181823,0.486861
+3,dev_seed20261039,20261039,1,baseline,random_baseline,default,none,{},new_workstation_burst,92,0.0123442,0.454444
+3,dev_seed20261039,20261039,1,baseline,random_baseline,default,none,{},off_hours,92,0.00204991,0.540667
+3,dev_seed20261039,20261039,1,baseline,random_baseline,default,none,{},password_spraying,92,0.0017016,0.49707
+4,dev_seed20261040,20261040,2,ml,isolation_forest,if_default,robust,{},brute_force,93,0.0277769,0.940062
+4,dev_seed20261040,20261040,2,ml,isolation_forest,if_default,robust,{},dormant_wakeup,92,0.0131426,0.935952
+4,dev_seed20261040,20261040,2,ml,isolation_forest,if_default,robust,{},logon_type_switch,92,0.0290317,0.949714
+4,dev_seed20261040,20261040,2,ml,isolation_forest,if_default,robust,{},new_workstation_burst,92,0.0212932,0.939945
+4,dev_seed20261040,20261040,2,ml,isolation_forest,if_default,robust,{},off_hours,92,0.00440981,0.801463
+4,dev_seed20261040,20261040,2,ml,isolation_forest,if_default,robust,{},password_spraying,92,0.0344259,0.863799
+4,dev_seed20261040,20261040,2,ml,isolation_forest,if_n300_ms1024,robust,"{""max_samples"": 1024, ""n_estimators"": 300}",brute_force,93,0.055865,0.94415
+4,dev_seed20261040,20261040,2,ml,isolation_forest,if_n300_ms1024,robust,"{""max_samples"": 1024, ""n_estimators"": 300}",dormant_wakeup,92,0.0133735,0.931196
+4,dev_seed20261040,20261040,2,ml,isolation_forest,if_n300_ms1024,robust,"{""max_samples"": 1024, ""n_estimators"": 300}",logon_type_switch,92,0.0867924,0.958509
+4,dev_seed20261040,20261040,2,ml,isolation_forest,if_n300_ms1024,robust,"{""max_samples"": 1024, ""n_estimators"": 300}",new_workstation_burst,92,0.0397018,0.960961
+4,dev_seed20261040,20261040,2,ml,isolation_forest,if_n300_ms1024,robust,"{""max_samples"": 1024, ""n_estimators"": 300}",off_hours,92,0.00558962,0.845203
+4,dev_seed20261040,20261040,2,ml,isolation_forest,if_n300_ms1024,robust,"{""max_samples"": 1024, ""n_estimators"": 300}",password_spraying,92,0.0452512,0.835744
+4,dev_seed20261040,20261040,2,ml,isolation_forest,if_maxfeat05,robust,"{""max_features"": 0.5}",brute_force,93,0.0293883,0.927498
+4,dev_seed20261040,20261040,2,ml,isolation_forest,if_maxfeat05,robust,"{""max_features"": 0.5}",dormant_wakeup,92,0.0130606,0.933051
+4,dev_seed20261040,20261040,2,ml,isolation_forest,if_maxfeat05,robust,"{""max_features"": 0.5}",logon_type_switch,92,0.0380817,0.946789
+4,dev_seed20261040,20261040,2,ml,isolation_forest,if_maxfeat05,robust,"{""max_features"": 0.5}",new_workstation_burst,92,0.0310965,0.940417
+4,dev_seed20261040,20261040,2,ml,isolation_forest,if_maxfeat05,robust,"{""max_features"": 0.5}",off_hours,92,0.0053469,0.832201
+4,dev_seed20261040,20261040,2,ml,isolation_forest,if_maxfeat05,robust,"{""max_features"": 0.5}",password_spraying,92,0.0324476,0.844562
+4,dev_seed20261040,20261040,2,ml,local_outlier_factor,lof_k20_robust,robust,{},brute_force,93,0.00267861,0.594648
+4,dev_seed20261040,20261040,2,ml,local_outlier_factor,lof_k20_robust,robust,{},dormant_wakeup,92,0.0206572,0.474131
+4,dev_seed20261040,20261040,2,ml,local_outlier_factor,lof_k20_robust,robust,{},logon_type_switch,92,0.125047,0.893773
+4,dev_seed20261040,20261040,2,ml,local_outlier_factor,lof_k20_robust,robust,{},new_workstation_burst,92,0.018907,0.905024
+4,dev_seed20261040,20261040,2,ml,local_outlier_factor,lof_k20_robust,robust,{},off_hours,92,0.00785237,0.76925
+4,dev_seed20261040,20261040,2,ml,local_outlier_factor,lof_k20_robust,robust,{},password_spraying,92,0.00220456,0.488305
+4,dev_seed20261040,20261040,2,ml,local_outlier_factor,lof_k20_standard,standard,{},brute_force,93,0.0180423,0.359237
+4,dev_seed20261040,20261040,2,ml,local_outlier_factor,lof_k20_standard,standard,{},dormant_wakeup,92,0.0018256,0.394703
+4,dev_seed20261040,20261040,2,ml,local_outlier_factor,lof_k20_standard,standard,{},logon_type_switch,92,0.00602988,0.786459
+4,dev_seed20261040,20261040,2,ml,local_outlier_factor,lof_k20_standard,standard,{},new_workstation_burst,92,0.00182541,0.569959
+4,dev_seed20261040,20261040,2,ml,local_outlier_factor,lof_k20_standard,standard,{},off_hours,92,0.00196162,0.581084
+4,dev_seed20261040,20261040,2,ml,local_outlier_factor,lof_k20_standard,standard,{},password_spraying,92,0.00150349,0.403757
+4,dev_seed20261040,20261040,2,ml,local_outlier_factor,lof_k20_quantile,quantile,{},brute_force,93,0.00119262,0.342575
+4,dev_seed20261040,20261040,2,ml,local_outlier_factor,lof_k20_quantile,quantile,{},dormant_wakeup,92,0.00299922,0.560538
+4,dev_seed20261040,20261040,2,ml,local_outlier_factor,lof_k20_quantile,quantile,{},logon_type_switch,92,0.0185351,0.877277
+4,dev_seed20261040,20261040,2,ml,local_outlier_factor,lof_k20_quantile,quantile,{},new_workstation_burst,92,0.00590234,0.863434
+4,dev_seed20261040,20261040,2,ml,local_outlier_factor,lof_k20_quantile,quantile,{},off_hours,92,0.00750219,0.835935
+4,dev_seed20261040,20261040,2,ml,local_outlier_factor,lof_k20_quantile,quantile,{},password_spraying,92,0.00193569,0.529398
+4,dev_seed20261040,20261040,2,ml,local_outlier_factor,lof_k100_standard,standard,"{""n_neighbors"": 100}",brute_force,93,0.0124601,0.334584
+4,dev_seed20261040,20261040,2,ml,local_outlier_factor,lof_k100_standard,standard,"{""n_neighbors"": 100}",dormant_wakeup,92,0.00115357,0.332168
+4,dev_seed20261040,20261040,2,ml,local_outlier_factor,lof_k100_standard,standard,"{""n_neighbors"": 100}",logon_type_switch,92,0.0101613,0.853862
+4,dev_seed20261040,20261040,2,ml,local_outlier_factor,lof_k100_standard,standard,"{""n_neighbors"": 100}",new_workstation_burst,92,0.00285088,0.719013
+4,dev_seed20261040,20261040,2,ml,local_outlier_factor,lof_k100_standard,standard,"{""n_neighbors"": 100}",off_hours,92,0.00243467,0.667914
+4,dev_seed20261040,20261040,2,ml,local_outlier_factor,lof_k100_standard,standard,"{""n_neighbors"": 100}",password_spraying,92,0.00203491,0.438334
+4,dev_seed20261040,20261040,2,ml,one_class_svm,ocsvm_robust,robust,{},brute_force,93,0.0189566,0.559219
+4,dev_seed20261040,20261040,2,ml,one_class_svm,ocsvm_robust,robust,{},dormant_wakeup,92,0.00574302,0.801152
+4,dev_seed20261040,20261040,2,ml,one_class_svm,ocsvm_robust,robust,{},logon_type_switch,92,0.00234215,0.403135
+4,dev_seed20261040,20261040,2,ml,one_class_svm,ocsvm_robust,robust,{},new_workstation_burst,92,0.00148981,0.181437
+4,dev_seed20261040,20261040,2,ml,one_class_svm,ocsvm_robust,robust,{},off_hours,92,0.00192845,0.462776
+4,dev_seed20261040,20261040,2,ml,one_class_svm,ocsvm_robust,robust,{},password_spraying,92,0.018915,0.549873
+4,dev_seed20261040,20261040,2,ml,one_class_svm,ocsvm_standard,standard,{},brute_force,93,0.184967,0.996055
+4,dev_seed20261040,20261040,2,ml,one_class_svm,ocsvm_standard,standard,{},dormant_wakeup,92,0.0208075,0.938882
+4,dev_seed20261040,20261040,2,ml,one_class_svm,ocsvm_standard,standard,{},logon_type_switch,92,0.229636,0.97144
+4,dev_seed20261040,20261040,2,ml,one_class_svm,ocsvm_standard,standard,{},new_workstation_burst,92,0.0677512,0.981197
+4,dev_seed20261040,20261040,2,ml,one_class_svm,ocsvm_standard,standard,{},off_hours,92,0.00589935,0.857314
+4,dev_seed20261040,20261040,2,ml,one_class_svm,ocsvm_standard,standard,{},password_spraying,92,0.024871,0.734594
+4,dev_seed20261040,20261040,2,ml,one_class_svm,ocsvm_quantile,quantile,{},brute_force,93,0.0299185,0.97346
+4,dev_seed20261040,20261040,2,ml,one_class_svm,ocsvm_quantile,quantile,{},dormant_wakeup,92,0.0110395,0.919395
+4,dev_seed20261040,20261040,2,ml,one_class_svm,ocsvm_quantile,quantile,{},logon_type_switch,92,0.0173395,0.936236
+4,dev_seed20261040,20261040,2,ml,one_class_svm,ocsvm_quantile,quantile,{},new_workstation_burst,92,0.00648976,0.840453
+4,dev_seed20261040,20261040,2,ml,one_class_svm,ocsvm_quantile,quantile,{},off_hours,92,0.00785993,0.784096
+4,dev_seed20261040,20261040,2,ml,one_class_svm,ocsvm_quantile,quantile,{},password_spraying,92,0.0522382,0.636087
+4,dev_seed20261040,20261040,2,ml,one_class_svm,ocsvm_standard_nc1000,standard,"{""n_components"": 1000}",brute_force,93,0.20079,0.995944
+4,dev_seed20261040,20261040,2,ml,one_class_svm,ocsvm_standard_nc1000,standard,"{""n_components"": 1000}",dormant_wakeup,92,0.0183159,0.91189
+4,dev_seed20261040,20261040,2,ml,one_class_svm,ocsvm_standard_nc1000,standard,"{""n_components"": 1000}",logon_type_switch,92,0.169106,0.977983
+4,dev_seed20261040,20261040,2,ml,one_class_svm,ocsvm_standard_nc1000,standard,"{""n_components"": 1000}",new_workstation_burst,92,0.0673125,0.984556
+4,dev_seed20261040,20261040,2,ml,one_class_svm,ocsvm_standard_nc1000,standard,"{""n_components"": 1000}",off_hours,92,0.00620849,0.858737
+4,dev_seed20261040,20261040,2,ml,one_class_svm,ocsvm_standard_nc1000,standard,"{""n_components"": 1000}",password_spraying,92,0.0305355,0.706529
+4,dev_seed20261040,20261040,2,ml,one_class_svm,ocsvm_standard_g0005,standard,"{""gamma"": 0.005}",brute_force,93,0.21565,0.995971
+4,dev_seed20261040,20261040,2,ml,one_class_svm,ocsvm_standard_g0005,standard,"{""gamma"": 0.005}",dormant_wakeup,92,0.0224929,0.941662
+4,dev_seed20261040,20261040,2,ml,one_class_svm,ocsvm_standard_g0005,standard,"{""gamma"": 0.005}",logon_type_switch,92,0.152648,0.968259
+4,dev_seed20261040,20261040,2,ml,one_class_svm,ocsvm_standard_g0005,standard,"{""gamma"": 0.005}",new_workstation_burst,92,0.0659072,0.985673
+4,dev_seed20261040,20261040,2,ml,one_class_svm,ocsvm_standard_g0005,standard,"{""gamma"": 0.005}",off_hours,92,0.0060114,0.86969
+4,dev_seed20261040,20261040,2,ml,one_class_svm,ocsvm_standard_g0005,standard,"{""gamma"": 0.005}",password_spraying,92,0.0187731,0.702144
+4,dev_seed20261040,20261040,2,ml,one_class_svm,ocsvm_standard_g01,standard,"{""gamma"": 0.1}",brute_force,93,0.156095,0.994909
+4,dev_seed20261040,20261040,2,ml,one_class_svm,ocsvm_standard_g01,standard,"{""gamma"": 0.1}",dormant_wakeup,92,0.0207457,0.934867
+4,dev_seed20261040,20261040,2,ml,one_class_svm,ocsvm_standard_g01,standard,"{""gamma"": 0.1}",logon_type_switch,92,0.232668,0.963181
+4,dev_seed20261040,20261040,2,ml,one_class_svm,ocsvm_standard_g01,standard,"{""gamma"": 0.1}",new_workstation_burst,92,0.0671545,0.976204
+4,dev_seed20261040,20261040,2,ml,one_class_svm,ocsvm_standard_g01,standard,"{""gamma"": 0.1}",off_hours,92,0.0050952,0.823121
+4,dev_seed20261040,20261040,2,ml,one_class_svm,ocsvm_standard_g01,standard,"{""gamma"": 0.1}",password_spraying,92,0.0224746,0.770342
+4,dev_seed20261040,20261040,2,baseline,zscore_baseline,default,none,{},brute_force,93,0.0122803,0.836165
+4,dev_seed20261040,20261040,2,baseline,zscore_baseline,default,none,{},dormant_wakeup,92,0.00506996,0.800366
+4,dev_seed20261040,20261040,2,baseline,zscore_baseline,default,none,{},logon_type_switch,92,0.00654873,0.795512
+4,dev_seed20261040,20261040,2,baseline,zscore_baseline,default,none,{},new_workstation_burst,92,0.0018846,0.545173
+4,dev_seed20261040,20261040,2,baseline,zscore_baseline,default,none,{},off_hours,92,0.00238783,0.662713
+4,dev_seed20261040,20261040,2,baseline,zscore_baseline,default,none,{},password_spraying,92,0.0628212,0.72136
+4,dev_seed20261040,20261040,2,baseline,rule_threshold_baseline,default,none,{},brute_force,93,0.0120452,0.777285
+4,dev_seed20261040,20261040,2,baseline,rule_threshold_baseline,default,none,{},dormant_wakeup,92,0.00189894,0.488876
+4,dev_seed20261040,20261040,2,baseline,rule_threshold_baseline,default,none,{},logon_type_switch,92,0.00181495,0.519637
+4,dev_seed20261040,20261040,2,baseline,rule_threshold_baseline,default,none,{},new_workstation_burst,92,0.00159714,0.469867
+4,dev_seed20261040,20261040,2,baseline,rule_threshold_baseline,default,none,{},off_hours,92,0.00275183,0.679615
+4,dev_seed20261040,20261040,2,baseline,rule_threshold_baseline,default,none,{},password_spraying,92,0.00411284,0.645372
+4,dev_seed20261040,20261040,2,baseline,failure_count_baseline,default,none,{},brute_force,93,0.0663815,0.988554
+4,dev_seed20261040,20261040,2,baseline,failure_count_baseline,default,none,{},dormant_wakeup,92,0.00208087,0.519097
+4,dev_seed20261040,20261040,2,baseline,failure_count_baseline,default,none,{},logon_type_switch,92,0.00168817,0.361355
+4,dev_seed20261040,20261040,2,baseline,failure_count_baseline,default,none,{},new_workstation_burst,92,0.00171461,0.502367
+4,dev_seed20261040,20261040,2,baseline,failure_count_baseline,default,none,{},off_hours,92,0.00160217,0.475867
+4,dev_seed20261040,20261040,2,baseline,failure_count_baseline,default,none,{},password_spraying,92,0.00809806,0.890955
+4,dev_seed20261040,20261040,2,baseline,random_baseline,default,none,{},brute_force,93,0.00189748,0.527533
+4,dev_seed20261040,20261040,2,baseline,random_baseline,default,none,{},dormant_wakeup,92,0.00181496,0.513615
+4,dev_seed20261040,20261040,2,baseline,random_baseline,default,none,{},logon_type_switch,92,0.00188267,0.516639
+4,dev_seed20261040,20261040,2,baseline,random_baseline,default,none,{},new_workstation_burst,92,0.00164049,0.456622
+4,dev_seed20261040,20261040,2,baseline,random_baseline,default,none,{},off_hours,92,0.00178156,0.515903
+4,dev_seed20261040,20261040,2,baseline,random_baseline,default,none,{},password_spraying,92,0.00218688,0.536798

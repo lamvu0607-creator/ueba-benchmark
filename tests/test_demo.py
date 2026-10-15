@@ -1,4 +1,5 @@
 import json
+import shutil
 import asyncio
 import threading
 from pathlib import Path
@@ -12,7 +13,6 @@ import httpx
 
 from demo.backend.main import MAX_UPLOAD, create_app
 from demo.prepare import GRID, MODELS, PARAMS, SCHEMA, frozen_config, prepare_artifacts
-from src.data.cleaner import clean_single_day
 from src.data.raw_to_interim import INTERIM_SCHEMA
 from src.evaluation.manifest import file_sha256
 from src.models.pipeline import AnomalyPipeline
@@ -30,10 +30,12 @@ def test_prepare_artifacts_from_processed_matrix(tmp_path):
             rows.append(row)
     processed = tmp_path / 'processed.parquet'
     pl.DataFrame(rows).write_parquet(processed)
-    cleaned = tmp_path / 'cleaned'; cleaned.mkdir()
+    interim = tmp_path / 'interim'
     for day in range(1, 43):
-        (cleaned / f'cleaned_day-{day:02d}.parquet').touch()
-    output = prepare_artifacts(processed, cleaned, tmp_path / 'artifacts')
+        for eid in (4624, 4625):
+            f = interim / f'event_{eid}' / f'event_{eid}_day-{day:02d}.parquet'
+            f.parent.mkdir(parents=True, exist_ok=True); f.touch()
+    output = prepare_artifacts(processed, interim, tmp_path / 'artifacts')
     metadata = json.loads((output / 'metadata.json').read_text())
     assert metadata['feature_names'] == features
     assert metadata['train_start'] == 1 and metadata['train_end'] == 42
@@ -86,12 +88,11 @@ def trained(tmp_path_factory):
 
 @pytest.fixture
 def client(tmp_path, trained):
-    cleaned = tmp_path / 'cleaned'
     interim = tmp_path / 'interim'
     for day in range(36, 43):
         write_events(interim / 'event_4624' / f'event_4624_day-{day:02d}.parquet', [event(day, 'UserA')])
-        clean_single_day(day, interim, cleaned)
-    app = create_app(trained, cleaned)
+        write_events(interim / 'event_4625' / f'event_4625_day-{day:02d}.parquet', [])
+    app = create_app(trained, interim)
     app.state.demo_service.load()
     return app
 
@@ -127,7 +128,7 @@ def test_health_and_upload(client):
     assert body['totals']['account_days'] == 4
     assert sum(body['agreement'].values()) == 2
     assert all(row['day'] == 43 for row in body['top_50'])
-    assert all(len([k for k in body['feature_names'] if k in row]) == 30 for row in body['top_50'])
+    assert all(len([k for k in body['feature_names'] if k in row]) == 22 for row in body['top_50'])
     userb = next(r for r in body['top_50'] if r['UserName'] == 'UserB')
     assert userb['days_since_last_activity'] == 13
     for name in MODELS:
@@ -135,7 +136,7 @@ def test_health_and_upload(client):
         assert m['alert_rate'] == m['alerts'] / 2
         assert all(row[name]['alert'] == (row[name]['score'] >= m['threshold']) for row in body['top_50'])
     assert all(row['agreement_count'] == sum(row[name]['alert'] for name in MODELS) for row in body['top_50'])
-    assert not list(client.state.demo_service.cleaned_dir.parent.glob('ueba-*'))
+    assert not list(client.state.demo_service.interim_dir.parent.glob('ueba-*'))
 
 
 def test_invalid_inputs(client, tmp_path, monkeypatch):
@@ -161,18 +162,18 @@ def test_invalid_inputs(client, tmp_path, monkeypatch):
     monkeypatch.setattr('demo.backend.main.MAX_UPLOAD', 1)
     response = request(client, 'POST', '/api/analyze', files={'file': ('big.parquet', b'ab', 'application/octet-stream')})
     assert response.status_code == 413 and response.json()['error'] == 'file_too_large'
-    assert not list(client.state.demo_service.cleaned_dir.parent.glob('ueba-*'))
+    assert not list(client.state.demo_service.interim_dir.parent.glob('ueba-*'))
 
 
 def test_unavailable(tmp_path, trained):
-    app = create_app(tmp_path / 'absent', tmp_path / 'cleaned')
+    app = create_app(tmp_path / 'absent', tmp_path / 'interim')
     assert request(app, 'GET', '/api/health').status_code == 503
     response = request(app, 'POST', '/api/analyze', files={'file': ('x.parquet', b'x', 'application/octet-stream')})
     assert response.status_code == 503 and response.json()['error'] == 'artifact_unavailable'
     partial = tmp_path / 'partial'; partial.mkdir()
     for name in ('metadata.json', 'historical_activity.parquet', 'isolation_forest.joblib'):
-        (partial / name).symlink_to(trained / name)
-    app = create_app(partial, tmp_path / 'cleaned')
+        shutil.copyfile(trained / name, partial / name)
+    app = create_app(partial, tmp_path / 'interim')
     with pytest.raises(FileNotFoundError):
         app.state.demo_service.load()
     health = request(app, 'GET', '/api/health')
@@ -182,14 +183,14 @@ def test_unavailable(tmp_path, trained):
     metadata = json.loads((trained / 'metadata.json').read_text())
     metadata['feature_names'].reverse()
     (wrong / 'metadata.json').write_text(json.dumps(metadata))
-    app = create_app(wrong, tmp_path / 'cleaned')
-    with pytest.raises(ValueError, match='30 đặc trưng'):
+    app = create_app(wrong, tmp_path / 'interim')
+    with pytest.raises(ValueError, match='22 đặc trưng'):
         app.state.demo_service.load()
     assert request(app, 'GET', '/api/health').status_code == 503
 
 
 def test_lifespan_loads_artifacts_once(tmp_path, trained, monkeypatch):
-    app = create_app(trained, tmp_path / 'cleaned')
+    app = create_app(trained, tmp_path / 'interim')
     service = app.state.demo_service
     calls = 0
     original = service.load
@@ -269,4 +270,4 @@ def test_internal_error_does_not_leak_traceback(client, monkeypatch):
     assert response.status_code == 500
     assert response.json() == {'status': 'error', 'error': 'internal_error', 'message': 'Không thể phân tích batch này.'}
     assert 'sensitive internal detail' not in response.text
-    assert not list(client.state.demo_service.cleaned_dir.parent.glob('ueba-*'))
+    assert not list(client.state.demo_service.interim_dir.parent.glob('ueba-*'))

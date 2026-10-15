@@ -1,4 +1,4 @@
-"""Fit the frozen User/30-feature benchmark configuration for local inference."""
+"""Fit the frozen User/22-feature benchmark configuration for local inference."""
 
 from __future__ import annotations
 
@@ -17,14 +17,31 @@ from src.features.schema import FeatureSchema
 from src.models.registry import create_pipeline, load_params
 
 ROOT = Path(__file__).resolve().parents[1]
-GRID = ROOT / "configs/benchmark_grid_test_30f.yaml"
+GRID = ROOT / "configs/benchmark_grid_test_22f.yaml"
+N_FEATURES = 22
 PARAMS = ROOT / "configs/model_params.yaml"
 SCHEMA = ROOT / "configs/feature_schema.yaml"
 DEFAULT_PROCESSED = ROOT / "data/processed/feature_matrix_processed.parquet"
-DEFAULT_CLEANED = ROOT / "data/cleaned"
-DEFAULT_ARTIFACTS = ROOT / "experiments/models/demo_30f_user"
+DEFAULT_INTERIM = ROOT / "data/interim"
+DEFAULT_ARTIFACTS = ROOT / "experiments/models/demo_22f_user"
 MODELS = ("isolation_forest", "local_outlier_factor", "one_class_svm")
 TRAIN_END = 42
+
+
+def interim_day_files(interim_dir: Path, day: int) -> tuple[Path, Path]:
+    return tuple(Path(interim_dir) / f"event_{e}" / f"event_{e}_day-{day:02d}.parquet" for e in (4624, 4625))
+
+
+def available_interim_days(interim_dir: Path) -> list[int]:
+    days = []
+    for path in Path(interim_dir).glob("event_4624/event_4624_day-*.parquet"):
+        try:
+            day = int(path.stem.rsplit("-", 1)[1])
+        except ValueError:
+            continue
+        if all(p.is_file() for p in interim_day_files(interim_dir, day)):
+            days.append(day)
+    return sorted(days)
 
 
 def frozen_config() -> tuple[dict, list[str]]:
@@ -36,17 +53,17 @@ def frozen_config() -> tuple[dict, list[str]]:
     if len(drops) != len(set(drops)) or set(drops) - set(core):
         raise ValueError("drop_features không khớp feature schema.")
     features = [name for name in core if name not in set(drops)]
-    if len(features) != 30 or any(len(grid["models"][name]) != 1 for name in MODELS):
-        raise ValueError("Cấu hình cuối không còn đúng 30 đặc trưng/một cấu hình mỗi mô hình.")
+    if len(features) != N_FEATURES or any(len(grid["models"][name]) != 1 for name in MODELS):
+        raise ValueError(f"Cấu hình cuối không còn đúng {N_FEATURES} đặc trưng/một cấu hình mỗi mô hình.")
     return grid, features
 
 
 def prepare_artifacts(
     processed_path: Path = DEFAULT_PROCESSED,
-    cleaned_dir: Path = DEFAULT_CLEANED,
+    interim_dir: Path = DEFAULT_INTERIM,
     output_dir: Path = DEFAULT_ARTIFACTS,
 ) -> Path:
-    processed_path, cleaned_dir, output_dir = map(Path, (processed_path, cleaned_dir, output_dir))
+    processed_path, interim_dir, output_dir = map(Path, (processed_path, interim_dir, output_dir))
     if not processed_path.is_file():
         raise FileNotFoundError(f"Thiếu {processed_path}; chạy 'python main.py --stage features' trước.")
     if output_dir.exists():
@@ -56,17 +73,13 @@ def prepare_artifacts(
     all_days = pl.scan_parquet(processed_path).select("day").unique().collect()["day"].to_list()
     if not set(range(1, TRAIN_END + 1)).issubset(all_days):
         raise ValueError("Ma trận processed thiếu ngày train trong Day 1–42.")
-    archive_days = []
-    for path in cleaned_dir.glob("cleaned_day-*.parquet"):
-        try:
-            archive_days.append(int(path.stem.rsplit("-", 1)[1]))
-        except ValueError:
-            continue
+    # Kho lịch sử = log interim (cùng nguồn với ma trận train); một ngày cần đủ cả file 4624 và 4625.
+    archive_days = available_interim_days(interim_dir)
     if not archive_days or set(range(1, max(archive_days) + 1)) != set(archive_days):
-        raise ValueError("Kho cleaned phải có các file ngày liên tục từ Day 1.")
+        raise ValueError("Kho interim phải có các ngày liên tục từ Day 1 (đủ event_4624 và event_4625).")
     archive_end = max(archive_days)
     if not set(range(1, archive_end + 1)).issubset(all_days):
-        raise ValueError("Ma trận processed thiếu ngày thuộc kho cleaned; chạy lại stage features.")
+        raise ValueError("Ma trận processed thiếu ngày thuộc kho interim; chạy lại stage features.")
 
     frame = pl.scan_parquet(processed_path)
     missing = [name for name in ["DomainName", "UserName", "day", "entity_type", *features] if name not in frame.collect_schema()]
@@ -129,12 +142,12 @@ def prepare_artifacts(
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Chuẩn bị artifact cho UEBA demo (User, 30 đặc trưng).")
+    parser = argparse.ArgumentParser(description="Chuẩn bị artifact cho UEBA demo (User, 22 đặc trưng).")
     parser.add_argument("--processed", type=Path, default=DEFAULT_PROCESSED)
-    parser.add_argument("--cleaned-dir", type=Path, default=DEFAULT_CLEANED)
+    parser.add_argument("--interim-dir", type=Path, default=DEFAULT_INTERIM)
     parser.add_argument("--output", type=Path, default=DEFAULT_ARTIFACTS)
     args = parser.parse_args()
-    print(f"Đã tạo artifact tại {prepare_artifacts(args.processed, args.cleaned_dir, args.output)}")
+    print(f"Đã tạo artifact tại {prepare_artifacts(args.processed, args.interim_dir, args.output)}")
 
 
 if __name__ == "__main__":

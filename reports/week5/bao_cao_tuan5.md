@@ -28,7 +28,7 @@ Mọi giá trị là trung bình ± độ lệch chuẩn (std) qua 5 lần chạ
 1. **Khớp với cách vận hành thật.** SOC có năng lực xem cố định, khoảng vài chục đến 100 cảnh báo mỗi ngày. Câu hỏi thực tế là "trong số cảnh báo analyst kịp xem, bắt được bao nhiêu % tấn công". Recall@K trả lời đúng câu hỏi đó.
    - Mỗi ngày test có khoảng 8.600 dòng User, nên 100 cảnh báo tương đương ngân sách khoảng 1,2%.
 2. **ROC-AUC quá lạc quan khi dữ liệu mất cân bằng.** Nạn nhân chỉ chiếm khoảng 1% số dòng.
-   - Ví dụ (bảng 5.3, 22 đặc trưng): ROC-AUC của IF còn nhỉnh hơn OCSVM (0,921 so với 0,908), nhưng recall top-100/ngày của IF (0,24) chỉ bằng khoảng hai phần ba OCSVM (0,37).
+   - Ví dụ (bảng 5.3, 22 đặc trưng): ROC-AUC của IF còn nhỉnh hơn OCSVM (0,921 so với 0,892), nhưng recall top-100/ngày của IF (0,24) chỉ bằng khoảng 70% OCSVM (0,34).
    - ROC-AUC tính cả phần cuối danh sách mà không ai đọc tới, nên không phân biệt được hai mô hình này.
 3. **PR-AUC tốt hơn ROC-AUC nhưng vẫn tính trên toàn bộ danh sách.** Nó cộng cả precision ở những mức recall cao mà analyst không bao giờ đạt tới. Vì vậy PR-AUC được giữ làm chỉ số phụ, không phải chỉ số chính.
 4. **Precision@K không so được giữa các kịch bản.** Top-100 mỗi ngày chứa nạn nhân của cả 6 kịch bản. Precision của "riêng brute_force" vì thế không có nghĩa rõ ràng, và số nạn nhân mỗi kịch bản cũng khác nhau. Recall theo kịch bản thì so được: mẫu số là số nạn nhân của chính kịch bản đó.
@@ -433,6 +433,8 @@ Hàng K = 18 không có ô đỏ nào ở cả ba mô hình.
 3. **LOF đảo chiều giữa dev và test,** nên phản ứng của LOF với việc bỏ đặc trưng phụ thuộc dữ liệu (dev: 35 ngày fit; test: 42 ngày fit, 18 ngày chấm). Không nên dựa vào LOF để chọn K.
 4. **Bớt đặc trưng không chữa được hai điểm mù:** off_hours (+0,02 đến +0,05) và password_spraying (0,00 đến +0,03) vẫn thấp. Hai kịch bản này cần đặc trưng mới.
 
+Bảng 5.1–5.2 dùng cấu hình mô hình chốt từ dev 41 đặc trưng (OCSVM `nc1000`), nên số OCSVM ở hàng K = 18 khác bảng 5.3 (OCSVM `g01`, chốt lại trên dev 22 đặc trưng, mục 5.2).
+
 **Lưu ý thiên lệch chọn:** K = 18 được chốt sau khi đã xem kết quả test ở bảng 5.1. Trên dev, K = 18 đã tốt nhất cho IF và ngang cho OCSVM, nên test chủ yếu xác nhận; riêng LOF, việc chọn có tính đến test.
 
 ### 5.2 Bảng benchmark cuối: lưới test chính thức với 22 đặc trưng
@@ -441,50 +443,84 @@ Hàng K = 18 không có ô đỏ nào ở cả ba mô hình.
 
 | Mô hình | **Recall top-100/ngày** | PR-AUC | ROC-AUC |
 |---|---|---|---|
-| **OCSVM** | **0,373 ± 0,022** (0,376) | **0,189 ± 0,013** (0,192) | 0,908 (0,911) |
+| **OCSVM** (`g01`) | **0,336 ± 0,070** (0,376) | **0,175 ± 0,048** (0,192) | 0,892 (0,911) |
 | IF | 0,242 ± 0,016 (0,209) | 0,111 ± 0,011 (0,089) | 0,921 (0,913) |
-| LOF | 0,176 ± 0,015 (0,147) | 0,070 ± 0,008 (0,062) | 0,717 (0,701) |
+| LOF | 0,175 ± 0,006 (0,147) | 0,071 ± 0,013 (0,062) | 0,717 (0,701) |
 | z-score (baseline tốt nhất) | 0,075 | 0,032 ± 0,003 | 0,743 |
 | ngẫu nhiên | 0,014 | 0,010 ± 0,000 | 0,503 |
 
-Baseline không dùng `drop_features`, nên giống hệt bộ 30.
+Baseline không dùng `drop_features`, nên giống hệt bộ 30. Số bộ 30 trong ngoặc dùng OCSVM `nc1000`.
 
-**Tham số mô hình:** dùng lại cấu hình chốt trên lưới dev tuần 4 với 41 đặc trưng (3 mô hình × 3–6 cấu hình × 5 run dev; IF 300 cây, max_samples 1024; LOF k = 20, RobustScaler; OCSVM 1.000 thành phần Nystroem, StandardScaler), **không dò lại cho 22 đặc trưng**. Lý do: giữ cùng tham số thì so sánh 41 / 30 / 22 đặc trưng chỉ phản ánh tác động của đặc trưng. Gamma của OCSVM là "scale" nên tự điều chỉnh theo số đặc trưng; LOF (k = 20) là mô hình dễ lệch nhất khi số chiều đổi. Dò lại trên dev chỉ có thể giữ nguyên hoặc cải thiện kết quả dev, nên số ở bảng 5.3 là mức của tham số chưa tối ưu cho bộ 22.
+**Tham số mô hình: chọn lại trên dev với 22 đặc trưng.** Lưới dev tuần 4 chạy với 41 đặc trưng. Để bảng 3 mô hình × ≥ 3 cấu hình khớp với bộ đặc trưng cuối, lưới dev được chạy lại với đúng 22 đặc trưng (cùng 13 cấu hình, 5 run dev, `drop_features` và `sort_rows` như lưới test). Quy tắc chọn không đổi: PR-AUC trung bình cao nhất trên dev.
+
+**Bảng 5.5: Lưới dev, 22 đặc trưng, TB ± std qua 5 run dev** (cấu hình được chọn in đậm)
+
+| Mô hình | Cấu hình | Recall top-100/ngày | PR-AUC |
+|---|---|---|---|
+| IF | `if_default` | 0,238 ± 0,011 | 0,093 ± 0,010 |
+| IF | **`if_n300_ms1024`** (300 cây, max_samples 1024) | **0,264 ± 0,012** | **0,128 ± 0,016** |
+| IF | `if_maxfeat05` | 0,227 ± 0,036 | 0,093 ± 0,016 |
+| LOF | **`lof_k20_robust`** | **0,192 ± 0,025** | **0,078 ± 0,025** |
+| LOF | `lof_k20_standard` | 0,060 ± 0,010 | 0,014 ± 0,001 |
+| LOF | `lof_k20_quantile` | 0,082 ± 0,015 | 0,027 ± 0,002 |
+| LOF | `lof_k100_standard` | 0,084 ± 0,016 | 0,018 ± 0,002 |
+| OCSVM | `ocsvm_robust` | 0,094 ± 0,026 | 0,033 ± 0,010 |
+| OCSVM | `ocsvm_standard` | 0,412 ± 0,034 | 0,239 ± 0,026 |
+| OCSVM | `ocsvm_quantile` | 0,174 ± 0,016 | 0,073 ± 0,006 |
+| OCSVM | `ocsvm_standard_nc1000` (chốt cũ, 41 đặc trưng) | 0,383 ± 0,067 | 0,227 ± 0,049 |
+| OCSVM | `ocsvm_standard_g0005` | 0,395 ± 0,015 | 0,215 ± 0,009 |
+| OCSVM | **`ocsvm_standard_g01`** (gamma 0,1; 300 thành phần Nystroem; StandardScaler) | **0,407 ± 0,033** | **0,248 ± 0,028** |
+
+- IF và LOF giữ nguyên cấu hình chốt từ 41 đặc trưng; LOF `k20_robust` hơn hẳn các cấu hình LOF khác.
+- OCSVM đổi từ `nc1000` sang `g01`. Ba cấu hình OCSVM StandardScaler hàng đầu (`g01`, `standard`, `nc1000`) chênh nhau dưới 1 std; theo recall top-100/ngày thì `standard` nhỉnh nhất (0,412). Quy tắc chọn ghi từ trước là PR-AUC nên giữ `g01`.
 
 **Nhận xét:**
-1. **Thứ hạng giữ nguyên:** OCSVM > IF > LOF > mọi baseline. OCSVM vẫn bắt gấp khoảng 1,5 lần IF trong ngân sách 100 cảnh báo/ngày, dù ROC-AUC của IF nhỉnh hơn (0,921 so với 0,908). Đây cũng là minh hoạ cho lý do chọn recall@K ở mục 0.
-2. **So với bộ 30:** OCSVM ngang (chênh dưới 1 std), IF +0,033 recall và +0,022 PR-AUC, LOF +0,029 recall. Số của lưới chính thức khớp với thí nghiệm ở bảng 5.1.
-3. **So với 41 đặc trưng ban đầu:** recall top-100/ngày OCSVM 0,32 → 0,37, IF 0,16 → 0,24, LOF 0,13 → 0,18.
+1. **Thứ hạng giữ nguyên:** OCSVM > IF > LOF > mọi baseline. OCSVM bắt gấp khoảng 1,4 lần IF trong ngân sách 100 cảnh báo/ngày, dù ROC-AUC của IF nhỉnh hơn (0,921 so với 0,892). Đây cũng là minh hoạ cho lý do chọn recall@K ở mục 0.
+2. **`g01` thắng trên dev nhưng không lặp lại trên test.** Cùng 22 đặc trưng và 5 run test, OCSVM `nc1000` đạt recall 0,373 ± 0,022, PR-AUC 0,189 ± 0,013, cao hơn `g01` về trung bình (chênh dưới 1 std của `g01`).
+   - Khác biệt chính là **độ ổn định**: PR-AUC từng run của `g01` là 0,19 / 0,20 / **0,11** / 0,15 / 0,24, còn `nc1000` là 0,19 / 0,19 / 0,17 / 0,20 / 0,20. Nhiều thành phần Nystroem hơn (1.000 so với 300) làm xấp xỉ nhân RBF ổn định hơn.
+   - Kết quả chính vẫn báo cáo `g01` (cấu hình chọn trên dev): đổi lại `nc1000` sau khi xem test là chọn mô hình bằng tập test. Số `nc1000` giữ ở `experiments/grid/test_22f_nc1000/` để đối chiếu.
+   - Với triển khai, nên ưu tiên `nc1000`, hoặc chọn cấu hình theo cả trung bình lẫn std trên dev.
+3. **So với bộ 30** (OCSVM `nc1000`): IF +0,033 recall và +0,022 PR-AUC, LOF +0,028 recall. OCSVM cùng cấu hình `nc1000` thì ngang bộ 30 (0,373 so với 0,376), khớp với bảng 5.1.
+4. **So với 41 đặc trưng ban đầu:** recall top-100/ngày OCSVM 0,32 → 0,34 (`nc1000`: 0,37), IF 0,16 → 0,24, LOF 0,13 → 0,18.
+5. **OCSVM `g01` nhanh hơn nhiều:** fit 5 s so với 47 s của `nc1000`.
 
 **Bảng 5.4: Đủ bộ chỉ số của đề cương (mục 4.1, tiêu chí 5), TB ± std qua 5 run test, 22 đặc trưng**
 
 | Mô hình | PR-AUC | ROC-AUC | P@10 | P@50 | P@100 | Recall top-100/ngày | Recall top 5% khối | Tỷ lệ cảnh báo | Fit (s) | Chấm (s) |
 |---|---|---|---|---|---|---|---|---|---|---|
-| OCSVM | 0,189 ± 0,013 | 0,908 ± 0,005 | 0,30 ± 0,19 | 0,29 ± 0,16 | 0,25 ± 0,15 | 0,373 ± 0,022 | 0,639 ± 0,022 | 0,074 ± 0,002 | 47 ± 2 | 3,7 ± 0,1 |
-| IF | 0,111 ± 0,011 | 0,921 ± 0,005 | 0,24 ± 0,17 | 0,19 ± 0,03 | 0,22 ± 0,03 | 0,242 ± 0,016 | 0,468 ± 0,028 | 0,067 ± 0,001 | 13 ± 0 | 2,1 ± 0,1 |
-| LOF | 0,070 ± 0,008 | 0,717 ± 0,006 | 0,34 ± 0,15 | 0,20 ± 0,11 | 0,14 ± 0,07 | 0,176 ± 0,015 | 0,363 ± 0,012 | 0,065 ± 0,000 | 8 ± 0 | 2,6 ± 0,1 |
-| z-score | 0,032 ± 0,003 | 0,743 ± 0,003 | 0,14 ± 0,09 | 0,25 ± 0,10 | 0,23 ± 0,04 | 0,075 ± 0,011 | 0,154 ± 0,010 | 0,072 ± 0,001 | 2 ± 0 | 0,1 ± 0,0 |
+| OCSVM (`g01`) | 0,175 ± 0,048 | 0,892 ± 0,032 | 0,46 ± 0,18 | 0,38 ± 0,10 | 0,29 ± 0,10 | 0,336 ± 0,070 | 0,606 ± 0,054 | 0,069 ± 0,005 | 5 ± 0 | 0,9 ± 0,1 |
+| IF | 0,111 ± 0,011 | 0,921 ± 0,005 | 0,24 ± 0,17 | 0,19 ± 0,03 | 0,22 ± 0,03 | 0,242 ± 0,016 | 0,468 ± 0,028 | 0,067 ± 0,001 | 12 ± 1 | 2,2 ± 0,1 |
+| LOF | 0,071 ± 0,013 | 0,717 ± 0,007 | 0,28 ± 0,36 | 0,11 ± 0,14 | 0,11 ± 0,10 | 0,175 ± 0,006 | 0,360 ± 0,017 | 0,065 ± 0,001 | 8 ± 0 | 2,6 ± 0,1 |
+| z-score | 0,032 ± 0,003 | 0,743 ± 0,003 | 0,14 ± 0,09 | 0,25 ± 0,10 | 0,23 ± 0,04 | 0,075 ± 0,011 | 0,154 ± 0,010 | 0,072 ± 0,001 | 2 ± 0 | 0,2 ± 0,0 |
 | Luật 6 điều kiện | 0,015 ± 0,001 | 0,536 ± 0,004 | 0,00 ± 0,00 | 0,02 ± 0,03 | 0,04 ± 0,03 | 0,073 ± 0,012 | 0,124 ± 0,011 | 0,361 ± 0,000 | 1 ± 0 | 0,1 ± 0,0 |
 | Luật thất bại ≥ 5 | 0,025 ± 0,000 | 0,623 ± 0,005 | 0,00 ± 0,00 | 0,00 ± 0,00 | 0,01 ± 0,00 | 0,098 ± 0,010 | 0,198 ± 0,002 | 0,050 ± 0,000 | 1 ± 0 | 0,1 ± 0,0 |
 | Ngẫu nhiên | 0,010 ± 0,000 | 0,503 ± 0,013 | 0,02 ± 0,04 | 0,01 ± 0,02 | 0,02 ± 0,01 | 0,014 ± 0,003 | 0,052 ± 0,007 | 0,050 ± 0,001 | 2 ± 0 | 0,3 ± 0,0 |
+| *OCSVM `nc1000` (đối chiếu)* | *0,189 ± 0,013* | *0,908 ± 0,005* | *0,30 ± 0,19* | *0,29 ± 0,16* | *0,25 ± 0,15* | *0,373 ± 0,022* | *0,639 ± 0,022* | *0,074 ± 0,002* | *47 ± 2* | *3,7 ± 0,1* |
 
 - P@K: tỷ lệ nạn nhân trong K dòng điểm cao nhất của **cả khối** chấm (18 ngày). Recall top-100/ngày tính theo từng ngày (mục 0).
 - Recall top 5% khối: recall khi cảnh báo 5% dòng điểm cao nhất của cả khối.
 - Tỷ lệ cảnh báo: tỷ lệ dòng vượt ngưỡng vận hành (phân vị 95% điểm train, contamination 5%). Luật 6 điều kiện không có ngưỡng điều chỉnh được nên cờ tới 36% số dòng.
 - Fit / Chấm: thời gian huấn luyện trên 315 nghìn dòng train và chấm 154 nghìn dòng test, trên máy của nhóm (CPU, đa luồng).
-- P@10 và P@50 có std rất lớn (ví dụ OCSVM 0,30 ± 0,19) vì chỉ dựa trên 10–50 dòng; đây là lý do recall top-100/ngày được chọn làm chỉ số chính.
+- P@10 và P@50 có std rất lớn (ví dụ LOF 0,28 ± 0,36) vì chỉ dựa trên 10–50 dòng; đây là lý do recall top-100/ngày được chọn làm chỉ số chính.
 
-Số theo từng run ở `experiments/grid/test_22f/grid_runs.csv`; độ nhạy theo mức contamination 0,1–20% ở `contamination_summary.csv` và `figures/contamination_sensitivity.png`.
+Số theo từng run ở `experiments/grid/test_22f/grid_runs.csv`; độ nhạy theo mức contamination 0,1–20% ở `contamination_summary.csv` và `figures/contamination_sensitivity.png`. PR-AUC của OCSVM gần như không đổi theo contamination (0,174–0,181), vì với IF/LOF contamination chỉ dời ngưỡng, còn với OCSVM nu đổi theo nhưng thứ hạng điểm gần như giữ nguyên.
 
-**Tái lập:** `python scripts/reproduce.py` chạy lại toàn bộ (đặc trưng, tiêm 5 run test, lưới) và so từng chỉ số với bảng 5.3, đạt khi sai lệch tương đối ≤ 1%. OCSVM, IF và các baseline tất định. **LOF không tất định** (chỉ mục HNSW dựng đa luồng, `n_jobs: -1`): fit lại trên test lệch khoảng ±0,003 recall, khoảng 2% tương đối, nên số LOF chỉ tái lập trong khoảng ±5%. Muốn tất định thì đặt `n_jobs: 1` và chạy lại lưới.
+**Tái lập:** `python scripts/reproduce.py` chạy lại toàn bộ (đặc trưng, tiêm 5 run test, lưới) và so từng chỉ số với bảng 5.3, đạt khi sai lệch tương đối ≤ 1%. OCSVM, IF và các baseline tất định. **LOF không tất định** (chỉ mục HNSW dựng đa luồng, `n_jobs: -1`):
+- trung bình 5 run gần như trùng giữa hai lần chạy lưới test (recall 0,176 và 0,175; PR-AUC 0,070 và 0,071), nên số LOF được so với ngưỡng 5%;
+- nhưng **từng lần fit** lệch nhiều hơn: PR-AUC của run seed 42 là 0,072 / 0,075 / 0,079 / 0,083 qua bốn lần fit (lệch tới khoảng 15%), và top 50 cảnh báo LOF của hai lần fit trên log gốc chỉ trùng 6/50. Danh sách cảnh báo LOF vì vậy không tái lập được.
+
+Muốn LOF tất định thì đặt `n_jobs: 1` và chạy lại lưới.
+
+**Mô hình cho demo:** `python scripts/evaluation/train_demo_models.py` fit 3 mô hình của bảng 5.3 trên log gốc ngày 1–42 (seed 42), lưu pipeline vào `experiments/models/User_22f/*.joblib`, rồi nạp lại và so PR-AUC với lưới (IF và OCSVM khớp tuyệt đối).
 
 `configs/feature_schema.yaml` chưa đổi; bộ 22 được chọn qua `drop_features` trong [`configs/benchmark_grid_test_22f.yaml`](../../configs/benchmark_grid_test_22f.yaml). Kết quả bộ 30 giữ ở `experiments/grid/test_30f/` để so sánh.
 
-📁 Số liệu: [`experiments/ablation/kcurve_test/`](../../experiments/ablation/kcurve_test/) (bảng 5.1–5.2) và [`experiments/grid/test_22f/`](../../experiments/grid/test_22f/) (bảng 5.3). Chạy lại:
+📁 Số liệu: [`experiments/ablation/kcurve_test/`](../../experiments/ablation/kcurve_test/) (bảng 5.1–5.2) [`experiments/grid/dev_22f/`](../../experiments/grid/dev_22f/) (bảng 5.5) và [`experiments/grid/test_22f/`](../../experiments/grid/test_22f/) (bảng 5.3–5.4). Chạy lại:
 
 ```
 python scripts/evaluation/feature_ablation.py --mode kcurve --dev-grid configs/benchmark_grid_test.yaml \n    --only full drop_rhythm_low_shap10 drop_rhythm_k15 drop_rhythm_k18 --out experiments/ablation/kcurve_test   # bảng 5.1–5.2, ~30 phút
-python scripts/evaluation/run_grid.py --config configs/benchmark_grid_test_22f.yaml   # bảng 5.3
+python scripts/evaluation/run_grid.py --config configs/benchmark_grid_dev_22f.yaml    # bảng 5.5, ~15 phút
+python scripts/evaluation/run_grid.py --config configs/benchmark_grid_test_22f.yaml   # bảng 5.3–5.4, ~1 giờ
 ```
 
 ---
@@ -497,4 +533,4 @@ Bộ thẻ cảnh báo đã làm mù và hướng dẫn chấm đã sẵn sàng:
 - [`docs/huong_dan_review_top50.md`](../../docs/huong_dan_review_top50.md);
 - [`experiments/analysis/review_top50/`](../../experiments/analysis/review_top50/).
 
-Bộ cũ tạo từ mô hình 41 đặc trưng. Bộ mới với **22 đặc trưng** (142 cảnh báo duy nhất) ở [`experiments/analysis/review_top50_22f/`](../../experiments/analysis/review_top50_22f/); hai bạn chấm trên bộ mới này.
+Bộ cũ tạo từ mô hình 41 đặc trưng. Bộ mới với **22 đặc trưng** (OCSVM `g01`, 148 cảnh báo duy nhất) ở [`experiments/analysis/review_top50_22f/`](../../experiments/analysis/review_top50_22f/); hai bạn chấm trên bộ mới này.

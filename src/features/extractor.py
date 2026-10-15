@@ -537,7 +537,8 @@ def build_account_day_matrix(
             raise ValueError(f"events_dir '{events_dir}' không chứa file ngày nào.")
         logger.info("Log đè từ '%s' cho %d ngày: %s", events_dir, len(overlay), overlay)
 
-    days_avail = available_days(data_source)
+    # Ngày chỉ có trong events_dir (vd. log mới ngày 61 của demo) vẫn được trích.
+    days_avail = sorted(set(available_days(data_source)) | set(overlay))
     if not days_avail:
         logger.warning(f"Không có dữ liệu hợp lệ trong thư mục: {data_source}")
         return pl.DataFrame()

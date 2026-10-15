@@ -9,11 +9,14 @@ from pathlib import Path
 
 import numpy as np
 import polars as pl
+import pyarrow as pa
 import pyarrow.parquet as pq
 import yaml
 
-from demo.prepare import DEFAULT_ARTIFACTS, DEFAULT_CLEANED, GRID, MODELS, PARAMS, ROOT, SCHEMA, TRAIN_END, frozen_config
-from src.data.cleaner import clean_single_day
+from demo.prepare import (
+    DEFAULT_ARTIFACTS, DEFAULT_INTERIM, GRID, MODELS, N_FEATURES, PARAMS, ROOT, SCHEMA, TRAIN_END, frozen_config,
+    interim_day_files,
+)
 from src.data.raw_to_interim import COLUMN_NAMES, INTERIM_SCHEMA
 from src.evaluation.manifest import file_sha256
 from src.features.extractor import build_account_day_matrix
@@ -27,13 +30,25 @@ class DemoInputError(Exception):
         super().__init__(message)
 
 
-def _context_path(cleaned_dir: Path, day: int) -> Path:
-    return cleaned_dir / f"cleaned_day-{day:02d}.parquet"
+def _compatible(got: pa.DataType, want: pa.DataType) -> bool:
+    """Cùng kiểu, hoặc cùng họ: chuỗi (string / large_string / string_view — polars ghi large_string) hay số nguyên."""
+    if got == want:
+        return True
+    is_str = lambda t: pa.types.is_string(t) or pa.types.is_large_string(t) or str(t) == "string_view"
+    if is_str(want):
+        return is_str(got) or pa.types.is_null(got)
+    if pa.types.is_integer(want):
+        return pa.types.is_integer(got)
+    return False
+
+
+def _has_context(interim_dir: Path, day: int) -> bool:
+    return all(p.is_file() for p in interim_day_files(interim_dir, day))
 
 
 class DemoService:
-    def __init__(self, artifact_dir: Path = DEFAULT_ARTIFACTS, cleaned_dir: Path = DEFAULT_CLEANED):
-        self.artifact_dir, self.cleaned_dir = Path(artifact_dir), Path(cleaned_dir)
+    def __init__(self, artifact_dir: Path = DEFAULT_ARTIFACTS, interim_dir: Path = DEFAULT_INTERIM):
+        self.artifact_dir, self.interim_dir = Path(artifact_dir), Path(interim_dir)
         self.models: dict[str, AnomalyPipeline] = {}
         self.metadata: dict = {}
         self.activity = pl.DataFrame()
@@ -54,7 +69,7 @@ class DemoService:
                 or metadata.get("seed") != 42
                 or metadata.get("segment") != "User"
                 or set(metadata.get("models", {})) != set(MODELS)):
-            raise ValueError("Artifact không khớp cấu hình User/30 đặc trưng hiện tại.")
+            raise ValueError(f"Artifact không khớp cấu hình User/{N_FEATURES} đặc trưng hiện tại.")
         activity = pl.read_parquet(self.artifact_dir / "historical_activity.parquet")
         if not {"DomainName", "UserName", "day"}.issubset(activity.columns):
             raise ValueError("Bảng hiện diện tài khoản trong artifact sai schema.")
@@ -92,7 +107,7 @@ class DemoService:
         missing = [name for name in COLUMN_NAMES if name not in schema.names]
         if missing:
             raise DemoInputError("invalid_schema", f"Thiếu cột: {', '.join(missing)}.")
-        wrong = [field.name for field in INTERIM_SCHEMA if schema.field(field.name).type != field.type]
+        wrong = [field.name for field in INTERIM_SCHEMA if not _compatible(schema.field(field.name).type, field.type)]
         if wrong:
             raise DemoInputError("invalid_schema", f"Sai kiểu dữ liệu ở cột: {', '.join(wrong)}.")
         try:
@@ -113,7 +128,7 @@ class DemoService:
         start, end = stats["min_time"] // 86400 + 1, stats["max_time"] // 86400 + 1
         if start <= TRAIN_END or stats["days"] != end - start + 1:
             raise DemoInputError("invalid_window", "Upload cần các ngày liên tục sau Day 42, không chạm tập train.")
-        missing_context = [day for day in range(start - 7, start) if not _context_path(self.cleaned_dir, day).is_file()]
+        missing_context = [day for day in range(start - 7, start) if not _has_context(self.interim_dir, day)]
         if missing_context:
             raise DemoInputError("missing_context", f"Kho lịch sử thiếu context: {', '.join(f'Day {day}' for day in missing_context)}.")
         if start > self.metadata["context_archive_end"] + 1:
@@ -124,24 +139,24 @@ class DemoService:
         if len(self.models) != len(MODELS):
             raise DemoInputError("artifact_unavailable", "Artifact demo chưa sẵn sàng.", 503)
         event_count, start, end = self._inspect(path, filename)
-        with tempfile.TemporaryDirectory(prefix="ueba-demo-", dir=self.cleaned_dir.parent) as tmp_name:
+        with tempfile.TemporaryDirectory(prefix="ueba-demo-", dir=self.interim_dir.parent) as tmp_name:
             tmp = Path(tmp_name)
-            cleaned, interim = tmp / "cleaned", tmp / "interim"
-            cleaned.mkdir()
-            for day in range(start - 7, start):
-                _context_path(cleaned, day).symlink_to(_context_path(self.cleaned_dir, day).resolve())
-            source = pl.scan_parquet(path).select(COLUMN_NAMES)
+            # Batch được tách theo ngày × EventID thành layout interim riêng (events_dir); 7 ngày context đọc thẳng
+            # từ kho interim — cùng nguồn và cùng đường tính với ma trận train, không chép/symlink file lịch sử.
+            events = tmp / "events"
+            dtypes = {f.name: (pl.Int64 if pa.types.is_int64(f.type) else pl.Int32 if pa.types.is_integer(f.type) else pl.String)
+                      for f in INTERIM_SCHEMA}
+            source = pl.scan_parquet(path).select(COLUMN_NAMES).cast(dtypes)
             for day in range(start, end + 1):
                 for event_id in (4624, 4625):
-                    destination = interim / f"event_{event_id}" / f"event_{event_id}_day-{day:02d}.parquet"
+                    destination = events / f"event_{event_id}" / f"event_{event_id}_day-{day:02d}.parquet"
                     destination.parent.mkdir(parents=True, exist_ok=True)
-                    source.filter((pl.col("Time") // 86400 + 1 == day) & (pl.col("EventID") == event_id)).sink_parquet(destination)
-                clean_single_day(day, interim, cleaned, overwrite=True)
+                    source.filter((pl.col("Time") // 86400 + 1 == day) & (pl.col("EventID") == event_id)).collect().write_parquet(destination)
             config = yaml.safe_load((ROOT / "configs/system_config.yaml").read_text(encoding="utf-8"))
-            config["paths"]["cleaned_data_dir"] = str(cleaned)
             prior = (self.activity.filter(pl.col("day") < start - 7)
                      .group_by(["DomainName", "UserName"]).agg(pl.col("day").max()))
-            raw = build_account_day_matrix(start - 7, end, output_dir=tmp / "features", config=config, prior_activity=prior)
+            raw = build_account_day_matrix(start - 7, end, interim_dir=self.interim_dir, output_dir=tmp / "features",
+                                           config=config, events_dir=events, prior_activity=prior)
             if raw.is_empty():
                 raise DemoInputError("invalid_file", "Không có sự kiện hợp lệ sau khi làm sạch.")
             current = normalize_features(raw.filter(pl.col("day") >= start))

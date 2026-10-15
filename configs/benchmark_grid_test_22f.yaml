@@ -42,10 +42,12 @@ models:
     scaler: robust
     params: {}
   one_class_svm:
-  - id: ocsvm_standard_nc1000
+  # Chốt lại từ dev 22 đặc trưng (experiments/grid/dev_22f, configs/benchmark_grid_dev_22f.yaml): g01 có PR-AUC dev
+  # cao nhất (0,248 ± 0,028; nc1000 chốt từ dev 41 đặc trưng: 0,227 ± 0,049). Kết quả nc1000 cũ: experiments/grid/test_22f_nc1000.
+  - id: ocsvm_standard_g01
     scaler: standard
     params:
-      n_components: 1000
+      gamma: 0.1
 baselines:
 - zscore_baseline
 - rule_threshold_baseline

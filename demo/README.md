@@ -1,6 +1,6 @@
 # Demo UEBA Log Analyzer (local)
 
-Demo một trang dùng ba mô hình Isolation Forest, LOF và One-Class SVM của benchmark tuần 5, đúng 30 đặc trưng của segment **User**. Các loại tài khoản khác vẫn được đếm nhưng không chấm điểm.
+Demo một trang dùng ba mô hình Isolation Forest, LOF và One-Class SVM của benchmark tuần 5, đúng 22 đặc trưng của segment **User** (cấu hình `configs/benchmark_grid_test_22f.yaml`). Các loại tài khoản khác vẫn được đếm nhưng không chấm điểm.
 
 ## Chuẩn bị
 
@@ -11,7 +11,7 @@ python -m demo.prepare
 uvicorn demo.backend.main:app --host 127.0.0.1 --port 8000
 ```
 
-Mở <http://localhost:8000>. `demo.prepare` cần `data/processed/feature_matrix_processed.parquet` và kho `data/cleaned/` đủ ngày liên tục. Script fit ba pipeline trên User Day 1–42 theo seed 42, rồi lưu model, ngưỡng, metadata và lịch sử hiện diện ở `experiments/models/demo_30f_user/`. Nếu artifact đã tồn tại, script dừng để tránh vô tình ghi đè. API health cho biết khi artifact thiếu hoặc sai schema.
+Mở <http://localhost:8000>. `demo.prepare` cần `data/processed/feature_matrix_processed.parquet` và kho log `data/interim/` (`event_4624/`, `event_4625/`) đủ ngày liên tục từ Day 1. Script fit ba pipeline trên User Day 1–42 theo seed 42, rồi lưu model, ngưỡng, metadata và lịch sử hiện diện ở `experiments/models/demo_22f_user/`. Nếu artifact đã tồn tại, script dừng để tránh vô tình ghi đè. API health cho biết khi artifact thiếu hoặc sai schema.
 
 Nếu `/var/tmp` không ghi được trong môi trường chạy, dùng thư mục spill có quyền ghi:
 
@@ -39,7 +39,7 @@ Ví dụ API: `curl -F "file=@batch.parquet" http://127.0.0.1:8000/api/analyze`.
 | `int32` | `EventID`, `LogonType` |
 | `string` | `LogHost`, `LogonTypeDescription`, `UserName`, `DomainName`, `LogonID`, `SubjectUserName`, `SubjectDomainName`, `SubjectLogonID`, `Status`, `Source`, `ServiceName`, `Destination`, `AuthenticationPackage`, `FailureReason`, `ProcessName`, `ProcessID`, `ParentProcessName`, `ParentProcessID` |
 
-Server cần đủ bảy file `cleaned_day-NN.parquet` ngay trước batch trong kho lịch sử cố định. File upload không được tự thêm vào kho. Vì vậy batch tiếp theo sẽ báo `missing_context` nếu chưa chuẩn bị lại kho. Mỗi request đọc và xử lý lại bảy ngày context; với dữ liệu đầy đủ, bước này có thể tốn thời gian và bộ nhớ. Server chỉ dành cho máy local; không nhận model/artifact từ upload.
+Server cần đủ log interim (cả 4624 và 4625) của bảy ngày ngay trước batch trong `data/interim/`; batch được trích đặc trưng bằng đúng đường tính của ma trận train (`build_account_day_matrix` với `events_dir`). File upload không được tự thêm vào kho. Vì vậy batch tiếp theo sẽ báo `missing_context` nếu chưa chuẩn bị lại kho. Mỗi request đọc và xử lý lại bảy ngày context; với dữ liệu đầy đủ, bước này có thể tốn thời gian và bộ nhớ. Server chỉ dành cho máy local; không nhận model/artifact từ upload.
 
 ## Đọc kết quả
 

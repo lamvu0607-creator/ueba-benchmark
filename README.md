@@ -10,6 +10,7 @@ chọn số đặc trưng bỏ theo SHAP (K = 18), bảng benchmark cuối với
 ```bash
 python -X utf8 scripts/experiments/window_ablation.py --run data/injection_runs/test_seed20261061 --windows 7 14 21
 python scripts/evaluation/scenario_analysis.py             # theo kịch bản -> experiments/analysis/scenario/
+python scripts/evaluation/scenario_analysis.py --config configs/benchmark_grid_test_22f.yaml --out experiments/analysis/scenario_22f   # theo kịch bản, 22 đặc trưng
 python scripts/evaluation/build_review_set.py --config configs/benchmark_grid_test_22f.yaml --out experiments/analysis/review_top50_22f   # bộ review top 50 làm mù, 22 đặc trưng
 python scripts/evaluation/review_agreement.py              # Cohen's kappa sau khi hai người chấm xong
 python scripts/evaluation/explain_models.py                # SHAP/LIME -> experiments/analysis/explain/ (--replot: chỉ vẽ lại hình)
@@ -18,8 +19,27 @@ python scripts/evaluation/shap_feature_stability.py        # SHAP từng đặc 
 python scripts/evaluation/feature_ablation.py              # bộ 30 trên dev -> experiments/ablation/feature_groups/
 python scripts/evaluation/feature_ablation.py --mode kcurve    # đường cong K trên dev -> experiments/ablation/kcurve/
 python scripts/evaluation/plot_kcurve.py                   # hình đường cong K -> reports/week5/figures/06-kcurve.png
+python scripts/evaluation/run_grid.py --config configs/benchmark_grid_dev_22f.yaml    # lưới dev 22 đặc trưng (13 cấu hình), chọn cấu hình
 python scripts/evaluation/run_grid.py --config configs/benchmark_grid_test_22f.yaml   # benchmark cuối, 22 đặc trưng
+python scripts/evaluation/train_demo_models.py             # lưu 3 mô hình 22 đặc trưng cho demo -> experiments/models/User_22f/
 ```
+
+Cấu hình mô hình của benchmark cuối chọn trên lưới dev 22 đặc trưng: IF `if_n300_ms1024`, LOF `lof_k20_robust`,
+OCSVM `ocsvm_standard_g01` (trước đó `nc1000`, chọn với 41 đặc trưng; kết quả test của `nc1000` giữ ở
+`experiments/grid/test_22f_nc1000/` để đối chiếu).
+
+**Demo: chấm log một ngày mới bằng mô hình đã train** (`scripts/demo_score_day.py`). Script chạy lần lượt: nạp log ngày t
+(file `wls_day-NN.bz2` thô hoặc parquet 4624/4625), tuỳ chọn tiêm 6 kịch bản tấn công, trích 22 đặc trưng, chấm điểm
+bằng `.joblib`, rồi in top-K cảnh báo kèm lý do. Chỉ cần log của ngày t; 7 ngày lịch sử đọc từ `data/interim`.
+Log phải đủ mọi User trong ngày vì `peer_z` so mỗi tài khoản với cả quần thể. Một lần chạy mất khoảng 4–5 phút.
+
+```bash
+python scripts/demo_score_day.py --log path/to/wls_day-61.bz2 --inject        # log thật ngày 61 + tiêm 1% User
+python scripts/demo_score_day.py --simulate-from-day 47 --day 61 --inject     # diễn tập: dời log ngày 47 sang ngày 61
+python scripts/demo_score_day.py --day 60 --check-against-matrix              # kiểm tra: 22 đặc trưng khớp ma trận gốc
+```
+
+Đầu ra: `experiments/demo/day<t>/` (`alerts_<model>.csv`, `scores_<model>.parquet`); log đã tiêm ở `data/injection_runs/demo_day<t>/`.
 
 ---
 
@@ -170,9 +190,11 @@ python scripts/reproduce.py                  # đầy đủ; --skip-existing b�
 Kết quả ghi vào `experiments/reproduce/test_22f/`, kèm `reproduce_check.csv` so từng chỉ số với
 `experiments/grid/test_22f/grid_summary.csv` (đạt khi sai lệch tương đối ≤ 1%). Lệnh tốn nhiều giờ (tính lại đặc
 trưng 60 ngày, 5 run tiêm, lưới khoảng 50 phút). **LOF không tất định:** chỉ mục HNSW dựng đa luồng
-(`n_jobs: -1` trong `configs/model_params.yaml`), fit lại lệch khoảng ±0,003 recall top-100/ngày trên test (khoảng 2%
-tương đối), nên LOF được so với ngưỡng 5%; OCSVM, IF và các baseline tất định. Muốn LOF tất định thì đặt `n_jobs: 1`
-(chậm hơn) và chạy lại lưới.
+(`n_jobs: -1` trong `configs/model_params.yaml`). Trung bình 5 run lặp lại được (hai lần chạy lưới test: recall
+top-100/ngày 0,176 và 0,175, PR-AUC 0,070 và 0,071), nên LOF được so với ngưỡng 5%; OCSVM, IF và các baseline tất
+định. Nhưng **từng lần fit** LOF lệch nhiều hơn: PR-AUC của một run lệch tới khoảng 15% giữa các lần fit, và top 50
+cảnh báo LOF của hai lần fit chỉ trùng 6/50 — danh sách cảnh báo LOF (bộ review, demo) không tái lập được. Muốn LOF
+tất định thì đặt `n_jobs: 1` (chậm hơn) và chạy lại lưới.
 
 Hai con số để đối chiếu với máy khác:
 - bản tóm tắt hồ sơ train ra **29.830 tài khoản, 15.946 máy, L = 5**;

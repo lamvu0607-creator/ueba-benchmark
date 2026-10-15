@@ -64,6 +64,8 @@ data/processed/*
 !data/processed/.gitkeep
 # Run tiêm (configs/injection.yaml: common.runs_dir) — log đè ~200 MB/ngày, tái tạo được từ config + seed
 data/injection_runs/
+# Đầu ra demo (scripts/demo_score_day.py) — tái tạo được
+experiments/demo/
 
 # Archives & Large Binaries
 *.zip
