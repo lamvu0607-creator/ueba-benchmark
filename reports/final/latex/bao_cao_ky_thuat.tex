@@ -1095,8 +1095,7 @@ bản (41 đặc trưng). Đường càng lên sớm càng tốt.
   có nhiều sự kiện hơn nạn nhân bị bắt (trung vị 150 so với 85).
 \item
   Điểm mù chung: off\_\allowbreak{}hours và
-  password\_\allowbreak{}spraying. Ba kịch bản yếu được phân tích ở
-  mục 5.5.
+  password\_\allowbreak{}spraying.
 \item
   Không có mô hình nào thắng ở mọi kịch bản: luật thất bại tốt
   nhất ở spraying về ROC-AUC; IF tốt hơn OCSVM ở
@@ -1303,7 +1302,7 @@ nào tụt; brute\_\allowbreak{}force +0,13 (OCSVM) \\
   tốt hơn.
 \item
   Bỏ nhóm time không làm off\_\allowbreak{}hours tệ đi: các đặc trưng
-  thời gian hiện có không giúp bắt kịch bản này (mục 5.5).
+  thời gian hiện có không giúp bắt kịch bản này.
 \end{itemize}
 
 \hypertarget{chux1ecdn-sux1ed1-ux111ux1eb7c-trux1b0ng-bux1ecf-k}{%
@@ -1374,88 +1373,8 @@ top-100/ngày OCSVM 0,317 / 0,318 / 0,294; LOF 0,121 / 0,034 / 0,003. Cửa sổ
 làm hại dormant\_\allowbreak{}wakeup và tốn khoảng 3 lần thời gian. Giữ
 7 ngày.
 
-\hypertarget{ba-kux1ecbch-bux1ea3n-bux1ecb-bux1eaft-kuxe9m-off_hours-password_spraying-dormant_wakeup}{%
-\subsection{\texorpdfstring{5.5. Ba kịch bản bị bắt kém:
-off\_\allowbreak{}hours, password\_\allowbreak{}spraying,
-dormant\_\allowbreak{}wakeup}{5.5. Ba kịch bản bị bắt kém:   }}\label{ba-kux1ecbch-bux1ea3n-bux1ecb-bux1eaft-kuxe9m-off_hours-password_spraying-dormant_wakeup}}
-
-Các con số recall trong mục này lấy từ bảng 4.5 (41 đặc trưng).
-
-off\_\allowbreak{}hours (recall top-100/ngày ≤ 0,08 ở mọi mô hình):
-
-\begin{itemize}
-\tightlist
-\item
-  Nạn nhân bị bỏ sót có trung vị 107 sự kiện, nạn nhân bị bắt chỉ 9,5.
-  Một ngày bận bị dời sang đêm vẫn trông như một tài khoản bận; trong
-  không gian khoảng cách, vài chiều về ban đêm bị các chiều khối lượng
-  lấn át.
-\item
-  SHAP xác nhận nhóm time giải thích phần lớn điểm của nạn nhân (0,52),
-  nhưng điểm tuyệt đối không đủ cao để lọt top.
-\item
-  Khung giờ đêm quá rộng. Ngoài giờ là 18h--7h, tức 14/24 giờ,
-  và chứa cả 7h, lúc lưu lượng ngày thường đã bằng 90\% giờ cao điểm
-  (mục 2.4). Một ngày bị dời vào khung này vì vậy không khác nhiều so
-  với một ngày bình thường.
-\item
-  Nhóm đặc trưng thời gian hiện không tạo khác biệt: bỏ cả 8
-  đặc trưng thời gian thì recall off\_\allowbreak{}hours gần như không
-  đổi ở cả 3 mô hình (−0,02 đến 0,00).
-\item
-  Không phải do lệch múi giờ: nhịp lưu lượng theo giờ khớp với
-  giờ địa phương (mục 2.4).
-\item
-  Hướng sửa: thu hẹp khung giờ đêm, và dùng đặc trưng so giờ hoạt động
-  với lịch sử giờ của chính tài khoản, hoặc một luật riêng.
-\end{itemize}
-
-password\_\allowbreak{}spraying (recall ≤ 0,23):
-
-\begin{itemize}
-\tightlist
-\item
-  Mỗi nạn nhân chỉ nhận 1--3 lần thử. Ở mức (tài khoản, ngày) gần như
-  không có tín hiệu; dấu hiệu thật là một máy nguồn làm nhiều tài khoản
-  thất bại trong thời gian ngắn, nhưng mọi đặc trưng đều tính theo từng
-  tài khoản.
-\item
-  Luật thất bại có ROC-AUC tốt nhất (0,875) vẫn không đưa nạn
-  nhân vào top (recall 0,05).
-\item
-  Hướng sửa: đặc trưng fan-out theo máy nguồn, hoặc phân tích ở cấp máy nguồn thay vì cấp tài
-  khoản. Không chỉnh tham số mô hình nào giải được vấn đề này.
-\end{itemize}
-
-dormant\_\allowbreak{}wakeup (recall ≤ 0,17; ROC-AUC 0,91 với OCSVM và
-0,94 với IF):
-
-\begin{itemize}
-\tightlist
-\item
-  Bộ tiêm phát lại một ngày bình thường của chính tài khoản sau một
-  khoảng nghỉ dài. Chỉ có khoảng nghỉ là khác thường; khối lượng, máy và
-  loại đăng nhập đều giống một ngày bình thường.
-\item
-  Nạn nhân bị bỏ sót lại có nhiều sự kiện hơn nạn nhân bị bắt (trung vị
-  150 so với 85), vì một ngày bận trông giống một tài khoản bận bình
-  thường.
-\item
-  Tín hiệu rõ nhất chỉ còn
-  \texttt{days\_\allowbreak{}since\_\allowbreak{}last\_\allowbreak{}activity}.
-  Sau khoảng nghỉ từ 7 ngày trở lên, các đặc trưng so với 7 ngày trước
-  không có lịch sử để so (suy luận từ cách tính, chưa đo riêng).
-\item
-  Hướng sửa: đặc trưng ``khoảng nghỉ hôm nay so với khoảng nghỉ dài nhất
-  trước đó của chính tài khoản''.
-\end{itemize}
-
-\textbf{Nguyên nhân chung:} Ba kịch bản đều chạm vào giới hạn cách đặt bài toán: mỗi dòng là một tài khoản trong ngày. Spraying nhìn theo máy nguồn qua nhiều tài khoản; off\_\allowbreak{}hours và
-dormant\_\allowbreak{}wakeup so với lịch sử dài hơn của chính tài
-khoản. Chỉnh tham số mô hình không giải được các điểm mù này.
-
 \hypertarget{ux111ux1ed9-ux1ed5n-ux111ux1ecbnh}{%
-\subsection{5.6. Độ ổn định}\label{ux111ux1ed9-ux1ed5n-ux111ux1ecbnh}}
+\subsection{5.5. Độ ổn định}\label{ux111ux1ed9-ux1ed5n-ux111ux1ecbnh}}
 
 Qua seed. Std của recall top-100/ngày: IF 0,016, LOF 0,006,
 OCSVM \texttt{g01} 0,070. Std gồm cả biến động dữ liệu tiêm và mô hình.
@@ -1514,7 +1433,7 @@ Chênh lệch trung bình nằm trong 1 std, nhưng \texttt{g01} dao động g�
 \end{itemize}
 
 \hypertarget{mux1ee9c-lux1ea1c-quan-cux1ee7a-kux1ebft-quux1ea3}{%
-\subsection{5.7. Mức lạc quan của kết
+\subsection{5.6. Mức lạc quan của kết
 quả}\label{mux1ee9c-lux1ea1c-quan-cux1ee7a-kux1ebft-quux1ea3}}
 
 \begin{itemize}
@@ -1601,15 +1520,14 @@ biết}\label{hux1ea1n-chux1ebf-ux111uxe3-biux1ebft}}
 \item
   Ba kịch bản bị bắt kém: password\_\allowbreak{}spraying,
   off\_\allowbreak{}hours, dormant\_\allowbreak{}wakeup (recall
-  top-100/ngày ≤ 0,23 / 0,08 / 0,17, số của 41 đặc trưng). Nguyên nhân
-  và hướng sửa ở mục 5.5.
+  top-100/ngày ≤ 0,23 / 0,08 / 0,17, số của 41 đặc trưng).
 \item
   Thuật toán xấp xỉ. LOF dùng láng giềng xấp xỉ HNSW, OCSVM
   dùng nhân RBF xấp xỉ Nystroem + SGD, thay cho bản chính xác của
   scikit-learn. Kết luận về ``LOF'' và ``OCSVM'' là kết luận về các bản
   xấp xỉ này.
 \item
-  LOF không tất định ở mức từng lần fit (mục 5.6); danh sách cảnh báo
+  LOF không tất định ở mức từng lần fit (mục 5.5); danh sách cảnh báo
   LOF không tái lập được.
 \item
   OCSVM \texttt{g01} kém ổn định trên test; quy tắc chọn chỉ dựa trên
@@ -1680,7 +1598,7 @@ hình}\label{cux1ea5u-huxecnh-muxf4-huxecnh}}
   OCSVM StandardScaler, 1.000 thành phần Nystroem (\texttt{nc1000}), 22
   đặc trưng. Lý do: recall top-100/ngày 0,373 ± 0,022, ổn định nhất
   trong các cấu hình OCSVM tốt; \texttt{g01} nhanh hơn 9 lần nhưng dao
-  động lớn (mục 5.6). Nếu ràng buộc thời gian fit quan trọng hơn, dùng
+  động lớn (mục 5.5). Nếu ràng buộc thời gian fit quan trọng hơn, dùng
   \texttt{g01} và theo dõi chặt chỉ số hằng ngày.
 \item
   IF 300 cây, max\_\allowbreak{}samples 1024 làm mô hình phụ: tốt hơn
@@ -1693,6 +1611,7 @@ hình}\label{cux1ea5u-huxecnh-muxf4-huxecnh}}
   Kiểm tra thang đo sau tiền xử lý mỗi khi đổi bộ đặc trưng (mục 5.2).
 \end{enumerate}
 
+\needspace{14\baselineskip}
 \hypertarget{nguxe2n-suxe1ch-cux1ea3nh-buxe1o-vuxe0-chi-phuxed-vux1eadn-huxe0nh}{%
 \subsection{8.3. Ngân sách cảnh báo và chi phí vận
 hành}\label{nguxe2n-suxe1ch-cux1ea3nh-buxe1o-vuxe0-chi-phuxed-vux1eadn-huxe0nh}}
@@ -1877,8 +1796,7 @@ mean ± std; bảng 4.2 trên test \\
 ngân sách, tỷ lệ cảnh báo, thời gian fit/chấm \\
 6 & Baseline & Đạt & Ngẫu nhiên và luật số lần thất bại (cùng z-score,
 luật 6 điều kiện) trong mọi bảng \\
-7 & Phân tích lỗi & Một phần & Phân tích theo kịch bản xong (mục 4.4,
-5.5). Review top 50 bộ 22 đặc trưng chờ hai người chấm và κ (mục 6) \\
+7 & Phân tích lỗi & Một phần & Phân tích theo kịch bản xong (mục 4.4). Review top 50 bộ 22 đặc trưng chờ hai người chấm và κ (mục 6) \\
 8 & Báo cáo kỹ thuật & Đạt & Tài liệu này \\
 9 & Chất lượng mã & Một phần & Cấu trúc thư mục, cấu hình tách rời, 258
 test. Chờ review chéo và mentor duyệt \\
