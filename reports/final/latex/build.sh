@@ -2,10 +2,12 @@
 # Chuyển reports/final/bao_cao_ky_thuat.md sang LaTeX rồi compile ra PDF.
 # Trình bày theo kiểu báo cáo tuần (pdflatex + vntex, Computer Modern tiếng Việt).
 # Cần: pandoc >= 3.1, pdflatex (TeX Live: vntex, fvextra, titlesec, booktabs, newunicodechar).
-# Dùng: ./build.sh            -> bao_cao_ky_thuat.tex và bao_cao_ky_thuat.pdf
-#       ./build.sh --tex-only -> chỉ sinh bao_cao_ky_thuat.tex
+# Từ 15/10/2026 bản chính là bao_cao_ky_thuat.tex (đã sửa tay, gọn hơn file .md).
+# Dùng: ./build.sh            -> chỉ compile bao_cao_ky_thuat.tex ra PDF
+#       ./build.sh --from-md  -> sinh lại .tex từ ../bao_cao_ky_thuat.md (GHI ĐÈ bản sửa tay) rồi compile
 set -euo pipefail
 cd "$(dirname "$0")"
+if [ "${1:-}" = "--from-md" ]; then
 python3 prepare_md.py ../bao_cao_ky_thuat.md > build_input.md
 {
   cat <<'TEX'
@@ -24,10 +26,9 @@ pandoc build_input.md -f markdown-implicit_figures+pipe_tables \
   -H header.tex -B front.tex --lua-filter=md2tex.lua --highlight-style=tango \
   --standalone -o bao_cao_ky_thuat.tex
 rm -f build_input.md front.tex
-if [ "${1:-}" != "--tex-only" ]; then
+fi
   for _ in 1 2 3; do
     pdflatex -interaction=nonstopmode -halt-on-error bao_cao_ky_thuat.tex > /dev/null
   done
   rm -f bao_cao_ky_thuat.{aux,log,out,toc}
   echo "Đã tạo $(pwd)/bao_cao_ky_thuat.pdf"
-fi

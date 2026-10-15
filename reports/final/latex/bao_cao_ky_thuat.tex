@@ -112,6 +112,8 @@
 \renewcommand{\tablename}{Bảng}
 \sloppy
 \usepackage{needspace}
+\preto\section{\needspace{8\baselineskip}}
+\preto\subsection{\needspace{5\baselineskip}}
 \setcounter{tocdepth}{2}
 \ifLuaTeX
   \usepackage{selnolig}  % disable illegal ligatures
@@ -134,7 +136,7 @@
 
 \begin{center}
 {\color{tieude}\LARGE\bfseries BÁO CÁO KỸ THUẬT – UEBA BENCHMARK}\\[3pt]
-{\large Benchmark Isolation Forest, LOF, One-Class SVM trên log xác thực Windows (Event 4624/4625)}\\[3pt]
+{\large Benchmark Isolation Forest, LOF, One-Class SVM \\trên log xác thực Windows (Event 4624/4625)}\\[3pt]
 \textbf{Thành viên:} Lâm Vũ – Đinh Xuân Hiệp \quad | \quad Báo cáo tổng tuần 1–6, ngày 15/10/2026
 \end{center}
 \vspace{2pt}
@@ -165,14 +167,13 @@ Cả hai
 dictionary, viết báo cáo & Khám phá dữ liệu event 4625, vẽ đồ thị mô tả
 & Tìm và chọn bộ dữ liệu, lọc các event cần thiết \\
 2 & Chuẩn hoá khoá và phân tầng User/Machine, thiết kế 18 đặc trưng,
-tổng hợp báo cáo & Thực hiện 5 nhóm kiểm định (tương quan, nén phân
-phối, chu kỳ, phân vị, kiểm tra User/Machine), dựng biểu đồ và slide &
+tổng hợp báo cáo & Thực hiện 5 nhóm kiểm định, dựng biểu đồ và slide &
 Đối chiếu định nghĩa đặc trưng với log 4624/4625, rà soát kết quả \\
 3 & Làm giao diện chung và wrapper cho 3 thuật toán, dựng pipeline
 benchmark, viết báo cáo & Thống kê lần chạy thử đầu, review khung
 benchmark & -- \\
 4 & Bổ sung đặc trưng, xây dựng quy trình tiêm, chạy benchmark đánh giá
-& Kiểm tra lại quy trình tiêm và benchmark, làm slide, viết báo cáo &
+& Kiểm tra lại quy trình tiêm và benchmark, làm slide, báo cáo &
 -- \\
 \end{longtable}
 
@@ -185,29 +186,27 @@ benchmark & -- \\
 \def\labelenumi{\arabic{enumi}.}
 \tightlist
 \item
-  \textbf{Bài toán.} Phát hiện hành vi bất thường của tài khoản người
+  \textbf{Bài toán:} Phát hiện hành vi bất thường của tài khoản người
   dùng từ log đăng nhập Windows (4624 thành công, 4625 thất bại) của bộ
-  LANL Unified Host, 60 ngày, khoảng 943 triệu sự kiện sau làm sạch. Đơn
+  LANL Unified Host, 60 ngày, khoảng 943 triệu sự kiện. Đơn
   vị phân tích là một dòng (tài khoản, ngày). Không có nhãn thật, nên
   hiệu năng được đo bằng 6 kịch bản tấn công tiêm vào log.
 \item
-  \textbf{Đặc trưng.} 41 đặc trưng hành vi được sinh theo một không gian
-  tổ hợp có kiểm soát và lọc qua phễu 2 vòng. Phân tích SHAP và thí
+  \textbf{Đặc trưng:} 41 đặc trưng hành vi đầu thông qua phân tích SHAP và thí
   nghiệm loại bỏ trên dev rút gọn còn 22 đặc trưng cho benchmark cuối.
 \item
-  \textbf{Thiết kế đánh giá.} Chia theo thời gian: train ngày 1--42,
+  \textbf{Thiết kế đánh giá:} Chia theo thời gian: train ngày 1--42,
   test ngày 43--60; chọn cấu hình trên khối dev (ngày 36--42, fit 1--35)
   nằm trong train. Mỗi run tiêm đúng 1\% số dòng User. 5 seed, báo cáo
   trung bình ± độ lệch chuẩn.
 \item
-  \textbf{Kết quả chính (test, 22 đặc trưng, 5 seed).} One-Class SVM tốt
-  nhất: recall top-100 cảnh báo/ngày 0,336 ± 0,070, PR-AUC 0,175 ±
-  0,048, gấp khoảng 3,4 lần recall và 7 lần PR-AUC của luật ``số lần
-  thất bại ≥ 5'', gấp 17 lần ngẫu nhiên về PR-AUC. Thứ hạng ổn định:
+  \textbf{Kết quả chính (test, 22 đặc trưng, 5 seed):} One-Class SVM tốt
+  nhất: recall top-100 cảnh báo/ngày, PR-AUC, gấp khoảng 3,4 lần recall và 7 lần PR-AUC của luật ngưỡng. \\Thứ hạng ổn định:
   OCSVM \textgreater{} IF \textgreater{} LOF \textgreater{} z-score
-  \textgreater{} các luật \textgreater{} ngẫu nhiên.
+  \textgreater{} luật ngưỡng
+  \textgreater{} ngẫu nhiên.
 \item
-  \textbf{Phát hiện quan trọng.}
+  \textbf{Phát hiện quan trọng:}
 
   \begin{itemize}
   \tightlist
@@ -221,23 +220,14 @@ benchmark & -- \\
     RobustScaler sang StandardScaler nâng PR-AUC OCSVM từ 0,03 lên 0,24
     trên dev.
   \item
-    Bớt đặc trưng làm mô hình tốt hơn: từ 41 xuống 22 đặc trưng, recall
-    IF tăng 0,16 → 0,24 trên test.
-  \item
-    Cấu hình OCSVM tốt nhất trên dev (\texttt{g01}) kém ổn định trên
-    test; cấu hình \texttt{nc1000} ổn định hơn và được khuyến nghị khi
-    triển khai.
-  \item
-    LOF dùng chỉ mục láng giềng xấp xỉ đa luồng nên không tất định ở mức
-    từng lần fit.
+    Bớt đặc trưng làm mô hình tốt hơn: từ 41 xuống 22 đặc trưng.
   \end{itemize}
 \item
-  \textbf{Khuyến nghị.} Triển khai OCSVM cho phân khúc User với ngân
-  sách khoảng 100 cảnh báo/ngày, chạy song song một luật riêng cho
-  dò/rải mật khẩu; tài khoản dịch vụ, hệ thống và quản trị dùng luật và
-  danh sách trắng thay cho học máy (mục 8).
+  \textbf{Khuyến nghị:} Triển khai OCSVM, chạy song song một luật riêng cho
+  dò/rải mật khẩu; tài khoản dịch vụ, hệ thống và quản trị dùng luật ngưỡng.
 \end{enumerate}
 
+\newpage
 \hypertarget{dux1eef-liux1ec7u}{%
 \section{2. Dữ liệu}\label{dux1eef-liux1ec7u}}
 
@@ -266,8 +256,7 @@ tính từ đầu bộ dữ liệu), sự kiện (\texttt{EventID}), danh tính
 \texttt{Subject*}), máy (\texttt{LogHost}, \texttt{Source},
 \texttt{Destination}), xác thực (\texttt{LogonType},
 \texttt{AuthenticationPackage}, \texttt{FailureReason}, \texttt{Status},
-\ldots) và tiến trình (\texttt{Process*}). Ý nghĩa từng trường ở
-\texttt{docs/\allowbreak{}data\_\allowbreak{}dictionary.\allowbreak{}md}.
+\ldots) và tiến trình (\texttt{Process*}).
 
 \textbf{Quy mô sau làm sạch:} khoảng 943 triệu sự kiện; ma trận đặc
 trưng có 1.055.283 dòng (tài khoản, ngày).
@@ -280,20 +269,20 @@ Khoá của một tài khoản là cặp (\texttt{DomainName}, \texttt{UserName}
 Tài khoản được chia 5 loại theo tên:
 
 \begin{longtable}[]{@{}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 8\tabcolsep) * \real{0.2642}}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 8\tabcolsep) * \real{0.1958}}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 8\tabcolsep) * \real{0.1958}}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 8\tabcolsep) * \real{0.1958}}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 8\tabcolsep) * \real{0.1285}}@{}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 8\tabcolsep) * \real{0.38}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 8\tabcolsep) * \real{0.13}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 8\tabcolsep) * \real{0.14}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 8\tabcolsep) * \real{0.13}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 8\tabcolsep) * \real{0.13}}@{}}
 \toprule\noalign{}
 \begin{minipage}[b]{\linewidth}\raggedright
 Loại
 \end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
-Dòng train (ngày 1--42)
+Dòng train \\(ngày 1--42)
 \end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
-Dòng test (ngày 43--60)
+Dòng test \\(ngày 43--60)
 \end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
-Số tài khoản (60 ngày)
+Số tài khoản \\(60 ngày)
 \end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
 Tỷ lệ sự kiện
 \end{minipage} \\
@@ -311,29 +300,26 @@ Tỷ lệ sự kiện
 6 & 3\% \\
 \end{longtable}
 
-\textbf{Quyết định:} đánh giá chỉ trên User vì (1) đây là đối tượng tấn
-công chiếm đoạt tài khoản nhắm tới; (2) Admin, Service, System quá ít
-thực thể để học máy có nghĩa (ví dụ System có 6 tài khoản, ít hơn số
-láng giềng k = 20 của LOF) và hành vi của chúng gần như tất định, phù
-hợp với luật hơn; (3) tài khoản Machine không được tiêm. Chi tiết:
-\texttt{docs/\allowbreak{}reports/\allowbreak{}thong\_\allowbreak{}ke\_\allowbreak{}loai\_\allowbreak{}tai\_\allowbreak{}khoan.\allowbreak{}md}.
+\textbf{Quyết định:} Chỉ thực hiện đánh giá trên nhóm \textbf{User} vì:
+\begin{itemize}
+    \item \textbf{Admin, Service, System} có quá ít thực thể để học máy có ý nghĩa thống kê (ví dụ: System chỉ có 6 tài khoản) và hành vi gần như tất định, phù hợp hơn với tiếp cận dựa trên luật.
+    \item Tài khoản \textbf{Machine} đủ mẫu nhưng không phù hợp với kịch bản đã cho.
+\end{itemize}
 
 \hypertarget{chux1ea5t-lux1b0ux1ee3ng-dux1eef-liux1ec7u-vuxe0-cuxe1c-quyux1ebft-ux111ux1ecbnh-luxe0m-sux1ea1ch}{%
 \subsection{2.3. Chất lượng dữ liệu và các quyết định làm
 sạch}\label{chux1ea5t-lux1b0ux1ee3ng-dux1eef-liux1ec7u-vuxe0-cuxe1c-quyux1ebft-ux111ux1ecbnh-luxe0m-sux1ea1ch}}
 
-Khảo sát chất lượng (tuần 1, notebook
-\texttt{01\_\allowbreak{}data\_\allowbreak{}quality\_\allowbreak{}single\_\allowbreak{}day.\allowbreak{}ipynb}
-và \texttt{02}--\texttt{06}) dẫn tới 5 quyết định, cài đặt trong
+Khảo sát chất lượng làm trong tuần 1 phát hiện vấn đề sau:
 \texttt{src/\allowbreak{}data/\allowbreak{}cleaner.\allowbreak{}py} và
 có unit test
 (\texttt{tests/\allowbreak{}test\_\allowbreak{}cleaner.\allowbreak{}py}):
 
 \begin{longtable}[]{@{}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 6\tabcolsep) * \real{0.0629}}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 6\tabcolsep) * \real{0.3247}}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 6\tabcolsep) * \real{0.2677}}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 6\tabcolsep) * \real{0.3247}}@{}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 6\tabcolsep) * \real{0.05}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 6\tabcolsep) * \real{0.32}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 6\tabcolsep) * \real{0.24}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 6\tabcolsep) * \real{0.34}}@{}}
 \toprule\noalign{}
 \begin{minipage}[b]{\linewidth}\raggedright
 \#
@@ -356,55 +342,30 @@ không cần đoán \\
 \texttt{ParentProcess*} trống hoàn toàn ở cả hai sự kiện & Bỏ cột (21 →
 11 cột) & Không mang thông tin; giữ lại chỉ tốn bộ nhớ \\
 3 & \texttt{Source}, \texttt{LogonID}, \texttt{DomainName} có giá trị
-thiếu (ngày 16: \texttt{Source} thiếu 24\% ở 4624 và 32\% ở 4625;
+thiếu (\texttt{Source} thiếu 24\% ở 4624 và 32\% ở 4625;
 \texttt{LogonID} thiếu 49\% ở 4625) & Điền nhãn \texttt{"Unknown"},
 chuẩn hoá \texttt{DomainName} về chữ thường & Giữ đủ số dòng và trục
 thời gian; thiếu \texttt{Source} vẫn là thông tin (có đặc trưng
 \texttt{missing\_\allowbreak{}source\_\allowbreak{}ratio}) \\
-4 & Bản ghi trùng hoàn toàn (ngày 1: 2,1\%) & Xoá trùng tuyệt đối &
+4 & Bản ghi trùng hoàn toàn\newline (ngày 1: 2,1\%) & Xoá trùng tuyệt đối &
 Tránh thổi phồng số sự kiện \\
 5 & Lệch giờ mùa hè từ ngày 42 & Trừ 3.600 giây cho ngày ≥ 42 & Đưa 60
 ngày về cùng trục 24 giờ, quan trọng cho đặc trưng ngoài giờ \\
 \end{longtable}
 
-Nhật ký và số liệu kiểm chứng:
-\texttt{docs/\allowbreak{}nhat\_\allowbreak{}ky\_\allowbreak{}trien\_\allowbreak{}khai\_\allowbreak{}pipeline.\allowbreak{}md}.
 
-\hypertarget{tux1eeb-log-tux1edbi-ma-trux1eadn-ux111ux1eb7c-trux1b0ng}{%
-\subsection{2.4. Từ log tới ma trận đặc
-trưng}\label{tux1eeb-log-tux1edbi-ma-trux1eadn-ux111ux1eb7c-trux1b0ng}}
-
-\begin{Verbatim}[breaklines,breakanywhere,fontsize=\footnotesize]
-data/interim/ (log theo ngày, parquet)
-  +- clean  (src/data/cleaner.py)          → data/cleaned/   11 cột, đã khử trùng, đã chỉnh giờ
-      +- features (src/features/extractor.py, template_engine.py, history.py)
-                                            → data/features/raw/  ma trận (tài khoản × ngày)
-          +- preprocessor                   → data/processed/feature_matrix_processed.parquet
-\end{Verbatim}
-
-Mỗi bước chạy bằng
-\texttt{python main.\allowbreak{}py --stage <clean|features|…>}, có ghi
-log và kiểm tra lược đồ
-(\texttt{FeatureSchema.\allowbreak{}validate\_\allowbreak{}features}).
-Đặc trưng lịch sử của ngày t chỉ dùng dữ liệu các ngày ≤ t−1.
 
 \hypertarget{nhux1ecbp-theo-thux1eddi-gian}{%
-\subsection{2.5. Nhịp theo thời
+\subsection{2.4. Chu kì theo thời
 gian}\label{nhux1ecbp-theo-thux1eddi-gian}}
 
-\texttt{Time} không phải ngày giờ lịch mà là số giây tính từ đầu bộ dữ
-liệu: ngày 1 có \texttt{Time} từ 1 đến 86.399, ngày \emph{d} gồm các sự
-kiện có \texttt{Time} trong khoảng {[}(d−1)·86.400, d·86.400). Giờ trong
-ngày được tính bằng
-\texttt{(\allowbreak{}Time mod 86.\allowbreak{}400) div 3.\allowbreak{}600}.
-Cách tính này giả định \texttt{Time =\allowbreak{} 0} là nửa đêm giờ địa
-phương. Bảng dưới kiểm tra giả định đó và các nhịp khác của dữ liệu.
+\texttt{Time} được tính bằng giây , từ đó tính ra giờ trong ngày. Bảng dưới kiểm tra giả định đó và các chu kì khác của dữ liệu.
 
 \begin{longtable}[]{@{}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.2613}}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.4351}}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.2836}}@{}}
-\caption{Bảng 2.1: Nhịp theo thời gian của 60 ngày dữ
+  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.25}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.5}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.22}}@{}}
+\caption{Bảng 2.1: Khảo sát thời gian của 60 ngày dữ
 liệu}\tabularnewline
 \toprule\noalign{}
 \begin{minipage}[b]{\linewidth}\raggedright
@@ -430,7 +391,7 @@ Kết luận
 \endlastfoot
 \textbf{Có chu kỳ 7 ngày không?} & Hệ số tự tương quan của lưu lượng
 ngày ở độ trễ 7 là 0,58, cao nhất trong các độ trễ 1--14. Riêng thứ tự
-ngày trong tuần giải thích 67\% biến động của lưu lượng & Có \\
+ngày trong tuần giải thích 67\% biến động lưu lượng & Có \\
 \textbf{Có ``cuối tuần'' không?} & 2 trong 7 ngày có lưu lượng thấp hơn
 29\% và số tài khoản hoạt động thấp hơn 31\%, lặp lại ở 87,5\% số tuần
 (16 ngày: 6, 7, 13, 14, \ldots, 55, 56) & Có \\
@@ -438,39 +399,9 @@ ngày trong tuần giải thích 67\% biến động của lưu lượng & Có \
 bình 553.600 sự kiện 4624/giờ, thấp hơn 37\% so với 9h--15h
 (877.500/giờ). Thấp nhất lúc 4h, cao nhất lúc 9h. Cuối tuần gần như
 phẳng & Có. Cách tính giờ khớp với giờ địa phương \\
-\textbf{Hành vi có trôi theo thời gian không?} & Tương quan hạng giữa
-ngày và trung bình trượt 7 ngày: khối lượng 0,12; tỷ lệ thất bại −0,38;
-tỷ lệ ngoài giờ 0,28 (ngưỡng 0,3) & Tỷ lệ thất bại có trôi \\
 \end{longtable}
 
-Hệ quả cho thiết kế:
 
-\begin{enumerate}
-\def\labelenumi{\arabic{enumi}.}
-\tightlist
-\item
-  Cửa sổ lịch sử 7 ngày chứa đúng một chu kỳ tuần, nên khi so ngày t với
-  7 ngày trước, cuối tuần không bị coi là bất thường.
-\item
-  \textbf{Dữ liệu không có ngày lịch.} ``Cuối tuần'' ở đây là hai ngày
-  có lưu lượng thấp nhất trong chu kỳ, chưa đối chiếu được với thứ Bảy
-  và Chủ nhật thật.
-\item
-  \textbf{Khung ngoài giờ (18h--7h) rộng.} Khung này dài 14/24 giờ và
-  chiếm 51,6\% tổng số sự kiện. Ngày thường, lưu lượng lúc 7h đã bằng
-  90\% giờ cao điểm mà vẫn bị tính là ngoài giờ. Hệ quả cho kịch bản
-  off\_\allowbreak{}hours được phân tích ở mục 5.5.
-\item
-  Có trôi nhẹ, nên chia tập theo thời gian (mục 3.4.1) cho kết quả gần
-  với lúc triển khai thật hơn chia ngẫu nhiên.
-\end{enumerate}
-
-Nguồn:
-\texttt{reports/\allowbreak{}week2/\allowbreak{}temporal\_\allowbreak{}stability\_\allowbreak{}check.\allowbreak{}md}
-·
-\texttt{docs/\allowbreak{}feature\_\allowbreak{}engineering/\allowbreak{}tables/\allowbreak{}hourly\_\allowbreak{}rhythm\_\allowbreak{}summary.\allowbreak{}csv}
-·
-\texttt{docs/\allowbreak{}feature\_\allowbreak{}engineering/\allowbreak{}figures/\allowbreak{}temporal\_\allowbreak{}hourly\_\allowbreak{}rhythm.\allowbreak{}png}
 
 \hypertarget{phux1b0ux1a1ng-phuxe1p}{%
 \section{3. Phương pháp}\label{phux1b0ux1a1ng-phuxe1p}}
@@ -488,8 +419,8 @@ hợp 4 trục để sinh ứng viên một cách có hệ thống thay vì li�
 cảm tính:
 
 \begin{longtable}[]{@{}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.2023}}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.7777}}@{}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.15}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.85}}@{}}
 \toprule\noalign{}
 \begin{minipage}[b]{\linewidth}\raggedright
 Trục
@@ -510,39 +441,7 @@ giờ, loại logon, gói xác thực, lý do thất bại \\
 lịch sử \\
 \end{longtable}
 
-3.136 tổ hợp → lọc ngữ pháp còn 471 → vòng 1 lọc bằng lập luận an ninh
-(trùng, không gắn kịch bản, khó diễn giải, biến thể dư) còn 78 → vòng 2
-lọc bằng số đo trên dữ liệu thật theo 4 cổng:
-
-\begin{longtable}[]{@{}lll@{}}
-\toprule\noalign{}
-Cổng & Điều kiện & Còn lại \\
-\midrule\noalign{}
-\endhead
-\bottomrule\noalign{}
-\endlastfoot
-\textbf{E -- rò rỉ thời gian} & Giá trị không đổi khi cắt dữ liệu ở t−1
-& 78 \\
-\textbf{B -- có thông tin} & NULL ≤ 50\%, không hằng số \textgreater{}
-99\% & 68 \\
-\textbf{A -- không trùng} & max(\textbar Pearson\textbar,
-\textbar Spearman\textbar) \textless{} 0,85 với các biến đã chọn & 29 \\
-\textbf{C -- phân tách kịch bản} & AUC ≥ 0,70 với ít nhất một kịch bản &
-26 \\
-\end{longtable}
-
-Chốt 15 biến mới (VIF ≤ 10) → 39 core; v4.1 thêm 2 biến dự bị → 41 core,
-chia 8 nhóm theo nghĩa: volume (3), failure (6), time (8), rhythm (4),
-logon\_\allowbreak{}type (6), fanout (6), novelty (5), context (3). Mỗi
-đặc trưng có tên, công thức, kiểu dữ liệu và diễn giải trong
-\texttt{configs/\allowbreak{}feature\_\allowbreak{}schema.\allowbreak{}yaml}
-và bảng ở README mục 4. Chi tiết phễu:
-\texttt{docs/\allowbreak{}reports/\allowbreak{}bao\_\allowbreak{}cao\_\allowbreak{}bo\_\allowbreak{}dac\_\allowbreak{}trung\_\allowbreak{}v4.\allowbreak{}md}.
-
-\textbf{Lưu ý phương pháp:} cổng C dùng nhãn tiêm, nên nó chỉ chứng minh
-đặc trưng phản ứng đúng chiều với kịch bản, không chứng minh đặc trưng
-làm mô hình tốt hơn. Câu hỏi sau được trả lời bằng thí nghiệm loại bỏ ở
-mục 5.3.
+3.136 tổ hợp được tạo ra sẽ trải qua quá trình lọc về ngữ nghĩa, rò rỉ thời gian, độ lớn VIF, có null nhiều hay không, khả năng phân tách kịch bản. Cuối cùng chốt được 41 đặc trưng
 
 \hypertarget{bux1ed9-22-ux111ux1eb7c-trux1b0ng-cux1ee7a-benchmark-cuux1ed1i}{%
 \subsubsection{3.1.2. Bộ 22 đặc trưng của benchmark
@@ -550,12 +449,8 @@ cuối}\label{bux1ed9-22-ux111ux1eb7c-trux1b0ng-cux1ee7a-benchmark-cuux1ed1i}}
 
 Trên khối dev, SHAP cho thấy nhóm rhythm (nhịp thời gian giữa các sự
 kiện) ít giúp bắt nạn nhân nhưng là nguồn báo nhầm chính của OCSVM, và
-18 đặc trưng có đóng góp dưới mức chia đều ở mọi mô hình, mọi run. Bỏ 4
-đặc trưng rhythm và 18 đặc trưng SHAP thấp (3 trùng nhau, tổng bỏ 19)
-cho 22 đặc trưng (danh sách ở Phụ lục A). Quy trình chọn và kiểm tra
-trên test ở mục 5.3. Bộ 22 được áp dụng qua
-\texttt{drop\_\allowbreak{}features} trong cấu hình lưới; lược đồ vẫn
-giữ đủ 41 core.
+18 đặc trưng có đóng góp dưới mức chia đều ở mọi mô hình, mọi run. Sau đó tiến hành loại bỏ dần dần và kiểm tra
+trên test ở mục 5.3 và chốt được bộ đặc trưng tốt nhất là bộ 22 đặc trưng.
 
 \hypertarget{muxf4-huxecnh}{%
 \subsection{3.2. Mô hình}\label{muxf4-huxecnh}}
@@ -565,12 +460,12 @@ Ba mô hình và bốn mốc tham chiếu dùng chung một giao diện
 \texttt{pipeline.\allowbreak{}py}): đặc trưng → điền thiếu bằng median →
 scaler → mô hình, mọi bước chỉ fit trên train của phân khúc; điểm càng
 cao càng bất thường; ngưỡng cảnh báo = phân vị (1 − contamination) của
-điểm train (không dùng nhãn).
+điểm train.
 
 \begin{longtable}[]{@{}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.1304}}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.4248}}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.4248}}@{}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.214}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.369}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.408}}@{}}
 \toprule\noalign{}
 \begin{minipage}[b]{\linewidth}\raggedright
 Mô hình
@@ -583,9 +478,9 @@ Lý do
 \endhead
 \bottomrule\noalign{}
 \endlastfoot
-\textbf{Isolation Forest} & scikit-learn \texttt{IsolationForest}, fit
+\textbf{Isolation Forest} & scikit-learn \texttt{IsolationForest},\newline fit
 toàn bộ train & Chuẩn, nhanh, không phụ thuộc thang đo \\
-\textbf{LOF} & LOF trên láng giềng xấp xỉ HNSW (hnswlib), chỉ mục trên
+\textbf{LOF} & LOF trên láng giềng xấp xỉ HNSW,\newline chỉ mục trên
 các dòng duy nhất & LOF chính xác không chạy được trên 315.000 dòng ×
 nhiều cấu hình; khử trùng tránh k-distance = 0 (điểm LOF ≈
 10\textsuperscript{10}) \\
@@ -667,8 +562,8 @@ SHAP \\
 cáo kết quả, chạy với cấu hình đã chốt \\
 \end{longtable}
 
-Dev nằm hoàn toàn trong train, nên test không tham gia bất kỳ lựa chọn
-nào (một ngoại lệ được ghi ở mục 5.3).
+Dev nằm hoàn toàn trong train, test không tham gia bất kỳ lựa chọn
+nào (một ngoại lệ ghi ở mục 5.3).
 
 \hypertarget{nhuxe3n-tux1ed5ng-hux1ee3p-6-kux1ecbch-bux1ea3n-tux1ea5n-cuxf4ng}{%
 \subsubsection{3.4.2. Nhãn tổng hợp: 6 kịch bản tấn
@@ -682,10 +577,11 @@ vi chỉ dựng từ train của khối; nạn nhân là tài khoản User có �
 hoạt động trong train, mỗi tài khoản tối đa một lần; bỏ các (tài khoản,
 ngày) vốn đã bị luật cảnh báo trên log gốc.
 
+\renewcommand{\arraystretch}{1.3}
 \begin{longtable}[]{@{}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.1642}}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.4303}}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.3854}}@{}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.17}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.48}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.32}}@{}}
 \toprule\noalign{}
 \begin{minipage}[b]{\linewidth}\raggedright
 Kịch bản
@@ -728,9 +624,9 @@ mục 2.3.
 \subsubsection{3.4.3. Chỉ số}\label{chux1ec9-sux1ed1}}
 
 \begin{longtable}[]{@{}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.1669}}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.4066}}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.4066}}@{}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.255}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.382}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.353}}@{}}
 \toprule\noalign{}
 \begin{minipage}[b]{\linewidth}\raggedright
 Chỉ số
@@ -745,14 +641,14 @@ Vai trò
 \endlastfoot
 \textbf{Recall top-100/ngày} & Mỗi ngày lấy 100 dòng điểm cao nhất; tỷ
 lệ nạn nhân lọt vào, gộp qua các ngày & Chỉ số chính: khớp năng lực xem
-khoảng 100 cảnh báo/ngày của SOC (khoảng 1,2\% số dòng User mỗi ngày) \\
+khoảng 100 cảnh báo/ngày của SOC \\
 \textbf{PR-AUC} & Diện tích dưới đường precision--recall & Chỉ số chính
 của đề cương; đo chất lượng xếp hạng toàn danh sách \\
 \textbf{ROC-AUC} & Khả năng phân tách tổng thể & Chỉ số phụ; dùng khi so
 theo kịch bản \\
 \textbf{P@10/50/100} & Tỷ lệ nạn nhân trong K dòng điểm cao nhất của cả
 khối & Trải nghiệm analyst \\
-\textbf{Recall tại ngân sách 5\%} & Recall khi cảnh báo 5\% dòng điểm
+\textbf{Recall tại ngân sách 5\%} & Recall cảnh báo 5\% dòng điểm
 cao nhất & Đề cương 5.4 \\
 \textbf{Tỷ lệ cảnh báo} & Tỷ lệ dòng vượt ngưỡng train & Gánh nặng vận
 hành \\
@@ -760,11 +656,8 @@ hành \\
 \end{longtable}
 
 Recall top-100/ngày được chọn làm chỉ số chính vì ROC-AUC quá lạc quan
-khi dương chỉ chiếm 1\% (ví dụ IF có ROC-AUC cao hơn OCSVM nhưng chỉ bắt
-khoảng 70\% số nạn nhân của OCSVM trong 100 cảnh báo/ngày), còn PR-AUC
-cộng cả những mức recall analyst không bao giờ đạt tới. Cài đặt:
-\texttt{src/\allowbreak{}evaluation/\allowbreak{}metrics.\allowbreak{}py},
-có unit test.
+khi dương chỉ chiếm 1\%, còn PR-AUC
+cộng cả những mức recall analyst không bao giờ đạt tới.
 
 \hypertarget{seed-chux1ecdn-cux1ea5u-huxecnh-vuxe0-nhux1eadt-kuxfd}{%
 \subsubsection{3.4.4. Seed, chọn cấu hình và nhật
@@ -773,15 +666,15 @@ ký}\label{seed-chux1ecdn-cux1ea5u-huxecnh-vuxe0-nhux1eadt-kuxfd}}
 \begin{itemize}
 \tightlist
 \item
-  \textbf{Một ``seed'' = một cặp (run tiêm,
-  \texttt{random\_\allowbreak{}state} mô hình):} 5 cặp với model seed
+  Một ``seed'' = một cặp (run tiêm,
+  \texttt{random\_\allowbreak{}state} mô hình): 5 cặp với model seed
   42, 7, 2024, 1, 2. Độ lệch chuẩn vì vậy gồm cả biến động của dữ liệu
   tiêm lẫn của mô hình.
 \item
-  Quy tắc chọn cấu hình (ghi trong manifest trước khi chạy): PR-AUC
+  Quy tắc chọn cấu hình (ghi manifest trước khi chạy): PR-AUC
   trung bình cao nhất trên dev.
 \item
-  Dòng train được sắp cố định trước khi fit, vì IF (lấy mẫu con) và
+  Dòng train được sắp cố định trước khi fit, vì IF và
   OCSVM (SGD) phụ thuộc thứ tự dòng.
 \item
   Nhật ký chung
@@ -837,13 +730,7 @@ Mô hình & Cấu hình & Recall top-100/ngày & PR-AUC \\
 \end{longtable}
 
 Ba cấu hình OCSVM StandardScaler hàng đầu chênh nhau dưới 1 std; theo
-quy tắc chọn đã ghi (PR-AUC), \texttt{g01} được chọn. Mỗi run dev có
-khoảng 54.960 dòng chấm và 553 nạn nhân.
-
-Nguồn:
-\texttt{experiments/\allowbreak{}grid/\allowbreak{}dev\_\allowbreak{}22f/\allowbreak{}}
-· Cấu hình:
-\texttt{configs/\allowbreak{}benchmark\_\allowbreak{}grid\_\allowbreak{}dev\_\allowbreak{}22f.\allowbreak{}yaml}
+quy tắc chọn (PR-AUC cao nhất), \texttt{g01} được chọn.
 
 \hypertarget{benchmark-cuux1ed1i-truxean-test}{%
 \subsection{4.2. Benchmark cuối trên
@@ -950,9 +837,7 @@ Chấm (s)
 }
 
 Ghi chú: P@K tính trên cả khối 18 ngày; tỷ lệ cảnh báo ở contamination
-5\%; luật 6 điều kiện không có ngưỡng điều chỉnh được nên cờ 36\% số
-dòng; thời gian đo trên 315 nghìn dòng train và 154 nghìn dòng test, CPU
-đa luồng.
+5\%; luật 6 điều kiện không có ngưỡng điều chỉnh được nên cờ 36\% số dòng.
 
 \textbf{Nhận xét:}
 
@@ -964,29 +849,20 @@ dòng; thời gian đo trên 315 nghìn dòng train và 154 nghìn dòng test, C
   OCSVM bắt khoảng một phần ba số nạn nhân, và khoảng 29\% cảnh báo là
   đúng (precision top-100/ngày 0,29).
 \item
-  \textbf{Cả ba mô hình đều vượt hai mốc của đề cương.} So với luật thất
+  Cả ba mô hình đều vượt hai mốc của đề cương. So với luật thất
   bại ≥ 5: OCSVM gấp 3,4 lần về recall top-100/ngày và 7 lần về PR-AUC;
   IF gấp 2,5 và 4,4 lần; LOF gấp 1,8 và 2,8 lần. So với ngẫu nhiên:
   PR-AUC gấp 7--17 lần.
 \item
-  \textbf{ROC-AUC không phân biệt được mô hình tốt:} IF có ROC-AUC cao
+  ROC-AUC không phân biệt được mô hình tốt: IF có ROC-AUC cao
   nhất (0,921) nhưng recall top-100/ngày chỉ bằng khoảng 70\% OCSVM.
-  Phần danh sách mà ROC-AUC ``thưởng'' là phần không ai đọc tới.
 \item
-  \textbf{Mô hình đa biến có giá trị gia tăng thật:} z-score (cùng đặc
+  Mô hình đa biến có giá trị gia tăng thật: z-score (cùng đặc
   trưng, không mô hình hoá tương quan) chỉ đạt 0,075 recall.
 \item
   Luật thất bại xếp hạng kém (P@10 = 0): những dòng có nhiều lần thất
-  bại nhất là tài khoản thật vốn hay gõ sai, không phải nạn nhân. Luật
-  đếm thất bại đơn thuần vì vậy sinh nhiều báo động giả.
+  bại nhất là tài khoản thật vốn hay gõ sai, không phải nạn nhân. Vì vậy sinh nhiều báo động giả.
 \end{enumerate}
-
-Nguồn:
-\texttt{experiments/\allowbreak{}grid/\allowbreak{}test\_\allowbreak{}22f/\allowbreak{}}
-(\texttt{grid\_\allowbreak{}summary.\allowbreak{}csv},
-\texttt{grid\_\allowbreak{}runs.\allowbreak{}csv}) · OCSVM
-\texttt{nc1000}:
-\texttt{experiments/\allowbreak{}grid/\allowbreak{}test\_\allowbreak{}22f\_\allowbreak{}nc1000/\allowbreak{}}
 
 \hypertarget{ux111ux1b0ux1eddng-pr-vuxe0-ux111ux1ed9-nhux1ea1y-contamination}{%
 \subsection{4.3. Đường PR và độ nhạy
@@ -994,10 +870,8 @@ contamination}\label{ux111ux1b0ux1eddng-pr-vuxe0-ux111ux1ed9-nhux1ea1y-contamina
 
 \includegraphics{../../../experiments/grid/test_22f/figures/pr_curves.png}
 
-\textbf{Hình 4.1.} Đường precision--recall trung bình qua 5 seed
-(vertical averaging, không chọn seed đẹp nhất). OCSVM giữ precision
-khoảng 0,3 tới recall khoảng 0,3 rồi giảm dần; z-score có precision cao
-ở vài cảnh báo đầu rồi rơi nhanh.
+\textbf{Hình 4.1.} Đường precision--recall trung bình qua 5 seed. OCSVM giữ
+precision khoảng 0,3 tới recall khoảng 0,3; z-score chỉ tốt ở vài cảnh báo đầu.
 
 \includegraphics{../../../experiments/grid/test_22f/figures/contamination_sensitivity.png}
 
@@ -1007,12 +881,12 @@ thêm 10\% và 20\%)
 {\footnotesize\renewcommand{\small}{\footnotesize}
 
 \begin{longtable}[]{@{}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.1011}}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.1187}}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.1187}}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.1187}}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.2649}}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.2578}}@{}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.1}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.16}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.14}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.14}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.24}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.22}}@{}}
 \toprule\noalign{}
 \begin{minipage}[b]{\linewidth}\raggedright
 c
@@ -1025,7 +899,7 @@ LOF P / R
 \end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
 Tỷ lệ cảnh báo thực tế (OCSVM)
 \end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
-Cảnh báo/ngày (OCSVM, khoảng)
+Cảnh báo/ngày \\(OCSVM, khoảng)
 \end{minipage} \\
 \midrule\noalign{}
 \endhead
@@ -1044,18 +918,16 @@ Cảnh báo/ngày (OCSVM, khoảng)
 \begin{itemize}
 \tightlist
 \item
-  \textbf{Contamination chỉ dời điểm vận hành, không đổi chất lượng xếp
-  hạng:} PR-AUC OCSVM chỉ dao động 0,174--0,181 dù \texttt{nu} đổi theo
+  Contamination chỉ dời điểm vận hành, không đổi chất lượng xếp
+  hạng: PR-AUC OCSVM chỉ dao động 0,174--0,181 dù \texttt{nu} đổi theo
   contamination; IF và LOF chỉ đổi ngưỡng.
 \item
-  \textbf{Chọn contamination là chọn ngân sách analyst.} Ở c = 0,5\%,
-  OCSVM bật khoảng 100 cảnh báo/ngày (khoảng 8.500 dòng User/ngày), cứ
-  khoảng 4 cảnh báo có 1 tấn công, bắt khoảng 31\% nạn nhân.
+  Chọn contamination là chọn ngân sách analyst. Ở c = 0,5\%,
+  OCSVM bật khoảng 100 cảnh báo/ngày, cứ
+  4 cảnh báo có 1 tấn công, bắt 31\% nạn nhân.
 \item
-  Tỷ lệ cảnh báo thực tế cao hơn contamination 1,4--2,5 lần vì khối chấm
-  có thêm 1\% dương và hành vi trôi so với train. Ngưỡng đặt theo phân
-  vị train không giữ đúng ngân sách khi dữ liệu trôi; cần theo dõi khi
-  triển khai.
+  Tỷ lệ cảnh báo thực tế cao hơn contamination 1,4--2,5 lần do dữ liệu
+  trôi so với train, nên khi triển khai cần đặt ngân sách theo số cảnh báo/ngày.
 \end{itemize}
 
 \hypertarget{theo-loux1ea1i-tux1ea5n-cuxf4ng}{%
@@ -1133,21 +1005,19 @@ Ngẫu nhiên
 
 }
 
-ROC-AUC theo kịch bản được tính với cùng tập dòng âm. Để thấy mức ``lọt
-vào ngân sách'', bảng 4.5 dùng recall top-100/ngày; bảng này đo với 41
-đặc trưng và OCSVM \texttt{nc1000} (thí nghiệm phân tích theo kịch bản
-tuần 5), nhưng thứ hạng kịch bản không đổi với bộ 22.
+Bảng 4.5 đo recall top-100/ngày theo kịch bản. Số liệu lấy từ thí nghiệm
+tuần 5 (41 đặc trưng, OCSVM \texttt{nc1000}); thứ hạng kịch bản không đổi với bộ 22.
 
 {\footnotesize\renewcommand{\small}{\footnotesize}
 
 \begin{longtable}[]{@{}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 12\tabcolsep) * \real{0.1891}}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 12\tabcolsep) * \real{0.0960}}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 12\tabcolsep) * \real{0.0960}}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 12\tabcolsep) * \real{0.0960}}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 12\tabcolsep) * \real{0.0960}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 12\tabcolsep) * \real{0.3}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 12\tabcolsep) * \real{0.1}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 12\tabcolsep) * \real{0.07}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 12\tabcolsep) * \real{0.07}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 12\tabcolsep) * \real{0.07}}
   >{\raggedright\arraybackslash}p{(\columnwidth - 12\tabcolsep) * \real{0.1288}}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 12\tabcolsep) * \real{0.2780}}@{}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 12\tabcolsep) * \real{0.2}}@{}}
 \caption{Bảng 4.5: Recall top-100/ngày theo kịch bản, test, 41 đặc
 trưng, TB 5 run}\tabularnewline
 \toprule\noalign{}
@@ -1164,7 +1034,7 @@ Z-score
 \end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
 Luật thất bại
 \end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
-Hạng trung vị của nạn nhân (OCSVM)
+Hạng trung vị của\\ nạn nhân (OCSVM)
 \end{minipage} \\
 \midrule\noalign{}
 \endfirsthead
@@ -1215,39 +1085,31 @@ bản (41 đặc trưng). Đường càng lên sớm càng tốt.
 \begin{itemize}
 \tightlist
 \item
-  \textbf{Bắt tốt:} brute\_\allowbreak{}force (OCSVM gần 0,7 ở 100 cảnh
+  Bắt tốt: brute\_\allowbreak{}force (OCSVM gần 0,7 ở 100 cảnh
   báo/ngày, gần 1,0 ở 5\%),
   logon\_\allowbreak{}type\_\allowbreak{}switch (cả ba mô hình),
   new\_\allowbreak{}workstation\_\allowbreak{}burst (chủ yếu OCSVM).
 \item
-  \textbf{Bắt yếu:} dormant\_\allowbreak{}wakeup; nạn nhân bị bỏ sót lại
-  có nhiều sự kiện hơn nạn nhân bị bắt (trung vị 150 so với 85), vì một
-  ngày bận ``phát lại'' trông giống tài khoản bận bình thường.
+  Bắt yếu: dormant\_\allowbreak{}wakeup; nạn nhân bị bỏ sót lại
+  có nhiều sự kiện hơn nạn nhân bị bắt (trung vị 150 so với 85).
 \item
-  \textbf{Điểm mù chung:} off\_\allowbreak{}hours và
-  password\_\allowbreak{}spraying. Cả ba kịch bản yếu được phân tích ở
+  Điểm mù chung: off\_\allowbreak{}hours và
+  password\_\allowbreak{}spraying. Ba kịch bản yếu được phân tích ở
   mục 5.5.
 \item
-  \textbf{Không có mô hình nào thắng ở mọi kịch bản:} luật thất bại tốt
+  Không có mô hình nào thắng ở mọi kịch bản: luật thất bại tốt
   nhất ở spraying về ROC-AUC; IF tốt hơn OCSVM ở
   dormant\_\allowbreak{}wakeup và off\_\allowbreak{}hours về ROC-AUC.
   Điều này ủng hộ việc kết hợp mô hình và luật (mục 8).
 \end{itemize}
 
-Nguồn:
-\texttt{experiments/\allowbreak{}grid/\allowbreak{}test\_\allowbreak{}22f/\allowbreak{}grid\_\allowbreak{}scenarios\_\allowbreak{}summary.\allowbreak{}csv}
-·
-\texttt{experiments/\allowbreak{}analysis/\allowbreak{}scenario/\allowbreak{}}
-·
-\texttt{reports/\allowbreak{}week5/\allowbreak{}phan\_\allowbreak{}tich\_\allowbreak{}theo\_\allowbreak{}kich\_\allowbreak{}ban.\allowbreak{}md}
-
 \hypertarget{chi-phuxed-tuxednh-touxe1n}{%
 \subsection{4.5. Chi phí tính toán}\label{chi-phuxed-tuxednh-touxe1n}}
 
 \begin{longtable}[]{@{}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.4049}}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.1402}}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.4349}}@{}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.375}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.173}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.442}}@{}}
 \toprule\noalign{}
 \begin{minipage}[b]{\linewidth}\raggedright
 Bước
@@ -1261,7 +1123,7 @@ Ghi chú
 \bottomrule\noalign{}
 \endlastfoot
 \textbf{Làm sạch + đặc trưng 60 ngày} & vài giờ & Bước ghép lịch sử 7
-ngày chiếm phần lớn; 14 ngày tốn thêm khoảng 200 s và gần gấp đôi RAM \\
+ngày chiếm phần lớn; 14 ngày tốn thêm khoảng 200s, gần gấp đôi RAM \\
 \textbf{Fit OCSVM \texttt{g01} / \texttt{nc1000}} & 5 s / 47 s & 315
 nghìn dòng train; \texttt{nc1000} dùng ma trận 315k × 1000
 (\textgreater{} 2 GB, biến đổi theo khối) \\
@@ -1269,7 +1131,7 @@ nghìn dòng train; \texttt{nc1000} dùng ma trận 315k × 1000
 không khả thi ở quy mô này \\
 \textbf{Chấm 154 nghìn dòng} & 1--3 s mỗi mô hình & Đủ nhanh cho chấm
 theo lô hằng ngày \\
-\textbf{Lưới test (3 mô hình + 4 baseline × 5 seed + quét
+\textbf{Lưới test (3 mô hình + 4 baseline \newline × 5 seed + quét
 contamination)} & khoảng 1 giờ & Phần lớn là 120 lần fit của quét
 contamination \\
 \end{longtable}
@@ -1288,16 +1150,13 @@ nguyên nhân:
 \def\labelenumi{\arabic{enumi}.}
 \tightlist
 \item
-  \textbf{Loại bất thường quyết định thuật toán thắng.} Các khảo sát lớn
+  Loại bất thường quyết định thuật toán thắng. Các khảo sát lớn
   (ví dụ ADBench, NeurIPS 2022) cho thấy phương pháp toàn cục thắng với
   bất thường toàn cục, còn LOF mạnh với bất thường cục bộ. Năm trên sáu
-  kịch bản ở đây là bất thường toàn cục: bị khoá tài khoản, nhiều máy
-  nguồn mới, cả ngày đổi loại logon.
+  kịch bản ở đây là bất thường toàn cục.
 \item
-  Bằng chứng trực tiếp: LOF gần như mù với brute-force (ROC-AUC 0,58,
-  recall top-100/ngày 0,01) trong khi OCSVM đạt 0,99. Train có sẵn
-  khoảng 600 dòng User thật giống brute-force (bị khoá, ≥ 8 lần thất
-  bại). Nạn nhân tiêm có láng giềng gần nhất chính là các dòng này, mật
+  Bằng chứng trực tiếp: LOF gần như mù với brute-force trong khi OCSVM đạt 0,99. Train có sẵn
+  khoảng 600 dòng User thật giống brute-force. Nạn nhân tiêm có láng giềng gần nhất chính là các dòng này, mật
   độ tương đương nên LOF ≈ 1, tức ``bình thường''. OCSVM đo khoảng cách
   tới khối dữ liệu chính; 600 trên 315.000 dòng là vùng thưa nên bị coi
   là bất thường.
@@ -1342,13 +1201,12 @@ thang đo sau tiền xử lý trước khi kết luận một mô hình kém.
 hiệu}\label{shap-muxf4-huxecnh-duxf9ng-ux111uxfang-tuxedn-hiux1ec7u}}
 
 KernelSHAP trên một run dev, 180 nạn nhân (30 mỗi kịch bản) và 30 báo
-nhầm điểm cao nhất của mỗi mô hình. Mỗi dòng được chuẩn hoá thành tỷ
-phần \textbar SHAP\textbar{} để so giữa ba mô hình có thang điểm khác
-nhau.
+nhầm điểm cao nhất của mỗi mô hình. Tỷ phần \textbar SHAP\textbar{} được
+chuẩn hoá để so giữa ba mô hình.
 
 \begin{longtable}[]{@{}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.4128}}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.5672}}@{}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.47}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.51}}@{}}
 \toprule\noalign{}
 \begin{minipage}[b]{\linewidth}\raggedright
 Kịch bản
@@ -1370,7 +1228,7 @@ sau đó là time \\
 \textbf{dormant\_\allowbreak{}wakeup} & novelty 0,49 / 0,40 / 0,30 (chủ
 yếu
 \texttt{days\_\allowbreak{}since\_\allowbreak{}last\_\allowbreak{}activity}) \\
-\textbf{Báo nhầm (dòng bình thường điểm cao nhất)} & OCSVM: rhythm 0,27;
+\textbf{Báo nhầm(dòng bình thường điểm cao nhất)} & OCSVM: rhythm 0,27;
 IF, LOF: failure \\
 \end{longtable}
 
@@ -1378,9 +1236,7 @@ Mỗi kịch bản được giải thích bằng đúng nhóm đặc trưng thi�
 nhất quán ở cả ba mô hình. Nhóm rhythm (nhịp giữa các sự kiện) chỉ chiếm
 khoảng nửa mức chia đều ở nạn nhân, nhưng chiếm 0,27 (gấp gần 3 lần mức
 chia đều) ở báo nhầm của OCSVM, gần như toàn bộ do
-\texttt{delta\_\allowbreak{}t\_\allowbreak{}cv}. LIME được chạy để đối
-chiếu nhưng khớp kém ở từng dòng (với LOF chỉ giải thích được 6\% điểm),
-nên SHAP là căn cứ chính.
+\texttt{delta\_\allowbreak{}t\_\allowbreak{}cv}. LIME khớp kém ở từng dòng nên SHAP là căn cứ chính.
 
 \includegraphics{../../week5/figures/04-shap_group_by_scenario.png}
 
@@ -1392,17 +1248,16 @@ chéo'': mỗi kịch bản có đúng một nhóm nổi bật.
 \subsubsection{5.3.2. Ablation theo nhóm đặc trưng (đề cương
 5.6)}\label{ablation-theo-nhuxf3m-ux111ux1eb7c-trux1b0ng-ux111ux1ec1-cux1b0ux1a1ng-5.6}}
 
-Bỏ lần lượt từng nhóm, đo hiệu ghép cặp so với đủ 41 đặc trưng trên cùng
-run và seed (5 run dev). Đối chứng: chỉ xáo thứ tự dòng train đã làm
-PR-AUC OCSVM lệch −0,020 ± 0,019 (do SGD), nên với OCSVM một thay đổi
-phải vượt mức này.
+Bỏ lần lượt từng nhóm, so với đủ 41 đặc trưng trên cùng run và seed
+(5 run dev). Riêng việc xáo thứ tự dòng train đã làm PR-AUC OCSVM lệch
+−0,020 ± 0,019, nên thay đổi nhỏ hơn mức này coi như nhiễu.
 
 \begin{longtable}[]{@{}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 8\tabcolsep) * \real{0.2144}}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 8\tabcolsep) * \real{0.1441}}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 8\tabcolsep) * \real{0.1101}}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 8\tabcolsep) * \real{0.1188}}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 8\tabcolsep) * \real{0.3926}}@{}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 8\tabcolsep) * \real{0.189}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 8\tabcolsep) * \real{0.189}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 8\tabcolsep) * \real{0.132}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 8\tabcolsep) * \real{0.151}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 8\tabcolsep) * \real{0.330}}@{}}
 \toprule\noalign{}
 \begin{minipage}[b]{\linewidth}\raggedright
 Bỏ nhóm (còn lại)
@@ -1430,11 +1285,11 @@ brute\_\allowbreak{}force −0,57 recall \\
 −0,28 \\
 \textbf{time (33)} & −0,002 ± 0,003 & +0,012 & −0,012 &
 off\_\allowbreak{}hours gần như không đổi \\
-\textbf{volume + context (35)} & +0,014 ± 0,003 & +0,038 & +0,003 &
+\textbf{volume +\newline context (35)} & +0,014 ± 0,003 & +0,038 & +0,003 &
 không kịch bản nào tụt rõ \\
 \textbf{rhythm (37)} & +0,050 ± 0,013 & +0,019 & +0,029 & không kịch bản
 nào tụt; brute\_\allowbreak{}force +0,13 (OCSVM) \\
-\textbf{\emph{đối chứng xáo dòng (41)}} & \emph{−0,020 ± 0,019} &
+\textbf{\emph{đối chứng\newline xáo dòng (41)}} & \emph{−0,020 ± 0,019} &
 \emph{0,000} & \emph{−0,005} & \\
 \end{longtable}
 
@@ -1455,24 +1310,15 @@ nào tụt; brute\_\allowbreak{}force +0,13 (OCSVM) \\
 \subsubsection{5.3.3. Chọn số đặc trưng bỏ
 (K)}\label{chux1ecdn-sux1ed1-ux111ux1eb7c-trux1b0ng-bux1ecf-k}}
 
-Bộ 30 đặc trưng dùng trong tuần 5 được tạo bằng cách bỏ nhóm rhythm và
-10 đặc trưng SHAP thấp nhất. Con số 10 là một số tròn được chọn, không
-có quy tắc nào đứng sau: khi xếp 41 đặc trưng theo mức đóng góp SHAP,
-các giá trị giảm đều và không có chỗ gãy. Trên run dev dùng để chọn bộ
-30, hạng 10 (\texttt{same\_\allowbreak{}second\_\allowbreak{}share}) là
-0,0163 và hạng 11
-(\texttt{custom\_\allowbreak{}proc\_\allowbreak{}share}) là 0,0165, chỉ
-chênh 0,0002; tính trung bình 3 run thì hạng 10 là 0,0164, hạng 11 là
-0,0171. Kết quả tốt của bộ 30 chỉ cho thấy bỏ các đặc trưng đó không gây
-hại, chứ không chứng minh 10 là con số đúng. Vì vậy số đặc trưng cần bỏ
-được chọn lại bằng đường cong K trên dev, với quy tắc chọn đặt ra trước
-khi xem kết quả.
+Bộ 30 đặc trưng của tuần 5 bỏ nhóm rhythm và 10 đặc trưng SHAP thấp nhất.
+Con số 10 là số tròn: giá trị SHAP giảm đều, không có chỗ gãy (hạng 10 và
+hạng 11 chỉ chênh 0,0002). Vì vậy số đặc trưng cần bỏ được chọn lại bằng
+đường cong K trên dev, với quy tắc chọn đặt trước khi xem kết quả.
 
 Xếp 41 đặc trưng theo tỷ phần \textbar SHAP\textbar{} cao nhất qua 3 mô
-hình × 3 run dev; cấu hình
-\texttt{drop\_\allowbreak{}rhythm\_\allowbreak{}kK} bỏ rhythm và K đặc
-trưng thấp nhất. K = 18 là mức cắt tự nhiên: đúng 18 đặc trưng có tỷ
-phần dưới mức chia đều 1/41 ở mọi mô hình, mọi run.
+hình × 3 run dev, rồi bỏ rhythm và K đặc trưng thấp nhất. K = 18 là mức cắt
+tự nhiên: đúng 18 đặc trưng có tỷ phần dưới mức chia đều 1/41 ở mọi mô
+hình, mọi run.
 
 \begin{longtable}[]{@{}llll@{}}
 \toprule\noalign{}
@@ -1492,26 +1338,16 @@ Còn lại & OCSVM & IF & LOF \\
 21 (K = 20) & 0,382 ± 0,064 & 0,258 ± 0,021 & 0,167 ± 0,016 \\
 \end{longtable}
 
-Recall top-100/ngày, TB ± std qua 5 run dev, cấu hình mô hình của 41 đặc
-trưng. Bộ 30 dùng xếp hạng SHAP của 1 run, còn đường cong K xếp theo tỷ
-phần cao nhất qua 3 mô hình × 3 run, nên K = 10 cho 29 đặc trưng và
-không trùng với bộ 30 (bộ 30 giữ
-\texttt{custom\_\allowbreak{}proc\_\allowbreak{}share},
-\texttt{delta\_\allowbreak{}mean\_\allowbreak{}distinct\_\allowbreak{}pair\_\allowbreak{}7d},
-\texttt{new\_\allowbreak{}host\_\allowbreak{}count\_\allowbreak{}7d}
-nhưng bỏ
-\texttt{peer\_\allowbreak{}z\_\allowbreak{}share\_\allowbreak{}night},
-\texttt{volume\_\allowbreak{}robust\_\allowbreak{}z\_\allowbreak{}7d}).
-Nguồn:
-\texttt{experiments/\allowbreak{}ablation/\allowbreak{}kcurve/\allowbreak{}summary.\allowbreak{}csv}.
+Recall top-100/ngày, TB ± std qua 5 run dev. Bộ 30 dùng xếp hạng SHAP của
+1 run nên không trùng với K = 10.
 
 \begin{itemize}
 \tightlist
 \item
-  OCSVM phẳng từ 33 đến 22 đặc trưng; IF tăng đều tới 22 rồi dừng; LOF
-  tốt nhất ở 30--33 rồi giảm.
+  OCSVM phẳng từ 33 đến 22 đặc trưng; IF tăng tới 22 rồi dừng; LOF
+  tốt nhất 30--33 rồi giảm.
 \item
-  \textbf{Không có K chung tốt nhất cho cả ba mô hình.} K = 18 được chốt
+  Không có K chung tốt nhất cho cả ba mô hình. K = 18 được chốt
   vì là mức cắt có căn cứ, OCSVM không đổi, IF tăng rõ, và K = 20 không
   tốt hơn ở mô hình nào. Đánh đổi là LOF kém trên dev (−0,037 ± 0,009).
 \item
@@ -1519,7 +1355,7 @@ Nguồn:
   cho OCSVM −0,003 ± 0,005, IF +0,034 ± 0,013, LOF +0,028 ± 0,005
   recall. LOF đảo chiều giữa dev và test, nên không dùng LOF để chọn K.
 \item
-  \textbf{Thiên lệch chọn:} K = 18 được chốt sau khi đã xem kết quả test
+  Thiên lệch chọn: K = 18 được chốt sau khi đã xem kết quả test
   của 4 cấu hình K. Với OCSVM và IF, test chỉ xác nhận dev; với LOF việc
   chọn có tính đến test. Đây là ngoại lệ duy nhất với nguyên tắc ``test
   không tham gia chọn''.
@@ -1527,30 +1363,16 @@ Nguồn:
 
 \textbf{Kết quả so với 41 đặc trưng ban đầu (test):} recall top-100/ngày
 IF 0,16 → 0,24, LOF 0,13 → 0,18, OCSVM 0,32 → 0,34 (\texttt{g01};
-\texttt{nc1000} 0,37). Bớt chiều yếu giúp IF nhiều nhất vì IF chọn đặc
-trưng ngẫu nhiên để tách, mỗi chiều yếu làm loãng cây.
-
-Nguồn:
-\texttt{reports/\allowbreak{}week5/\allowbreak{}shap\_\allowbreak{}lime.\allowbreak{}md}
-·
-\texttt{ablation\_\allowbreak{}nhom\_\allowbreak{}dac\_\allowbreak{}trung.\allowbreak{}md}
-·
-\texttt{chon\_\allowbreak{}so\_\allowbreak{}dac\_\allowbreak{}trung\_\allowbreak{}K.\allowbreak{}md}
-·
-\texttt{kiem\_\allowbreak{}tra\_\allowbreak{}test\_\allowbreak{}K\_\allowbreak{}va\_\allowbreak{}context.\allowbreak{}md}
+\texttt{nc1000} 0,37). IF được lợi nhiều nhất vì mỗi chiều yếu làm loãng cây.
 
 \hypertarget{cux1eeda-sux1ed5-lux1ecbch-sux1eed-7-14-21-nguxe0y}{%
 \subsection{5.4. Cửa sổ lịch sử 7 / 14 / 21
 ngày}\label{cux1eeda-sux1ed5-lux1ecbch-sux1eed-7-14-21-nguxe0y}}
 
 Kéo dài cửa sổ của các đặc trưng lịch sử không cải thiện kết quả: recall
-top-100/ngày OCSVM 0,317 / 0,318 / 0,294; LOF 0,121 / 0,034 / 0,003 (sụp
-ở cửa sổ dài vì nhiều dòng đầu train thiếu lịch sử bị điền median, tạo
-cụm dày giả). Cửa sổ dài chỉ giúp spraying (ROC-AUC 0,69 → 0,77) nhưng
+top-100/ngày OCSVM 0,317 / 0,318 / 0,294; LOF 0,121 / 0,034 / 0,003. Cửa sổ dài chỉ giúp spraying (ROC-AUC 0,69 → 0,77) nhưng
 làm hại dormant\_\allowbreak{}wakeup và tốn khoảng 3 lần thời gian. Giữ
-7 ngày. Chi tiết:
-\texttt{reports/\allowbreak{}week5/\allowbreak{}bao\_\allowbreak{}cao\_\allowbreak{}tuan5.\allowbreak{}md}
-mục 1.
+7 ngày.
 
 \hypertarget{ba-kux1ecbch-bux1ea3n-bux1ecb-bux1eaft-kuxe9m-off_hours-password_spraying-dormant_wakeup}{%
 \subsection{\texorpdfstring{5.5. Ba kịch bản bị bắt kém:
@@ -1572,17 +1394,17 @@ off\_\allowbreak{}hours (recall top-100/ngày ≤ 0,08 ở mọi mô hình):
   SHAP xác nhận nhóm time giải thích phần lớn điểm của nạn nhân (0,52),
   nhưng điểm tuyệt đối không đủ cao để lọt top.
 \item
-  \textbf{Khung giờ đêm quá rộng.} Ngoài giờ là 18h--7h, tức 14/24 giờ,
+  Khung giờ đêm quá rộng. Ngoài giờ là 18h--7h, tức 14/24 giờ,
   và chứa cả 7h, lúc lưu lượng ngày thường đã bằng 90\% giờ cao điểm
-  (mục 2.5). Một ngày bị dời vào khung này vì vậy không khác nhiều so
+  (mục 2.4). Một ngày bị dời vào khung này vì vậy không khác nhiều so
   với một ngày bình thường.
 \item
-  \textbf{Nhóm đặc trưng thời gian hiện không tạo khác biệt:} bỏ cả 8
+  Nhóm đặc trưng thời gian hiện không tạo khác biệt: bỏ cả 8
   đặc trưng thời gian thì recall off\_\allowbreak{}hours gần như không
   đổi ở cả 3 mô hình (−0,02 đến 0,00).
 \item
-  \textbf{Không phải do lệch múi giờ:} nhịp lưu lượng theo giờ khớp với
-  giờ địa phương (mục 2.5).
+  Không phải do lệch múi giờ: nhịp lưu lượng theo giờ khớp với
+  giờ địa phương (mục 2.4).
 \item
   Hướng sửa: thu hẹp khung giờ đêm, và dùng đặc trưng so giờ hoạt động
   với lịch sử giờ của chính tài khoản, hoặc một luật riêng.
@@ -1598,11 +1420,10 @@ password\_\allowbreak{}spraying (recall ≤ 0,23):
   thất bại trong thời gian ngắn, nhưng mọi đặc trưng đều tính theo từng
   tài khoản.
 \item
-  Luật thất bại có ROC-AUC tốt nhất (0,875) nhưng vẫn không đưa được nạn
+  Luật thất bại có ROC-AUC tốt nhất (0,875) vẫn không đưa nạn
   nhân vào top (recall 0,05).
 \item
-  Hướng sửa: đặc trưng fan-out theo máy nguồn (engine đã có phép đo
-  \texttt{fanout}), hoặc phân tích ở cấp máy nguồn thay vì cấp tài
+  Hướng sửa: đặc trưng fan-out theo máy nguồn, hoặc phân tích ở cấp máy nguồn thay vì cấp tài
   khoản. Không chỉnh tham số mô hình nào giải được vấn đề này.
 \end{itemize}
 
@@ -1629,29 +1450,27 @@ dormant\_\allowbreak{}wakeup (recall ≤ 0,17; ROC-AUC 0,91 với OCSVM và
   trước đó của chính tài khoản''.
 \end{itemize}
 
-\textbf{Nguyên nhân chung.} Cả ba kịch bản đều chạm vào giới hạn của
-cách đặt bài toán: mỗi dòng là một tài khoản trong một ngày. Spraying
-cần nhìn theo máy nguồn qua nhiều tài khoản; off\_\allowbreak{}hours và
-dormant\_\allowbreak{}wakeup cần so với lịch sử dài hơn của chính tài
+\textbf{Nguyên nhân chung:} Ba kịch bản đều chạm vào giới hạn cách đặt bài toán: mỗi dòng là một tài khoản trong ngày. Spraying nhìn theo máy nguồn qua nhiều tài khoản; off\_\allowbreak{}hours và
+dormant\_\allowbreak{}wakeup so với lịch sử dài hơn của chính tài
 khoản. Chỉnh tham số mô hình không giải được các điểm mù này.
 
 \hypertarget{ux111ux1ed9-ux1ed5n-ux111ux1ecbnh}{%
 \subsection{5.6. Độ ổn định}\label{ux111ux1ed9-ux1ed5n-ux111ux1ecbnh}}
 
-\textbf{Qua seed.} Std của recall top-100/ngày: IF 0,016, LOF 0,006,
+Qua seed. Std của recall top-100/ngày: IF 0,016, LOF 0,006,
 OCSVM \texttt{g01} 0,070. Std gồm cả biến động dữ liệu tiêm và mô hình.
 Riêng OCSVM còn nhạy với thứ tự dòng train (SGD), nên dòng được sắp cố
 định trước khi fit.
 
-\textbf{Chọn cấu hình OCSVM trên dev không lặp lại trên test.} Trên dev,
+Chọn cấu hình OCSVM trên dev không lặp lại trên test. Trên dev,
 \texttt{g01} thắng \texttt{nc1000} với mức chênh nhỏ hơn 1 std. Trên
 test:
 
 \begin{longtable}[]{@{}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 6\tabcolsep) * \real{0.3415}}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 6\tabcolsep) * \real{0.2976}}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 6\tabcolsep) * \real{0.1448}}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 6\tabcolsep) * \real{0.1961}}@{}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 6\tabcolsep) * \real{0.31}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 6\tabcolsep) * \real{0.32}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 6\tabcolsep) * \real{0.15}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 6\tabcolsep) * \real{0.2}}@{}}
 \toprule\noalign{}
 \begin{minipage}[b]{\linewidth}\raggedright
 OCSVM, test
@@ -1668,18 +1487,14 @@ Recall top-100/ngày
 \endlastfoot
 \textbf{\texttt{g01} (300 thành phần Nystroem, γ = 0,1)} & 0,19 / 0,20 /
 0,11 / 0,15 / 0,24 & 0,175 ± 0,048 & 0,336 ± 0,070 \\
-\textbf{\texttt{nc1000} (1.000 thành phần, γ = scale)} & 0,19 / 0,19 /
+\textbf{\texttt{nc1000} (1.000 thành phần,\newline γ = scale)} & 0,19 / 0,19 /
 0,17 / 0,20 / 0,20 & 0,189 ± 0,013 & 0,373 ± 0,022 \\
 \end{longtable}
 
 Chênh lệch trung bình nằm trong 1 std, nhưng \texttt{g01} dao động gấp
-khoảng 3--4 lần. Nhiều thành phần Nystroem hơn làm xấp xỉ nhân RBF ổn
-định hơn. Kết quả chính vẫn báo cáo \texttt{g01} (cấu hình chọn trên
-dev), vì đổi sang \texttt{nc1000} sau khi xem test là chọn mô hình bằng
-tập test. Đề cương ghi ``một mô hình có phương sai lớn giữa các seed là
-mô hình không đáng tin để triển khai''; vì vậy khuyến nghị triển khai là
-\texttt{nc1000} (mục 8), và quy tắc chọn cấu hình về sau nên xét cả
-trung bình lẫn độ lệch chuẩn trên dev.
+3--4 lần. Báo cáo vẫn dùng \texttt{g01} vì đó là cấu hình chọn trên dev;
+đổi sau khi xem test là chọn mô hình bằng tập test. Khi triển khai nên dùng
+\texttt{nc1000} (mục 8), và quy tắc chọn về sau nên xét cả độ lệch chuẩn.
 
 \textbf{LOF không tất định.} Chỉ mục HNSW dựng đa luồng
 (\texttt{n\_\allowbreak{}jobs: -1}) đổi thứ tự chèn mỗi lần fit:
@@ -1687,16 +1502,15 @@ trung bình lẫn độ lệch chuẩn trên dev.
 \begin{itemize}
 \tightlist
 \item
-  Trung bình 5 run lặp lại được: hai lần chạy lưới test cho recall 0,176
+  Trung bình 5 run lặp lại: hai lần chạy lưới test cho recall 0,176
   và 0,175, PR-AUC 0,070 và 0,071.
 \item
   Nhưng từng lần fit lệch nhiều: PR-AUC của run seed 42 là 0,072 / 0,075
   / 0,079 / 0,083 qua bốn lần fit (lệch tới khoảng 15\%), và top 50 cảnh
   báo của hai lần fit trên log gốc chỉ trùng 6/50.
 \item
-  Hệ quả: danh sách cảnh báo của LOF không tái lập được. Đặt
-  \texttt{n\_\allowbreak{}jobs: 1} cho kết quả tất định nhưng fit chậm
-  hơn nhiều; nhóm giữ đa luồng và ghi nhận đây là hạn chế.
+  Hệ quả: danh sách cảnh báo của LOF không tái lập được; đặt
+  \texttt{n\_\allowbreak{}jobs: 1} thì tất định nhưng fit chậm hơn nhiều.
 \end{itemize}
 
 \hypertarget{mux1ee9c-lux1ea1c-quan-cux1ee7a-kux1ebft-quux1ea3}{%
@@ -1706,12 +1520,12 @@ quả}\label{mux1ee9c-lux1ea1c-quan-cux1ee7a-kux1ebft-quux1ea3}}
 \begin{itemize}
 \tightlist
 \item
-  \textbf{Do chọn cấu hình trên dev:} nhỏ. Dev nằm trong train; với cấu
+  Do chọn cấu hình trên dev: nhỏ. Dev nằm trong train; cấu
   hình 41 đặc trưng, PR-AUC test bằng hoặc cao hơn dev ở cả ba mô hình.
   Với 22 đặc trưng, PR-AUC test thấp hơn dev (OCSVM 0,175 so với 0,248),
   một phần do dev và test khác nhau về độ dài train và số ngày chấm.
 \item
-  \textbf{Do nhãn tổng hợp:} lớn và không đo được. Tấn công tiêm là bản
+  Do nhãn tổng hợp: lớn và không đo được. Tấn công tiêm là bản
   sao sự kiện thật nhưng theo khuôn cố định; tấn công thật đa dạng và
   kín đáo hơn. Mọi con số trong báo cáo là cận trên.
 \end{itemize}
@@ -1725,22 +1539,20 @@ quả}\label{mux1ee9c-lux1ea1c-quan-cux1ee7a-kux1ebft-quux1ea3}}
 
 Trên log gốc, không tiêm, mô hình fit ngày 1--42 và chấm ngày 43--60
 (phân khúc User, seed 42). Lấy 50 cảnh báo điểm cao nhất của mỗi mô
-hình, hợp lại, xáo thứ tự và làm mù (phiếu chấm không có tên mô hình hay
-điểm; bảng khoá để riêng). Mỗi cảnh báo có một ``thẻ'' gồm đặc trưng
+hình, hợp lại, xáo thứ tự và làm mù. Mỗi cảnh báo có một ``thẻ'' gồm đặc trưng
 lệch nhất so với train, ngữ cảnh tài khoản và tóm tắt log thô của ngày
 đó. Ba nhãn theo đề cương 5.5: a đáng ngờ, cần điều tra; b bất thường
-nhưng giải thích được; c nhiễu. Hướng dẫn chấm:
-\texttt{docs/\allowbreak{}huong\_\allowbreak{}dan\_\allowbreak{}review\_\allowbreak{}top50.\allowbreak{}md}.
+nhưng giải thích được; c nhiễu.
 
 \hypertarget{trux1ea1ng-thuxe1i}{%
 \subsection{6.2. Trạng thái}\label{trux1ea1ng-thuxe1i}}
 
 \begin{longtable}[]{@{}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 8\tabcolsep) * \real{0.1904}}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 8\tabcolsep) * \real{0.2545}}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 8\tabcolsep) * \real{0.1411}}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 8\tabcolsep) * \real{0.2633}}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 8\tabcolsep) * \real{0.1307}}@{}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 8\tabcolsep) * \real{0.2}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 8\tabcolsep) * \real{0.27}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 8\tabcolsep) * \real{0.13}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 8\tabcolsep) * \real{0.24}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 8\tabcolsep) * \real{0.13}}@{}}
 \toprule\noalign{}
 \begin{minipage}[b]{\linewidth}\raggedright
 Bộ
@@ -1763,15 +1575,11 @@ chấm \\
 \end{longtable}
 
 \begin{quote}
-Một phần Mục này chưa hoàn chỉnh. Đề cương yêu cầu hai thực tập sinh
-chấm độc lập rồi đo đồng thuận (Cohen's κ, chạy
-\texttt{python scripts/\allowbreak{}evaluation/\allowbreak{}review\_\allowbreak{}agreement.\allowbreak{}py}).
-Khi có nhãn của hai người, mục này cần bổ sung bảng phân loại a/b/c theo
+Một phần Mục này chưa hoàn chỉnh. Đề cương yêu cầu hai TTS
+chấm độc lập rồi đo đồng thuận (Cohen's κ).
+Khi có nhãn của hai người, cần bổ sung bảng phân loại a/b/c theo
 mô hình, κ và nhận xét.
 \end{quote}
-
-Nguồn:
-\texttt{experiments/\allowbreak{}analysis/\allowbreak{}review\_\allowbreak{}top50\_\allowbreak{}22f/\allowbreak{}}
 
 \hypertarget{hux1ea1n-chux1ebf-ux111uxe3-biux1ebft}{%
 \section{7. Hạn chế đã
@@ -1781,25 +1589,22 @@ biết}\label{hux1ea1n-chux1ebf-ux111uxe3-biux1ebft}}
 \def\labelenumi{\arabic{enumi}.}
 \tightlist
 \item
-  \textbf{Nhãn tổng hợp cho cận trên lạc quan.} Tấn công thật đa dạng và
+  Nhãn tổng hợp cho cận trên lạc quan. Tấn công thật đa dạng và
   kín đáo hơn khuôn tiêm; dòng nhãn 0 cũng chưa chắc lành tính. Không có
   nhãn tấn công thật để hiệu chỉnh.
 \item
-  \textbf{Giả định train ``sạch'' không hoàn toàn đúng.} Train có khoảng
+  Giả định train ``sạch'' không hoàn toàn đúng. Train có khoảng
   600 dòng giống brute-force thật; chính chúng làm LOF thất bại.
 \item
-  \textbf{Chỉ đánh giá phân khúc User.} Tài khoản Machine không được
+  Chỉ đánh giá phân khúc User. Tài khoản Machine không được
   tiêm; Admin, Service, System quá ít để học máy.
 \item
   Ba kịch bản bị bắt kém: password\_\allowbreak{}spraying,
   off\_\allowbreak{}hours, dormant\_\allowbreak{}wakeup (recall
-  top-100/ngày ≤ 0,23 / 0,08 / 0,17, số của 41 đặc trưng). Nguyên nhân:
-  (a) đặc trưng chỉ tính theo từng tài khoản, nên không thấy một máy
-  nguồn thử nhiều tài khoản; (b) khung giờ đêm 18h--7h quá rộng, chứa cả
-  giờ làm việc lúc 7h; (c) ngày ``thức dậy'' giống một ngày bình thường,
-  chỉ khác khoảng nghỉ. Chi tiết và hướng sửa ở mục 5.5.
+  top-100/ngày ≤ 0,23 / 0,08 / 0,17, số của 41 đặc trưng). Nguyên nhân
+  và hướng sửa ở mục 5.5.
 \item
-  \textbf{Thuật toán xấp xỉ.} LOF dùng láng giềng xấp xỉ HNSW, OCSVM
+  Thuật toán xấp xỉ. LOF dùng láng giềng xấp xỉ HNSW, OCSVM
   dùng nhân RBF xấp xỉ Nystroem + SGD, thay cho bản chính xác của
   scikit-learn. Kết luận về ``LOF'' và ``OCSVM'' là kết luận về các bản
   xấp xỉ này.
@@ -1813,7 +1618,7 @@ biết}\label{hux1ea1n-chux1ebf-ux111uxe3-biux1ebft}}
   Thiên lệch chọn ở bước chọn K (mục 5.3.3): K = 18 được chốt sau khi
   xem test.
 \item
-  \textbf{Train dùng chung cho mọi run:} chỉ ngày chấm bị tiêm, nên độ
+  Train dùng chung cho mọi run: chỉ ngày chấm bị tiêm, nên độ
   lệch chuẩn không gồm biến động của train.
 \item
   Ngưỡng theo phân vị train không giữ ngân sách khi hành vi trôi: tỷ lệ
@@ -1837,8 +1642,8 @@ khai}\label{khuyux1ebfn-nghux1ecb-triux1ec3n-khai}}
 khoản}\label{kiux1ebfn-truxfac-phuxe2n-luux1ed3ng-theo-loux1ea1i-tuxe0i-khoux1ea3n}}
 
 \begin{longtable}[]{@{}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.2436}}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.2565}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.26}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.22}}
   >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.4798}}@{}}
 \toprule\noalign{}
 \begin{minipage}[b]{\linewidth}\raggedright
@@ -1858,9 +1663,9 @@ chính, IF làm mô hình phụ \\
 tài khoản thất bại theo \texttt{Source} trong cửa sổ ngắn; luật số lần
 thất bại theo tài khoản \\
 \textbf{Luật và danh sách trắng} & Admin, Service, System & Mỗi tài
-khoản dịch vụ chỉ được phép một tập (loại logon, nguồn, đích) cố định;
+khoản dịch vụ chỉ được phép một tập cố định;
 vi phạm là cảnh báo mức cao \\
-\textbf{Theo dõi riêng (chưa đánh giá)} & Machine & Cần đánh giá riêng
+\textbf{Theo dõi riêng\newline (chưa đánh giá)} & Machine & Cần đánh giá riêng
 trước khi đưa vào học máy \\
 \end{longtable}
 
@@ -1893,11 +1698,11 @@ hình}\label{cux1ea5u-huxecnh-muxf4-huxecnh}}
 hành}\label{nguxe2n-suxe1ch-cux1ea3nh-buxe1o-vuxe0-chi-phuxed-vux1eadn-huxe0nh}}
 
 \begin{longtable}[]{@{}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 8\tabcolsep) * \real{0.1882}}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 8\tabcolsep) * \real{0.1756}}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 8\tabcolsep) * \real{0.1223}}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 8\tabcolsep) * \real{0.1882}}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 8\tabcolsep) * \real{0.3057}}@{}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 8\tabcolsep) * \real{0.299}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 8\tabcolsep) * \real{0.154}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 8\tabcolsep) * \real{0.097}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 8\tabcolsep) * \real{0.145}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 8\tabcolsep) * \real{0.295}}@{}}
 \toprule\noalign{}
 \begin{minipage}[b]{\linewidth}\raggedright
 Ngân sách
@@ -1906,9 +1711,9 @@ Contamination (khoảng)
 \end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
 Recall (OCSVM)
 \end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
-Cảnh báo đúng / cảnh báo
+Cảnh báo đúng\\ / cảnh báo
 \end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
-Thời gian analyst (giả định 5 phút/cảnh báo)
+Thời gian analyst\\ (giả định 5 phút/cảnh báo)
 \end{minipage} \\
 \midrule\noalign{}
 \endhead
@@ -1923,10 +1728,8 @@ giờ/ngày (3 analyst) \\
 \end{longtable}
 
 Khuyến nghị khởi đầu ở khoảng 100 cảnh báo/ngày (một analyst toàn thời
-gian) và đặt ngân sách theo số cảnh báo/ngày (top-K mỗi ngày) thay vì
-theo contamination, vì ngưỡng phân vị train không giữ đúng ngân sách khi
-dữ liệu trôi. Thời gian 5 phút/cảnh báo là giả định để minh hoạ, chưa đo
-thực tế. Các con số recall là cận trên (nhãn tổng hợp).
+gian) và đặt ngân sách theo số cảnh báo/ngày thay vì contamination.
+Thời gian 5 phút/cảnh báo là giả định, chưa đo thực tế; recall là cận trên.
 
 \hypertarget{vux1eadn-huxe0nh-vuxe0-theo-duxf5i}{%
 \subsection{8.4. Vận hành và theo
@@ -1943,9 +1746,9 @@ dõi}\label{vux1eadn-huxe0nh-vuxe0-theo-duxf5i}}
   biết cảnh báo thuộc loại nào (thất bại, nguồn mới, loại logon,
   \ldots).
 \item
-  \textbf{Ưu tiên cải tiến tiếp theo:} đặc trưng fan-out theo máy nguồn
+  Ưu tiên cải tiến tiếp theo: đặc trưng fan-out theo máy nguồn
   (spraying), đặc trưng giờ so với lịch sử cá nhân
-  (off\_\allowbreak{}hours), rồi đánh giá trên tấn công thật nếu có (ví
+  (off\_\allowbreak{}hours), đánh giá trên tấn công thật (ví
   dụ \texttt{redteam.\allowbreak{}txt} của LANL).
 \end{enumerate}
 
@@ -1956,20 +1759,13 @@ hành}\label{tuxe1i-lux1eadp-vuxe0-vux1eadn-huxe0nh}}
 \hypertarget{muxf4i-trux1b0ux1eddng}{%
 \subsection{9.1. Môi trường}\label{muxf4i-trux1b0ux1eddng}}
 
-Conda hoặc venv, cài theo README mục 2
-(\texttt{pip install -r requirements.\allowbreak{}txt},
-\texttt{pip install -e .\allowbreak{}}). Dữ liệu interim (khoảng 22 GB)
-tải từ Google Drive (README mục 6) vì không nằm trong Git. Toàn bộ tham
-số nằm trong \texttt{configs/\allowbreak{}}; không có đường dẫn tuyệt
-đối trong mã.
+Cài theo README mục 2 (\texttt{pip install -r requirements.\allowbreak{}txt},
+\texttt{pip install -e .}). Dữ liệu interim (khoảng 22 GB) tải từ Google
+Drive (README mục 6). Mọi tham số nằm trong \texttt{configs/}.
 
-\textbf{Phiên bản đã sinh ra bảng 4.2.}
-\texttt{requirements.\allowbreak{}txt} chỉ ghi phiên bản tối thiểu
-(\texttt{>=\allowbreak{}}), nên cài mới hôm nay có thể nhận phiên bản
-khác. Để chạy lại đúng như báo cáo, cài đúng các phiên bản sau. Chúng
-được ghi tự động trong
-\texttt{experiments/\allowbreak{}grid/\allowbreak{}test\_\allowbreak{}22f/\allowbreak{}grid\_\allowbreak{}manifest.\allowbreak{}json}
-lúc chạy lưới:
+\textbf{Phiên bản thư viện:} \texttt{requirements.\allowbreak{}txt} chỉ ghi
+phiên bản tối thiểu. Để chạy lại đúng như báo cáo, cài đúng các phiên bản
+sau (ghi trong manifest của lưới test):
 
 \begin{longtable}[]{@{}ll@{}}
 \toprule\noalign{}
@@ -1988,12 +1784,6 @@ Thư viện & Phiên bản \\
 \textbf{joblib} & 1.6.0 \\
 \end{longtable}
 
-Ví dụ:
-\texttt{pip install numpy=\allowbreak{}=\allowbreak{}2.\allowbreak{}5.\allowbreak{}3 pandas=\allowbreak{}=\allowbreak{}3.\allowbreak{}0.\allowbreak{}5 polars=\allowbreak{}=\allowbreak{}1.\allowbreak{}44.\allowbreak{}2 pyarrow=\allowbreak{}=\allowbreak{}24.\allowbreak{}0.\allowbreak{}0 scipy=\allowbreak{}=\allowbreak{}1.\allowbreak{}18.\allowbreak{}1 scikit-learn=\allowbreak{}=\allowbreak{}1.\allowbreak{}9.\allowbreak{}1 joblib=\allowbreak{}=\allowbreak{}1.\allowbreak{}6.\allowbreak{}0},
-rồi \texttt{pip install -r requirements.\allowbreak{}txt} cho các thư
-viện còn lại. Manifest chưa ghi phiên bản của \texttt{pyod},
-\texttt{hnswlib}, \texttt{shap} và \texttt{lime} (mục 9.5).
-
 \textbf{Kiểm tra dữ liệu sau khi tải:}
 \texttt{python scripts/\allowbreak{}validate\_\allowbreak{}interim.\allowbreak{}py}
 phải báo 120 file hợp lệ, gồm 929.103.392 dòng 4624 và 13.823.040 dòng
@@ -2006,15 +1796,8 @@ phải báo 120 file hợp lệ, gồm 929.103.392 dòng 4624 và 13.823.040 dò
 python scripts/reproduce.py        # đặc trưng, hồ sơ train, baseline, tiêm 5 run test, lưới 22 đặc trưng, đối chiếu số
 \end{Verbatim}
 
-Kết quả ghi vào
-\texttt{experiments/\allowbreak{}reproduce/\allowbreak{}test\_\allowbreak{}22f/\allowbreak{}}
-kèm \texttt{reproduce\_\allowbreak{}check.\allowbreak{}csv}, so từng chỉ
-số với
-\texttt{experiments/\allowbreak{}grid/\allowbreak{}test\_\allowbreak{}22f/\allowbreak{}grid\_\allowbreak{}summary.\allowbreak{}csv};
-đạt khi sai lệch tương đối ≤ 1\% (LOF ≤ 5\%, mục 5.6). Mọi bước ngẫu
-nhiên có seed cố định: seed tiêm trong
-\texttt{configs/\allowbreak{}injection.\allowbreak{}yaml}, model seed
-trong cấu hình lưới.
+Kết quả được so với bảng 4.2, đạt khi sai lệch tương đối ≤ 1\% (LOF ≤ 5\%).
+Mọi bước ngẫu nhiên có seed cố định.
 
 \hypertarget{tux1eebng-bux1b0ux1edbc}{%
 \subsection{9.3. Từng bước}\label{tux1eebng-bux1b0ux1edbc}}
@@ -2035,13 +1818,9 @@ python scripts/evaluation/train_demo_models.py                             # lư
 \hypertarget{muxf4-huxecnh-cho-demo}{%
 \subsection{9.4. Mô hình cho demo}\label{muxf4-huxecnh-cho-demo}}
 
-\texttt{scripts/\allowbreak{}evaluation/\allowbreak{}train\_\allowbreak{}demo\_\allowbreak{}models.\allowbreak{}py}
-fit 3 mô hình của bảng 4.2 trên log gốc ngày 1--42 (seed 42), lưu
-pipeline (điền thiếu + scaler + mô hình) vào
-\texttt{experiments/\allowbreak{}models/\allowbreak{}User\_\allowbreak{}22f/\allowbreak{}*.\allowbreak{}joblib},
-rồi nạp lại và so PR-AUC với lưới (IF và OCSVM khớp tuyệt đối, LOF lệch
-do không tất định). Dùng:
-\texttt{AnomalyPipeline.\allowbreak{}load(\allowbreak{}path).\allowbreak{}score(\allowbreak{}df)}.
+Script \texttt{train\_\allowbreak{}demo\_\allowbreak{}models.\allowbreak{}py} fit 3 mô hình của bảng 4.2
+trên log gốc ngày 1--42 và lưu pipeline (điền thiếu + scaler + mô hình).
+Nạp lại cho PR-AUC khớp với lưới, trừ LOF (không tất định).
 
 \hypertarget{trux1ea1ng-thuxe1i-kiux1ec3m-chux1ee9ng}{%
 \subsection{9.5. Trạng thái kiểm
@@ -2050,21 +1829,17 @@ chứng}\label{trux1ea1ng-thuxe1i-kiux1ec3m-chux1ee9ng}}
 \begin{itemize}
 \tightlist
 \item
-  \texttt{pytest}: 258 test pass trên máy phát triển; bản clone sạch
-  chạy được test mà không cần dữ liệu ngoài Git (trừ 2 test cần ma
-  trận).
+  \texttt{pytest}: 258 test pass; bản clone sạch chạy được test mà không
+  cần dữ liệu ngoài Git (trừ 2 test).
 \item
-  Chưa chạy \texttt{reproduce.\allowbreak{}py} trọn vẹn trên một máy
+  Chưa chạy \texttt{reproduce.\allowbreak{}py} trên một máy
   sạch do người thứ ba thực hiện (tiêu chí 4.1 \#1).
 \item
-  Chưa có file khoá phiên bản (\texttt{pip freeze} của môi trường đã
-  chạy lưới). Bảng phiên bản ở mục 9.1 thiếu \texttt{pyod},
-  \texttt{hnswlib}, \texttt{shap}, \texttt{lime}, và manifest của lưới
-  test ghi lúc chạy có thay đổi chưa commit
-  (\texttt{is\_\allowbreak{}dirty: true}).
+  Chưa có file khoá phiên bản (\texttt{pip freeze}); bảng ở mục 9.1 thiếu
+  \texttt{pyod}, \texttt{hnswlib}, \texttt{shap}, \texttt{lime}.
 \item
-  \textbf{Chưa có mã băm (sha256) của dữ liệu interim.} Hiện chỉ kiểm
-  được bằng số file và số dòng (mục 9.1).
+  Chưa có mã băm (sha256) của dữ liệu interim. Hiện chỉ kiểm
+  được bằng số file và số dòng.
 \end{itemize}
 
 \hypertarget{ux111ux1ed1i-chiux1ebfu-tiuxeau-chuxed-houxe0n-thuxe0nh-ux111ux1ec1-cux1b0ux1a1ng-mux1ee5c-4.1}{%
@@ -2072,10 +1847,10 @@ chứng}\label{trux1ea1ng-thuxe1i-kiux1ec3m-chux1ee9ng}}
 4.1)}\label{ux111ux1ed1i-chiux1ebfu-tiuxeau-chuxed-houxe0n-thuxe0nh-ux111ux1ec1-cux1b0ux1a1ng-mux1ee5c-4.1}}
 
 \begin{longtable}[]{@{}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 6\tabcolsep) * \real{0.1109}}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 6\tabcolsep) * \real{0.1758}}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 6\tabcolsep) * \real{0.1207}}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 6\tabcolsep) * \real{0.5725}}@{}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 6\tabcolsep) * \real{0.02}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 6\tabcolsep) * \real{0.175}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 6\tabcolsep) * \real{0.1}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 6\tabcolsep) * \real{0.64}}@{}}
 \toprule\noalign{}
 \begin{minipage}[b]{\linewidth}\raggedright
 \#
@@ -2092,8 +1867,7 @@ Bằng chứng / việc còn lại
 \endlastfoot
 1 & Tính tái lập & Một phần & Có lệnh duy nhất và seed cố định (mục 9).
 Chưa chạy trên máy sạch; LOF chỉ tái lập ở mức trung bình \\
-2 & Pipeline dữ liệu & Đạt & Mục 2.3--2.4;
-\texttt{main.\allowbreak{}py}, ghi log, quyết định làm sạch kèm lý do \\
+2 & Pipeline dữ liệu & Đạt & Mục 2.3: quyết định làm sạch kèm lý do, có ghi log \\
 3 & Bộ đặc trưng & Đạt & 41 core (22 dùng trong benchmark); tên, công
 thức, kiểu và ý nghĩa của 22 đặc trưng ở Phụ lục A, đủ 41 trong schema;
 unit test \\
@@ -2112,6 +1886,7 @@ test. Chờ review chéo và mentor duyệt \\
 9.4) \\
 \end{longtable}
 
+\newpage
 \hypertarget{phux1ee5-lux1ee5c-a-22-ux111ux1eb7c-trux1b0ng-cux1ee7a-benchmark-cuux1ed1i}{%
 \section{Phụ lục A: 22 đặc trưng của benchmark
 cuối}\label{phux1ee5-lux1ee5c-a-22-ux111ux1eb7c-trux1b0ng-cux1ee7a-benchmark-cuux1ed1i}}
@@ -2123,12 +1898,12 @@ có giá trị; khi đó mô hình điền bằng trung vị của train (mục 
 {\footnotesize\renewcommand{\small}{\footnotesize}
 
 \begin{longtable}[]{@{}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.0559}}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.1309}}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.0513}}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.2649}}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.2649}}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.2121}}@{}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.068}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.127}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.077}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.256}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.256}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.205}}@{}}
 \toprule\noalign{}
 \begin{minipage}[b]{\linewidth}\raggedright
 Nhóm
@@ -2154,7 +1929,7 @@ thất bại trong ngày & -- \\
 \texttt{failure\_\allowbreak{}locked\_\allowbreak{}out\_\allowbreak{}share}
 & số thực & số lần thất bại có lý do ``account locked out'' / số lần
 thất bại & Tỷ phần thất bại do tài khoản bị khoá (dấu hiệu dò mật khẩu)
-& không có lần thất bại nào \\
+& không có thất bại nào \\
 \textbf{failure} &
 \texttt{delta\_\allowbreak{}mean\_\allowbreak{}share\_\allowbreak{}fail\_\allowbreak{}7d}
 & số thực & tỷ lệ thất bại hôm nay − trung bình tỷ lệ thất bại của 7
@@ -2163,7 +1938,7 @@ ngày đầu dữ liệu, hoặc 7 ngày trước không hoạt động \\
 \textbf{failure} &
 \texttt{novelty\_\allowbreak{}fail\_\allowbreak{}host\_\allowbreak{}7d}
 & số thực & số máy đích (\texttt{LogHost}) bị đăng nhập thất bại hôm nay
-mà không có trong 7 ngày trước & Thất bại ở những máy chưa từng thử &
+không có trong 7 ngày trước & Thất bại ở những máy chưa từng thử &
 -- \\
 \textbf{failure} &
 \texttt{novelty\_\allowbreak{}fail\_\allowbreak{}failreason\_\allowbreak{}7d}
@@ -2278,8 +2053,8 @@ và README mục 4.
 liệu}\label{phux1ee5-lux1ee5c-b-bux1ea3n-ux111ux1ed3-sux1ed1-liux1ec7u}}
 
 \begin{longtable}[]{@{}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.3677}}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.6123}}@{}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.374}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 2\tabcolsep) * \real{0.616}}@{}}
 \toprule\noalign{}
 \begin{minipage}[b]{\linewidth}\raggedright
 Nội dung
@@ -2315,7 +2090,7 @@ Nội dung
 \texttt{experiments/\allowbreak{}grid/\allowbreak{}dev/\allowbreak{}},
 \texttt{experiments/\allowbreak{}grid/\allowbreak{}test/\allowbreak{}},
 \texttt{reports/\allowbreak{}week4/\allowbreak{}tom\_\allowbreak{}tat\_\allowbreak{}tuan4.\allowbreak{}md} \\
-\textbf{Theo kịch bản, SHAP, ablation, chọn K} &
+\textbf{Kịch bản, SHAP, ablation, chọn K} &
 \texttt{reports/\allowbreak{}week5/\allowbreak{}}
 (\texttt{bao\_\allowbreak{}cao\_\allowbreak{}tuan5.\allowbreak{}md} và
 các file chi tiết),
