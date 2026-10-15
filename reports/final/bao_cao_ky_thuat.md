@@ -378,36 +378,42 @@ OCSVM giữ precision khoảng 0,3 tới recall khoảng 0,3 rồi giảm dần;
 | password_spraying | 0,709 | 0,842 | 0,586 | 0,759 | **0,875** | 0,613 | 0,503 |
 
 ROC-AUC theo kịch bản được tính với cùng tập dòng âm. Để thấy mức "lọt vào ngân sách", bảng 4.5 dùng recall
-top-100/ngày; bảng này đo với 41 đặc trưng và OCSVM `nc1000` (thí nghiệm phân tích theo kịch bản tuần 5), nhưng thứ
-hạng kịch bản không đổi với bộ 22.
+top-100/ngày. Cột "Tất cả" khớp với bảng 4.2 (OCSVM 0,336, IF 0,242, LOF 0,174).
 
-**Bảng 4.5: Recall top-100/ngày theo kịch bản, test, 41 đặc trưng, TB 5 run**
+**Bảng 4.5: Recall top-100/ngày theo kịch bản, test, 22 đặc trưng, TB ± std 5 run**
 
-| Kịch bản | OCSVM | IF | LOF | Z-score | Luật thất bại | Hạng trung vị của nạn nhân (OCSVM) |
+| Kịch bản | OCSVM (`g01`) | IF | LOF | Z-score | Luật thất bại | Hạng trung vị của nạn nhân (OCSVM) |
 |---|---|---|---|---|---|---|
-| brute_force | **0,68** | 0,10 | 0,01 | 0,13 | 0,45 | top 0,8% |
-| logon_type_switch | **0,58** | 0,42 | 0,51 | 0,02 | 0,00 | top 1,2% |
-| new_workstation_burst | **0,29** | 0,07 | 0,10 | 0,02 | 0,01 | top 1,8% |
-| password_spraying | 0,19 | **0,23** | 0,04 | 0,22 | 0,05 | top 26% |
-| dormant_wakeup | **0,17** | 0,08 | 0,08 | 0,00 | 0,04 | top 4,0% |
-| off_hours | 0,03 | **0,08** | 0,05 | 0,06 | 0,04 | top 7,7% |
-| **Tất cả** | **0,32** | 0,16 | 0,13 | 0,08 | 0,10 | |
+| brute_force | **0,67 ± 0,37** | 0,17 ± 0,02 | 0,01 ± 0,00 | 0,13 ± 0,02 | 0,45 ± 0,03 | top 0,9% |
+| logon_type_switch | 0,59 ± 0,05 | 0,63 ± 0,02 | **0,65 ± 0,02** | 0,02 ± 0,01 | 0,00 ± 0,00 | top 1,3% |
+| new_workstation_burst | **0,31 ± 0,20** | 0,19 ± 0,04 | 0,14 ± 0,04 | 0,02 ± 0,02 | 0,01 ± 0,01 | top 2,2% |
+| password_spraying | 0,19 ± 0,04 | **0,24 ± 0,04** | 0,08 ± 0,07 | 0,22 ± 0,05 | 0,05 ± 0,03 | top 22% |
+| dormant_wakeup | **0,23 ± 0,07** | 0,13 ± 0,01 | 0,07 ± 0,02 | 0,00 ± 0,00 | 0,04 ± 0,01 | top 4,0% |
+| off_hours | 0,03 ± 0,02 | **0,10 ± 0,01** | 0,09 ± 0,01 | 0,06 ± 0,01 | 0,04 ± 0,01 | top 12,9% |
+| **Tất cả** | **0,34 ± 0,07** | 0,24 ± 0,02 | 0,17 ± 0,01 | 0,08 ± 0,01 | 0,10 ± 0,01 | top 3,1% |
 
-![Recall theo kịch bản và ngân sách](../week5/figures/03-scenario_recall_budget.png)
+So với 41 đặc trưng (thí nghiệm tuần 5, OCSVM `nc1000`), bộ 22 nâng recall của IF và LOF ở hầu hết kịch bản
+(logon_type_switch IF 0,42 → 0,63, LOF 0,51 → 0,65; new_workstation_burst IF 0,07 → 0,19), còn OCSVM gần như giữ nguyên
+(0,32 → 0,34; dormant_wakeup 0,17 → 0,23). Thứ tự kịch bản dễ/khó không đổi.
 
-**Hình 4.3.** Recall theo ngân sách k cảnh báo/ngày, mỗi ô một kịch bản (41 đặc trưng). Đường càng lên sớm càng tốt.
+![Recall theo kịch bản và ngân sách](figures/scenario_recall_budget_22f.png)
+
+**Hình 4.3.** Recall theo ngân sách k cảnh báo/ngày, mỗi ô một kịch bản (22 đặc trưng). Đường càng lên sớm càng tốt.
 
 **Trả lời Q3:**
-- **Bắt tốt:** brute_force (OCSVM gần 0,7 ở 100 cảnh báo/ngày, gần 1,0 ở 5%), logon_type_switch (cả ba mô hình),
-  new_workstation_burst (chủ yếu OCSVM).
-- **Bắt yếu:** dormant_wakeup; nạn nhân bị bỏ sót lại có **nhiều** sự kiện hơn nạn nhân bị bắt (trung vị 150 so
-  với 85), vì một ngày bận "phát lại" trông giống tài khoản bận bình thường.
+- **Bắt tốt:** brute_force (OCSVM 0,67 ở 100 cảnh báo/ngày và gần 1,0 ở 5%, nhưng dao động mạnh giữa các run, mục 5.6),
+  logon_type_switch (cả ba mô hình, LOF và IF nhỉnh hơn OCSVM), new_workstation_burst (OCSVM tốt nhất).
+- **Bắt yếu:** dormant_wakeup (cao nhất 0,23). Ở bộ 41 đặc trưng, nạn nhân bị bỏ sót có nhiều sự kiện hơn nạn nhân bị
+  bắt (trung vị 155 so với 85, xét "bị ít nhất một mô hình bắt"); với bộ 22 đặc trưng hiện tượng này không còn
+  (139 so với 187). Nạn nhân OCSVM bắt được vẫn là những ngày bận (trung vị 226 sự kiện).
 - **Điểm mù chung:** off_hours và password_spraying (phân tích ở mục 5.5).
 - **Không có mô hình nào thắng ở mọi kịch bản:** luật thất bại tốt nhất ở spraying về ROC-AUC; IF tốt hơn OCSVM ở
-  dormant_wakeup và off_hours về ROC-AUC. Điều này ủng hộ việc kết hợp mô hình và luật (mục 8).
+  dormant_wakeup và off_hours về ROC-AUC, và ở spraying, off_hours về recall. Điều này ủng hộ việc kết hợp mô hình và
+  luật (mục 8).
 
 📁 [`experiments/grid/test_22f/grid_scenarios_summary.csv`](../../experiments/grid/test_22f/grid_scenarios_summary.csv) ·
-[`experiments/analysis/scenario/`](../../experiments/analysis/scenario/) · [`reports/week5/phan_tich_theo_kich_ban.md`](../week5/phan_tich_theo_kich_ban.md)
+[`experiments/analysis/scenario_22f/`](../../experiments/analysis/scenario_22f/) (bản 41 đặc trưng:
+[`experiments/analysis/scenario/`](../../experiments/analysis/scenario/), [`reports/week5/phan_tich_theo_kich_ban.md`](../week5/phan_tich_theo_kich_ban.md))
 
 ### 4.5. Chi phí tính toán
 
@@ -538,13 +544,14 @@ Cửa sổ dài chỉ giúp spraying (ROC-AUC 0,69 → 0,77) nhưng làm hại d
 
 ### 5.5. Hai điểm mù: off_hours và password spraying
 
-**off_hours** (recall top-100/ngày ≤ 0,08 ở mọi mô hình):
-- Nạn nhân bị bỏ sót có trung vị 107 sự kiện, nạn nhân bị bắt chỉ 9,5. Một ngày bận bị dời sang đêm vẫn trông như
-  một tài khoản bận; trong không gian khoảng cách, vài chiều về ban đêm bị các chiều khối lượng lấn át.
+**off_hours** (recall top-100/ngày ≤ 0,10 ở mọi mô hình; OCSVM 0,03, hạng trung vị của nạn nhân chỉ ở top 12,9%):
+- Nạn nhân bị cả ba mô hình bỏ sót có trung vị 101 sự kiện, nạn nhân bị ít nhất một mô hình bắt chỉ 62,5; riêng OCSVM
+  bắt được 44/1.285 nạn nhân với trung vị 5 sự kiện. Một ngày bận bị dời sang đêm vẫn trông như một tài khoản bận;
+  trong không gian khoảng cách, vài chiều về ban đêm bị các chiều khối lượng lấn át.
 - SHAP xác nhận nhóm time giải thích phần lớn điểm của nạn nhân (0,52), nhưng điểm tuyệt đối không đủ cao để lọt top.
 - Hướng sửa: đặc trưng so giờ hoạt động với **lịch sử giờ của chính tài khoản** có trọng số cao hơn, hoặc một luật riêng.
 
-**password_spraying** (recall ≤ 0,23):
+**password_spraying** (recall ≤ 0,24, cao nhất là IF; z-score 0,22):
 - Mỗi nạn nhân chỉ nhận 1–3 lần thử. Ở mức (tài khoản, ngày) gần như không có tín hiệu; dấu hiệu thật là **một máy
   nguồn làm nhiều tài khoản thất bại trong thời gian ngắn**, nhưng mọi đặc trưng đều tính theo từng tài khoản.
 - Luật thất bại có ROC-AUC tốt nhất (0,875) nhưng vẫn không đưa được nạn nhân vào top (recall 0,05).
@@ -564,8 +571,42 @@ Trên test:
 | `g01` (300 thành phần Nystroem, γ = 0,1) | 0,19 / 0,20 / **0,11** / 0,15 / 0,24 | 0,175 ± 0,048 | 0,336 ± 0,070 |
 | `nc1000` (1.000 thành phần, γ = scale) | 0,19 / 0,19 / 0,17 / 0,20 / 0,20 | 0,189 ± 0,013 | 0,373 ± 0,022 |
 
-Chênh lệch trung bình nằm trong 1 std, nhưng `g01` dao động gấp khoảng 3–4 lần. Nhiều thành phần Nystroem hơn làm xấp xỉ
-nhân RBF ổn định hơn. Kết quả chính vẫn báo cáo `g01` (cấu hình chọn trên dev), vì đổi sang `nc1000` sau khi xem test là
+Chênh lệch trung bình nằm trong 1 std, nhưng `g01` dao động gấp khoảng 3–4 lần. Phân tích theo kịch bản cho thấy dao động
+tập trung ở hai kịch bản: recall top-100/ngày của brute_force qua 5 run là 0,97 / 0,90 / 0,21 / 0,34 / 0,93 và của
+new_workstation_burst là 0,12 / 0,19 / 0,19 / 0,46 / 0,58, trong khi logon_type_switch (0,52–0,63) và off_hours ổn định.
+
+**Nguyên nhân: điểm mốc Nystroem rơi vào vùng "khoá tài khoản".** Dao động đến từ seed mô hình, không phải từ dữ liệu
+tiêm: giữ nguyên dữ liệu tiêm (run 061 hoặc 063) và chỉ đổi seed mô hình thì seed 2024 và 1 luôn cho recall brute_force
+0,21–0,37, ba seed còn lại 0,90–0,97. Nystroem chọn ngẫu nhiên `n_components` dòng train làm điểm mốc. Train chỉ có
+506/314.847 dòng User bị khoá nhiều (`failure_locked_out_share` > 0,5, khoảng 0,16%):
+
+| Seed mô hình (dữ liệu run 061) | 42 | 7 | 2024 | 1 | 2 |
+|---|---|---|---|---|---|
+| `g01`: số mốc trong vùng khoá / 300 | 0 | 0 | 1 | 2 | 0 |
+| `g01`: recall top-100/ngày brute_force | 0,97 | 0,90 | **0,28** | **0,37** | 0,93 |
+| `nc1000`: số mốc trong vùng khoá / 1.000 | 0 | 1 | 1 | 2 | 2 |
+| `nc1000`: recall top-100/ngày brute_force | 0,97 | 0,97 | 0,74 | 0,72 | 0,92 |
+
+Khi không có mốc nào gần, ánh xạ Nystroem của nạn nhân brute-force gần bằng 0 và họ nhận điểm bất thường tối đa (điểm
+bão hoà: ở run tốt 81–84% nạn nhân brute_force có đúng điểm cao nhất của ngày). Chỉ cần 1 mốc rơi vào vùng này, với
+300 mốc, cả vùng bị coi là "đã thấy trong train" và nạn nhân tụt hạng. Xác suất có ít nhất một mốc là
+1 − (1 − 0,0016)³⁰⁰ ≈ 38%, khớp với 2/5 seed bị ảnh hưởng. Vì vậy recall brute_force cao của OCSVM một phần là **may rủi
+khi lấy mẫu mốc**, không phải mô hình học được rằng khoá tài khoản là bất thường. `nc1000` cũng có mốc trong vùng khoá
+nhưng nhiều mốc khác cùng chi phối nên chỉ giảm còn 0,72–0,74.
+
+**Theo kịch bản, `nc1000` so với `g01`** (test, TB ± std 5 run; phân tích chạy sau khi đã xem test, chỉ để đối chiếu):
+
+| Kịch bản | `g01` | `nc1000` |
+|---|---|---|
+| brute_force | 0,67 ± 0,37 | **0,87 ± 0,13** |
+| logon_type_switch | 0,59 ± 0,05 | 0,61 ± 0,02 |
+| new_workstation_burst | 0,31 ± 0,20 | 0,35 ± 0,12 |
+| dormant_wakeup | **0,23 ± 0,07** | 0,18 ± 0,03 |
+| password_spraying | 0,19 ± 0,04 | 0,19 ± 0,05 |
+| off_hours | 0,03 ± 0,02 | 0,04 ± 0,02 |
+| **Tất cả** | 0,34 ± 0,07 | **0,37 ± 0,02** |
+
+`nc1000` ổn định hơn ở mọi kịch bản trừ spraying, phần lợi lớn nhất là brute_force; `g01` chỉ hơn ở dormant_wakeup. Kết quả chính vẫn báo cáo `g01` (cấu hình chọn trên dev), vì đổi sang `nc1000` sau khi xem test là
 chọn mô hình bằng tập test. Đề cương ghi "một mô hình có phương sai lớn giữa các seed là mô hình không đáng tin để
 triển khai"; vì vậy khuyến nghị triển khai là `nc1000` (mục 8), và quy tắc chọn cấu hình về sau nên xét cả trung bình
 lẫn độ lệch chuẩn trên dev.
@@ -645,8 +686,10 @@ Hướng dẫn chấm: [`docs/huong_dan_review_top50.md`](../../docs/huong_dan_r
 ### 8.2. Cấu hình mô hình
 
 1. **OCSVM StandardScaler, 1.000 thành phần Nystroem (`nc1000`)**, 22 đặc trưng. Lý do: recall top-100/ngày 0,373 ± 0,022,
-   ổn định nhất trong các cấu hình OCSVM tốt; `g01` nhanh hơn 9 lần nhưng dao động lớn (mục 5.6). Nếu ràng buộc thời gian
-   fit quan trọng hơn, dùng `g01` và theo dõi chặt chỉ số hằng ngày.
+   ổn định nhất trong các cấu hình OCSVM tốt; `g01` nhanh hơn 9 lần nhưng dao động lớn, và recall brute_force của nó
+   phụ thuộc vào việc điểm mốc Nystroem có rơi vào vùng khoá tài khoản hay không (mục 5.6). Ngay cả với `nc1000`, khi
+   triển khai nên fit với vài seed và chọn mô hình không có mốc trong vùng khoá, hoặc để luật dò/rải mật khẩu (bảng phân luồng ở mục 8.1; luật thất bại ≥ 5 đạt recall ổn định 0,45 ± 0,03)
+   gánh kịch bản này thay vì trông vào OCSVM.
 2. **IF 300 cây, max_samples 1024** làm mô hình phụ: tốt hơn OCSVM ở dormant_wakeup và off_hours về ROC-AUC.
 3. **Không dùng LOF** ở cấu hình hiện tại: kém nhất trên nhãn tổng hợp và không tất định.
 4. **Kiểm tra thang đo sau tiền xử lý** mỗi khi đổi bộ đặc trưng (mục 5.2).
@@ -698,6 +741,8 @@ python main.py --stage features                                            # log
 python main.py --stage inject --block test                                 # tiêm một run
 python scripts/evaluation/run_grid.py --config configs/benchmark_grid_dev_22f.yaml    # bảng 4.1, khoảng 15 phút
 python scripts/evaluation/run_grid.py --config configs/benchmark_grid_test_22f.yaml   # bảng 4.2–4.4, khoảng 1 giờ
+python scripts/evaluation/scenario_analysis.py --config configs/benchmark_grid_test_22f.yaml --out experiments/analysis/scenario_22f   # bảng 4.5, khoảng 8 phút
+python scripts/evaluation/plot_scenario_budget.py --dir experiments/analysis/scenario_22f                                         # hình 4.3
 python scripts/evaluation/explain_models.py                                # SHAP/LIME
 python scripts/evaluation/feature_ablation.py [--mode kcurve]              # ablation nhóm / chọn K
 python scripts/evaluation/build_review_set.py --config configs/benchmark_grid_test_22f.yaml --out experiments/analysis/review_top50_22f
@@ -779,6 +824,8 @@ Công thức đầy đủ của cả 41 đặc trưng: [`configs/feature_schema.
 | Bộ tiêm | `docs/huong_dan_tiem_bat_thuong_tuan4.md`, `configs/injection.yaml`, `src/injection/` |
 | Baseline | `reports/week4/baselines_report.md`, `configs/baselines.yaml` |
 | Lưới dev / test (22 đặc trưng) | `experiments/grid/dev_22f/`, `experiments/grid/test_22f/`, `experiments/grid/test_22f_nc1000/` |
+| Theo kịch bản, 22 đặc trưng (bảng 4.5, hình 4.3) | `experiments/analysis/scenario_22f/` |
+| Theo kịch bản, OCSVM `nc1000` (mục 5.6) | `experiments/analysis/scenario_22f_nc1000/`, `configs/scenario_test_22f_nc1000.yaml` |
 | Lưới 41 đặc trưng (tuần 4) | `experiments/grid/dev/`, `experiments/grid/test/`, `reports/week4/tom_tat_tuan4.md` |
 | Theo kịch bản, SHAP, ablation, chọn K | `reports/week5/` (`bao_cao_tuan5.md` và các file chi tiết), `experiments/analysis/`, `experiments/ablation/` |
 | Review top 50 | `experiments/analysis/review_top50_22f/` (chưa chấm) |
