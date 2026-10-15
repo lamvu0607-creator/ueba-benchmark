@@ -13,7 +13,7 @@ Nhóm label-free (dùng ngay trong Tuần 3):
   * ``pairwise_stability``— độ ổn định đa seed (Spearman + overlap trung bình),
   * ``timed``             — đo thời gian fit/score tách bạch.
 
-Nhóm label-aware — bộ chỉ số mục 5.4 của ``docs/Tong quan de tai ueba.md`` (nhãn = bất thường tiêm):
+Nhóm label-aware — bộ chỉ số mục 5.4 của ``docs/tong_quan_de_tai.md`` (nhãn = bất thường tiêm):
   * ``average_precision`` — PR-AUC, chỉ số CHÍNH (hợp dữ liệu mất cân bằng hơn ROC-AUC),
   * ``roc_auc``           — chỉ số phụ, để đối chiếu tài liệu tham khảo,
   * ``precision_at_k``    — tỷ lệ đúng trong K cảnh báo điểm cao nhất (K = 10, 50, 100),

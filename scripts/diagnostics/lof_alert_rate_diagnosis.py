@@ -1,6 +1,6 @@
 """
 Chẩn đoán vì sao alert rate test của LOF ≈ 15,8% thay vì ngân sách 5% (xem
-``docs/reports/bao_cao_lof_trung_lap.md``, mục 6).
+``reports/week4/bao_cao_lof_trung_lap.md``, mục 6).
 
 Chạy: ``python scripts/diagnostics/lof_alert_rate_diagnosis.py [--out lof_alert_rate_diagnosis.csv]``
 

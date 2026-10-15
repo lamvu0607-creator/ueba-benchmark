@@ -10,11 +10,13 @@
 ## 1. Mục tiêu và Bối cảnh
 
 ### 1.1. Vấn đề trước khi thực hiện
+
 * File trích xuất ma trận `Tài khoản × Ngày` (`extract_account_day_matrix.py` và `src/features/extractor.py`) bị **ôm đồm quá nhiều chức năng**: vừa load log, vừa lọc rác, vừa điền khuyết, vừa tính toán 16 đặc trưng hành vi.
 * Khâu làm sạch chưa được tách rời độc lập, dẫn đến việc khó kiểm soát chất lượng dữ liệu sạch trước khi đưa vào mô hình hóa.
 * Dự án chưa có module chạy và so sánh tự động các mô hình phát hiện dị biệt (Baseline: Isolation Forest, Local Outlier Factor, One-Class SVM).
 
 ### 1.2. Mục tiêu đạt được
+
 1. **Tách rời 100% khâu Làm sạch dữ liệu (Data Cleaning)** thành module độc lập (`src/data/cleaner.py`), tuân thủ triệt để 5 quyết định trong file PDF khảo sát khuyết thiếu.
 2. **Chuẩn hóa khâu Trích xuất đặc trưng (Feature Extraction)** (`src/features/extractor.py`), chỉ nhận dữ liệu đã làm sạch để tính toán ma trận đặc trưng theo `configs/feature_schema.yaml`.
 3. **Xây dựng module Huấn luyện & Đánh giá mô hình (Model Benchmark)** (`src/models/benchmark.py`), tự động huấn luyện 3 thuật toán Baseline, lưu file model `.joblib` và bảng điểm dị biệt `anomaly_scores`.
@@ -109,12 +111,14 @@
 ## 5. Kết Quả Kiểm Thử Thực Nghiệm (Validation Results)
 
 ### 5.1. Khâu Làm Sạch (Day 01)
+
 * **Số dòng log gốc ban đầu (4624 + 4625)**: `14,445,486` dòng (21 cột).
 * **Số dòng trùng lặp hoàn toàn đã xóa**: `306,043` dòng trùng (2.12%).
 * **Số dòng log sạch đầu ra**: `14,139,443` dòng (**11 cột**).
 * **Dung lượng file**: `144.64 MB` (giảm đáng kể so với tổng dung lượng ban đầu).
 
 ### 5.2. Khâu Trích Xuất Đặc Trưng (Day 01)
+
 * **Số thực thể (Tài khoản × Ngày)**: `17,910` thực thể.
 * **Số cột ma trận sau chuẩn hóa**: `23` cột (4 khoá định danh + 16 đặc trưng cốt lõi + 3 cột bổ trợ log).
 * **Kiểm định Schema (`FeatureSchema`)**: **HỢP LỆ 100%** (`is_valid: True`, không có missing key, không có giá trị tỷ lệ vượt ngưỡng).
@@ -164,6 +168,7 @@
 </details>
 
 ### 5.5. Kết Quả Unit Tests
+
 * Tổng số test: **31/31 tests passed** (trước Tuần 3: 11/11 — 20 test mới cho giao diện mô hình,
   registry, time-based split, chỉ số đánh giá, log thí nghiệm, manifest và hợp đồng feature ↔ model).
 
@@ -197,12 +202,14 @@ python main.py --stage benchmark
 Do dữ liệu nhật ký bảo mật của 60 ngày có kích thước lớn (>22 GB cho toàn bộ raw, interim và cleaned), các file dữ liệu nặng được loại trừ qua `.gitignore` và được lưu trữ tập trung trên Google Drive:
 
 ### 7.1. Danh sách liên kết Google Drive
+
 * **Gói Dữ Liệu 1 (Google Drive Archive Part 1):**  
   👉 [Tải xuống gói 1 (Google Drive)](https://drive.google.com/file/d/1aMz0oPItXDYn7u326Pl_jTnmdqFvsCmE/view?usp=sharing)
 * **Gói Dữ Liệu 2 (Google Drive Archive Part 2):**  
   👉 [Tải xuống gói 2 (Google Drive)](https://drive.google.com/file/d/1FjXHtZAjKQxYtN2sv7OO6YMkNbqs00ek/view?usp=sharing)
 
 ### 7.2. Hướng dẫn thiết lập lại dữ liệu khi clone dự án
+
 1. Clone repository về máy tính:
    ```bash
    git clone https://github.com/lamvu0607-creator/ueba-benchmark.git

@@ -1,7 +1,9 @@
 # Báo cáo Kiểm định Dữ liệu Interim (Event 4624 & 4625)
+
 *Thời điểm tạo: 2026-09-19 18:07:09*
 
 ---
+
 ## 1. Tổng quan Toàn vẹn File & Schema (Integrity Check)
 
 - **Tổng số file Parquet kiểm tra:** 120
@@ -14,6 +16,7 @@
 ## 3. Kiểm định Chất lượng Dữ liệu & Miền Giá trị (Data Quality)
 
 ### File: `event_4624_day-01.parquet` (Event 4624) — ✅ PASS
+
 - **Tổng số dòng:** 14,110,061
 - **Dải thời gian (Time range):** `[1 -> 86399]`
 - **Tập LogonType:** `[0, 2, 3, 4, 5, 7, 8, 9, 10, 11]`
@@ -43,6 +46,7 @@
 | `ParentProcessID` | 14,110,061 | 100.00% | Bình thường |
 
 ### File: `event_4625_day-01.parquet` (Event 4625) — ✅ PASS
+
 - **Tổng số dòng:** 335,425
 - **Dải thời gian (Time range):** `[1 -> 86398]`
 - **Tập LogonType:** `[2, 3, 4, 5, 7, 8, 10, 11]`

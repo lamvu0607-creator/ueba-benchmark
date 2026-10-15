@@ -47,8 +47,8 @@ Bản đồ thư mục cho toàn bộ đầu ra tuần 4 (bản chạy lại: de
 | `reports/week4/hinh/` | Hình dùng trong slide, chép từ `experiments/grid/{dev,test}/figures/` | ✔ |
 | `reports/week4/kich_ban_tiem_slide.md` | Mô tả 6 kịch bản tiêm (bản markdown cho slide) | ✔ |
 | `reports/week4/baselines_report.md` | Báo cáo 3 baseline train-only | ✔ |
-| `docs/week4_benchmark_grid.md` | Hướng dẫn chạy lại toàn bộ chuỗi tiêm → đặc trưng → lưới | ✔ |
-| `docs/week4_result_plots.md` | Giải thích các biểu đồ kết quả | ✔ |
+| `docs/huong_dan_luoi_benchmark.md` | Hướng dẫn chạy lại toàn bộ chuỗi tiêm → đặc trưng → lưới | ✔ |
+| `docs/huong_dan_bieu_do_ket_qua.md` | Giải thích các biểu đồ kết quả | ✔ |
 
 ## 2. Kết quả benchmark (lưới mô hình)
 
@@ -79,7 +79,7 @@ là một dòng: thời điểm, commit, experiment (`grid_dev` / `grid_test`), 
 | `data/injection_runs/<run_id>/` | Dữ liệu đầy đủ của run: `injected_events.parquet` (sự kiện log đã tiêm), `injection_manifest.csv`, `processed/feature_matrix_processed.parquet` (ma trận 41 đặc trưng tính lại sau tiêm) | ✘ (gitignore, khoảng 5,4 GB) |
 | `data/injection_runs/_template_cache/` | Kho khuôn sự kiện dùng chung giữa các run | ✘ |
 
-Muốn chạy lại lưới cần `data/injection_runs/<run_id>/processed/`. Nếu không có, sinh lại bằng các lệnh trong `docs/week4_benchmark_grid.md`
+Muốn chạy lại lưới cần `data/injection_runs/<run_id>/processed/`. Nếu không có, sinh lại bằng các lệnh trong `docs/huong_dan_luoi_benchmark.md`
 (cùng seed cho ra cùng dữ liệu).
 
 **Run cũ, không dùng trong báo cáo hiện tại:** `experiments/injection_runs/dev_seed20261043*` và

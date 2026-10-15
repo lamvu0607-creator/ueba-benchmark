@@ -123,7 +123,7 @@ MEASURES: Dict[str, MeasureSpec] = {
 }
 
 # ---------------------------------------------------------------------------
-# Kịch bản tấn công — mục 5.2 của docs/Tong quan de tai ueba.md (+ di chuyển ngang)
+# Kịch bản tấn công — mục 5.2 của docs/tong_quan_de_tai.md (+ di chuyển ngang)
 # ---------------------------------------------------------------------------
 SCENARIOS: Dict[str, str] = {
     "brute_force": "Dò mật khẩu (brute-force)",

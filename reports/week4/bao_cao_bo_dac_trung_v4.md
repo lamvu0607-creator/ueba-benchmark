@@ -2,7 +2,7 @@
 
 > **Dự án:** UEBA Anomaly Detection Benchmark (Windows Event 4624 & 4625 — LANL)
 > **Ngày thực hiện:** 2026-10-04 (Tuần 4) · **Trạng thái:** ✅ đã cài đặt, đo trên dữ liệu thật, chốt vào `configs/feature_schema.yaml`
-> **Căn cứ:** [`docs/Tong quan de tai ueba.md`](../Tong%20quan%20de%20tai%20ueba.md) §5.2 · [`bao_cao_bo_dac_trung_v3.md`](bao_cao_bo_dac_trung_v3.md) · bảng số đo ở [`docs/feature_engineering/tables/v4_*.csv`](../feature_engineering/tables/)
+> **Căn cứ:** [`docs/tong_quan_de_tai.md`](../../docs/tong_quan_de_tai.md) §5.2 · [`bao_cao_bo_dac_trung_v3.md`](../week3/bao_cao_bo_dac_trung_v3.md) · bảng số đo ở [`docs/feature_engineering/tables/v4_*.csv`](../../docs/feature_engineering/tables/)
 > **Lệnh tái lập:** `python scripts/feature_engineering/run_feature_funnel_v4.py` (≈ 12 phút, 21 ngày)
 
 ---

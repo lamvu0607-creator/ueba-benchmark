@@ -18,26 +18,33 @@
 ## 2. Bảy nhận xét định lượng
 
 ### 2.1. Xếp theo "bám ngân sách": Z-score ≈ IF < OCSVM < LOF ≪ Rule
+
 Nhưng **đây KHÔNG phải bảng xếp hạng chất lượng**: ở lần chạy đầu, baseline **đơn giản nhất (Z-score)** lại bám ngân sách tốt nhất (+0,85 pp). Đó chính là bằng chứng củng cố kết luận Tuần 3: *không thể xếp hạng mô hình bằng chỉ số label-free*. Cột "lệch ngân sách" đo **độ trôi hiệu chuẩn**, không đo năng lực phát hiện.
 
 ### 2.2. Rule-Threshold trùng khít 20,3512% ở **cả hai** lần chạy (16 và 24 đặc trưng)
+
 Điểm luật chỉ có **7 giá trị rời rạc** (0, 1/6, …, 1) ⇒ ngưỡng phân vị 95% buộc rơi vào 0,5 ⇒ mọi dòng thoả ≥3/6 luật đều bị kêu. Con số **không đổi** khi thêm 8 đặc trưng vì `rule_threshold_baseline` vẫn chỉ dùng **6 luật trên 6 đặc trưng cũ** ⇒ bộ đặc trưng mới **chưa được baseline luật khai thác** (việc cần làm: tie-break hoặc bổ sung luật cho đặc trưng mới).
 
 ### 2.3. Nút cổ chai hiệu năng là **chấm điểm của One-Class SVM**, không phải fit
+
 `OCSVM`: fit 3,36 s nhưng **chấm điểm 16,57 s** cho 333.671 dòng ≈ **20.137 dòng/s** — chậm hơn IF **8,4×**, chậm hơn Z-score **140×** (RBF SVM phải tính kernel với ~10³ support vector cho **mỗi** dòng). `Isolation Forest` thì ngược lại: fit đắt nhất (11,43 s cho 150 cây trên 721.612 dòng) nhưng chấm điểm rẻ (1,97 s).
 ⇒ Khi chạy ablation nhiều cấu hình, OCSVM sẽ là nút cổ chai; cân nhắc giảm `nu`/tăng `tol`/giảm mẫu fit.
 
 ### 2.4. Ngưỡng **không so sánh được** giữa các mô hình
+
 `IF ≈ 0` · `LOF = −0,0542` · `OCSVM = +1,46e−4` · `Z = 23,79` · `Rule = 0,5` — mỗi mô hình một định nghĩa điểm và một thang đo. Cột `threshold` chỉ để **tái lập**, so sánh ngưỡng giữa mô hình là vô nghĩa (đó là lý do repo có `score_rank_pct`).
 
 ### 2.5. Hai "họ" phân phối điểm rất khác nhau
+
 Đuôi trên (`p95 − median`): IF 0,212 · LOF 0,620 · **OCSVM 32,9** · **Z 25,3** (với `p99/median ≈ 34×`).
 ⇒ IF/LOF cho phân phối "mềm" (ngưỡng phân vị ổn định), còn OCSVM/Z có **đuôi rất nặng** ⇒ alert rate của chúng **nhạy** với vài trăm dòng ở đuôi. Đây giải thích vì sao Z-score là mô hình trôi mạnh nhất khi bộ đặc trưng thay đổi (xem §3).
 
 ### 2.6. Chi phí tăng theo bộ đặc trưng là chuyện bình thường, nhưng Z bị ảnh hưởng mạnh nhất
+
 Xem §3: 3 mô hình học máy **bám ngân sách tốt hơn** khi lên 24 đặc trưng, còn Z-score **xấu đi +3,72 pp**.
 
 ### 2.7. Giới hạn của mọi kết luận trên
+
 Không có nhãn ⇒ **không** nói được mô hình nào bắt đúng. Các nhận xét trên chỉ thuộc 3 nhóm: **hiệu chuẩn**, **chi phí**, **ổn định**. Muốn kết luận về năng lực phát hiện phải chờ `redteam.txt` (Tuần 4).
 
 ## 3. So với lần chạy hiện tại (24 đặc trưng, commit `1d2209d`)

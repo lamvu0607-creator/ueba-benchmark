@@ -5,7 +5,7 @@
 kết quả lặp trên 5 seed kèm độ lệch chuẩn.
 **Số liệu gốc:** [`experiments/grid/dev/`](../../experiments/grid/dev/) · [`experiments/grid/test/`](../../experiments/grid/test/) ·
 nhật ký chung [`experiments/logs/experiment_log.csv`](../../experiments/logs/experiment_log.csv)
-**Hướng dẫn chạy lại:** [`docs/week4_benchmark_grid.md`](../../docs/week4_benchmark_grid.md)
+**Hướng dẫn chạy lại:** [`docs/huong_dan_luoi_benchmark.md`](../../docs/huong_dan_luoi_benchmark.md)
 
 > Bản này thay toàn bộ số liệu của bản trước (commit `24e6c6b`). Kết quả cũ dùng bộ tiêm có lỗi và cách chia
 > dev 43–51 / test 52–60; xem §8 về những gì đã sửa và vì sao.
@@ -246,7 +246,7 @@ theo ngày khi triển khai (tiêu chí mở rộng "ổn định theo thời gi
 PR-AUC test bằng hoặc cao hơn dev cho cả ba mô hình (OCSVM 0,182 so với 0,169), vì lưới nhỏ và khoảng cách giữa các cấu hình
 tốt lớn hơn nhiễu. Dev nằm trong train nên test hoàn toàn không được dùng để chọn gì.
 
-## 7. Đối chiếu với đề cương (`docs/Tong quan de tai ueba.md`)
+## 7. Đối chiếu với đề cương (`docs/tong_quan_de_tai.md`)
 
 **Đầu ra tuần 4:**
 
@@ -271,7 +271,7 @@ mục 5.6 nhật ký chung ✅.
 2. **Z-score** lấy max |z| trên 41 đặc trưng thay vì một đặc trưng duy nhất (mục 5.3).
 3. **Đổi LogonType** chỉ có 5–8 nạn nhân mỗi run theo đúng chiều 2 → 5/3, vì log thiếu tài khoản chủ yếu dùng type 2.
 4. **LOF đa luồng không hoàn toàn tất định** (sai lệch PR-AUC tới khoảng 0,006 giữa hai lần chạy), cần lưu ý cho tiêu chí tái lập < 1%.
-5. **Chưa có một lệnh duy nhất** chạy từ tiêm đến lưới (tiêu chí #1): hiện là chuỗi các lệnh trong `docs/week4_benchmark_grid.md`.
+5. **Chưa có một lệnh duy nhất** chạy từ tiêm đến lưới (tiêu chí #1): hiện là chuỗi các lệnh trong `docs/huong_dan_luoi_benchmark.md`.
 
 ## 8. Các thay đổi trong tuần
 

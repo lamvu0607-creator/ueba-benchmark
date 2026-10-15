@@ -9,7 +9,7 @@
 #       3.136 tổ hợp → 471 hợp lệ ngữ pháp → vòng 1 (lập luận, luật R1–R4) còn 78
 #       → vòng 2 (số liệu: E rò rỉ, B thông tin, A |rho| < 0,85, C phân tách kịch bản tiêm) còn 26
 #       → chốt quy mô (~15, VIF ≤ 10): 15 vào core (nhóm 11), 11 vào `reserve:`.
-#     Tính bằng src/features/template_engine.py. Căn cứ: docs/reports/bao_cao_bo_dac_trung_v4.md
+#     Tính bằng src/features/template_engine.py. Căn cứ: reports/week4/bao_cao_bo_dac_trung_v4.md
 #     52 ứng viên vòng 2 bị loại được ghi ở cuối mục `removed:` kèm cổng + số đo.
 #   * v3.0 (2026-09-30) bổ sung 12 đặc trưng, TẤT CẢ đều chỉ dùng dữ liệu ≤ t−1:
 #       nhóm 9 (trong ngày) : activity_peak_hour_sin/cos, hour_entropy, dst_host_entropy
@@ -19,7 +19,7 @@
 #                             volume_robust_z_7d
 #     2 đặc trưng đã cài + ĐO trên dữ liệu thật rồi bác bỏ (rho 0.9973 / 0.9180 với
 #     failure_ratio) — xem mục `removed:` cuối file.
-#     Căn cứ & danh sách Tier B/C còn lại: docs/reports/bao_cao_bo_dac_trung_v3.md
+#     Căn cứ & danh sách Tier B/C còn lại: reports/week3/bao_cao_bo_dac_trung_v3.md
 #
 # Sinh bởi : src/features/extractor.py  (đường chuẩn: `python main.py --stage features`)
 #            scripts/feature_engineering/extract_account_day_matrix.py (bản độc lập, CHẬM hơn 1 phiên bản)
@@ -260,7 +260,7 @@ features:
   # Tên = measure_[base_][object_][entity_][window]; câu định nghĩa SINH TỰ ĐỘNG từ template
   # (src/features/templates.py). Giá trị đã ở dạng dùng cho model (đếm → log1p, peer_z cắt ±10)
   # nên model_transform = none. Số đo cổng: docs/feature_engineering/tables/v4_round2_gates.csv
-  # (21 ngày LANL, 7 kịch bản tiêm tại ngày 21). Báo cáo: docs/reports/bao_cao_bo_dac_trung_v4.md
+  # (21 ngày LANL, 7 kịch bản tiêm tại ngày 21). Báo cáo: reports/week4/bao_cao_bo_dac_trung_v4.md
   - name: delta_mean_share_fail_7d
     group: template_v4
     dtype: float64
@@ -446,7 +446,7 @@ features:
     note: "v4.1 (từ reserve). Phễu v4: AUC 0.996 trên logon_type_switch, max |rho| 0.5417. Chẩn đoán 2026-10-09: AUC đơn lẻ 0.953 (logon_type_switch), 0.978 (dormant_wakeup); khác jaccard_logontype_7d, chỉ đếm loại MỚI nên không bị nhiễu bởi loại cũ vắng mặt hôm nay."
 
 # ---------------------------------------------------------------------------
-# CHƯA triển khai (roadmap v3.0) — xem docs/reports/bao_cao_bo_dac_trung_v3.md §5
+# CHƯA triển khai (roadmap v3.0) — xem reports/week3/bao_cao_bo_dac_trung_v3.md §5
 # ---------------------------------------------------------------------------
 # Tier A: đã triển khai ĐỦ (4 biến nhóm 9 + 8 biến nhóm 10 = 28 core).
 # Tier B (thử nghiệm/ablation, không nạp vector chính):

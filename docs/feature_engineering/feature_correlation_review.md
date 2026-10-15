@@ -3,7 +3,7 @@
 > ⚠️ **Lưu ý lịch sử (cập nhật 2026-09-26):** tài liệu này viết cho **bộ 30 đặc trưng cũ**, dữ liệu đã được chuyển sang `data/features/legacy/` và các bảng `correlation_pearson.csv` / `multicollinear_pairs.csv` / `figures/correlation_side_by_side.png` **không còn được sinh ra**. Bộ đặc trưng hiện hành (16 đặc trưng THÔ + 4 khoá/nhãn) có báo cáo đa cộng tuyến mới tại [`reports/week2/multicollinearity_check.md`](../../reports/week2/multicollinearity_check.md). Phần nội dung bên dưới giữ nguyên như **hồ sơ kiểm chứng độc lập cho bộ cũ**.
 
 > **Dự án:** UEBA Anomaly Detection Benchmark (Windows Event 4624 & 4625 — LANL Unified Host and Network Dataset)  
-> **Đối tượng được nhận xét:** [`tables/correlation_pearson.csv`](tables/correlation_pearson.csv), [`tables/correlation_spearman.csv`](tables/correlation_spearman.csv), [`tables/multicollinear_pairs.csv`](tables/multicollinear_pairs.csv), [`figures/correlation_side_by_side.png`](figures/correlation_side_by_side.png)  
+> **Đối tượng được nhận xét:** `tables/correlation_pearson.csv`, [`tables/correlation_spearman.csv`](tables/correlation_spearman.csv), `tables/multicollinear_pairs.csv`, `figures/correlation_side_by_side.png`  
 > **Đối tượng sinh ra kết quả:** [`scripts/feature_engineering/plot_feature_correlation.py`](../../scripts/feature_engineering/plot_feature_correlation.py) chạy trên `data/features/account_day_matrix.parquet`  
 > **Vai trò người nhận xét:** Data Scientist (review độc lập, có kiểm chứng lại số liệu)  
 > **Vị trí lưu trữ:** `docs/feature_engineering/feature_correlation_review.md`
@@ -20,7 +20,7 @@ Bản nhận xét này **không** chỉ đọc 3 file CSV. Toàn bộ số liệ
 | `data/interim/event_4624/event_4624_day-16.parquet` | 17.553.517 dòng | Truy vết nguyên nhân dữ liệu của từng tương quan |
 | `data/interim/event_4625/event_4625_day-16.parquet` | 359.897 dòng | Truy vết nguyên nhân dữ liệu của từng tương quan |
 | `reports/archive/validation_summary.md`, `reports/day16_missingness.md` | — | Đối chiếu chéo tỷ lệ null và cấu trúc missingness |
-| [`tables/distribution_skewness_comparison.csv`](tables/distribution_skewness_comparison.csv), [`figures/distribution_before_after_scaling.png`](figures/distribution_before_after_scaling.png) | 6 đặc trưng volume/fan-out | Đối chiếu chéo mức độ lệch (skewness) và hiệu quả `log1p` — xem §4.3 |
+| [`tables/distribution_skewness_comparison.csv`](tables/distribution_skewness_comparison.csv), `figures/distribution_before_after_scaling.png` | 6 đặc trưng volume/fan-out | Đối chiếu chéo mức độ lệch (skewness) và hiệu quả `log1p` — xem §4.3 |
 
 **Kết quả kiểm chứng tính tái lập:**
 
@@ -164,7 +164,7 @@ Hệ số Gini (volume/tài khoản) ≈ **0,730**. Thành phần quần thể c
 
 → **Pearson trên tập này gần như vô nghĩa.** Con số `corr(total_logons, burst_logon_count) = 0,9998` chỉ nói "vài dòng khổng lồ chi phối cả hai cột", không nói gì về tính bùng nổ của đăng nhập. Đây cũng là lý do bắt buộc phải log-transform trước khi dùng bất kỳ mô hình dựa trên khoảng cách nào (IsolationForest/LOF/OCSVM).
 
-> **Đối chiếu chéo (nhất quán):** bảng [`tables/distribution_skewness_comparison.csv`](tables/distribution_skewness_comparison.csv) do nhóm đã tạo cũng ghi nhận đúng các giá trị trên (`total_logons`: median 350, p99 4.500, max 2.572.041, skew 90,24; `distinct_sources_count`: skew 139,07) và cho thấy `log1p` giảm skewness **94,3% – 99,0%** (xem thêm [`figures/distribution_before_after_scaling.png`](figures/distribution_before_after_scaling.png)). Hai nguồn số liệu khớp nhau ⇒ phần chẩn đoán phân phối này là chắc chắn. **Lưu ý bổ sung:** sau `log1p`, `failure_count` vẫn còn skew **6,56** và `distinct_sources_count` còn **3,63** ⇒ với hai đặc trưng này nên dùng thêm **rank-Gaussian / winsorize** thay vì chỉ `log1p`.
+> **Đối chiếu chéo (nhất quán):** bảng [`tables/distribution_skewness_comparison.csv`](tables/distribution_skewness_comparison.csv) do nhóm đã tạo cũng ghi nhận đúng các giá trị trên (`total_logons`: median 350, p99 4.500, max 2.572.041, skew 90,24; `distinct_sources_count`: skew 139,07) và cho thấy `log1p` giảm skewness **94,3% – 99,0%** (xem thêm `figures/distribution_before_after_scaling.png`). Hai nguồn số liệu khớp nhau ⇒ phần chẩn đoán phân phối này là chắc chắn. **Lưu ý bổ sung:** sau `log1p`, `failure_count` vẫn còn skew **6,56** và `distinct_sources_count` còn **3,63** ⇒ với hai đặc trưng này nên dùng thêm **rank-Gaussian / winsorize** thay vì chỉ `log1p`.
 
 ### 4.4. `burst_logon_count` không đo "burst"
 
@@ -190,7 +190,7 @@ Bảng dưới đây đối chiếu từng đặc trưng trong `tables/correlati
 |---|---|---|---|
 | `total_logons` | median 350, p99 4.500, max 2.572.041, skew 90,24 | Cặp **trùng hạng ρ = 1,0000** với `log_total_logons`; là 1 trong 2 biến VIF > 4000 | Giữ **một**. Đề xuất: giữ `log_total_logons` cho model, giữ `total_logons` chỉ để diễn giải/hiển thị |
 | `log_total_logons` | min 0,693, max 14,760, skew −1,260 | Chỉ là `log1p` của cột trên | Xem trên |
-| `burst_logon_count` | median 202, max 2.572.040; zero-share 2,18% | Xem §4.4: 70,57% sự kiện có `delta_t = 0` ⇒ đây là *đếm sự kiện trùng giây*, không phải burstiness. VIF 3977,17 | **Bỏ.** Nếu muốn giữ ý niệm "bùng nổ", định nghĩa lại: `burst_ratio = burst/total`, hoặc `max_failures_5m`, `max_distinct_hosts_15m` theo [`docs/plan/lanl_eda_implementation_plan.md`](../plan/lanl_eda_implementation_plan.md) §6.5 |
+| `burst_logon_count` | median 202, max 2.572.040; zero-share 2,18% | Xem §4.4: 70,57% sự kiện có `delta_t = 0` ⇒ đây là *đếm sự kiện trùng giây*, không phải burstiness. VIF 3977,17 | **Bỏ.** Nếu muốn giữ ý niệm "bùng nổ", định nghĩa lại: `burst_ratio = burst/total`, hoặc `max_failures_5m`, `max_distinct_hosts_15m` theo `docs/plan/lanl_eda_implementation_plan.md` §6.5 |
 | `failure_count` | 86,04% dòng = 0; median 0; p99 11; max 153.610 | ρ = **0,9969** với `failure_ratio`; trên Pearson chỉ còn 0,1095 → minh chứng rõ nhất cho "đừng dùng Pearson" | Bỏ (giữ `failure_ratio`) — hoặc ngược lại, tuỳ bên nào cần cho báo cáo |
 | `failure_ratio` | 86,04% dòng = 0; mean 0,011; p99 0,400 | **Hai cột gần như cùng một chỉ báo nhị phân** "hôm nay có fail hay không". Bị nhiễu theo mẫu số nhỏ (Spearman với `1/total_logons` = −0,0459) | Giữ, nhưng nên bổ sung `max_consecutive_failures` và `failed_then_success_count` (brute-force thành công sau dò mật khẩu) — **hiện chưa có** |
 | `wrong_password_count` | **100% giá trị = 0** | `Status` null 100% ở cả 4624 và 4625 | **Xóa khỏi schema** + ghi lý do vào data dictionary |
@@ -338,7 +338,7 @@ Cặp còn lại > 0,70 trong bộ rút gọn: `off_hours_ratio ~ work_hours_rat
 
 ### 7.3. Đặc trưng cần bổ sung (đã có trong plan, chưa được implement)
 
-Theo [`docs/plan/lanl_eda_implementation_plan.md`](../plan/lanl_eda_implementation_plan.md) §6.5:
+Theo `docs/plan/lanl_eda_implementation_plan.md` §6.5:
 
 - **Burst theo cửa sổ thời gian:** `max_failures_5m`, `max_distinct_hosts_15m` (thay cho `burst_logon_count`).
 - **Sequence:** `failed_then_success_count` (dấu hiệu dò mật khẩu thành công).
@@ -548,7 +548,7 @@ Kết quả tương quan bạn đưa là **một phân tích làm đúng về m�
 | # | Việc | Vị trí | Hiện trạng (đo được) | Cần sửa thành |
 |---|---|---|---|---|
 | 6 | **Cho extractor đọc config** | `extract_account_day_matrix.py:295-309` (`argparse` chỉ có `--start-day/--end-day/--interim-dir/--output-dir`) | Các tham số nghiệp vụ (`off_hours_start/end`, `weekend_days`, `filter_machine_accounts`) nằm trong YAML nhưng code hard-code ⇒ sửa YAML không có tác dụng | Thêm `--config configs/system_config.yaml`; dùng `features.off_hours_start/end`; bổ sung `is_weekend`, `weekend_logon_count` (hiện **chưa có** dù config đã khai báo `weekend_days`) |
-| 7 | **Định nghĩa lại burst** | Same file `:96` (`delta_t ≤ 2`) | 70,57% (4624) / 67,19% (4625) sự kiện có `delta_t = 0` ⇒ `burst_logon_count` ≈ đếm sự kiện trùng giây; ρ = 0,91 với volume, VIF 3977 | Thay bằng burst **theo cửa sổ thời gian**: `max_failures_5m`, `max_distinct_hosts_15m` (theo [`plan §6.5`](../plan/lanl_eda_implementation_plan.md)); nếu giữ thì chỉ dùng dạng `burst_ratio = burst/total` |
+| 7 | **Định nghĩa lại burst** | Same file `:96` (`delta_t ≤ 2`) | 70,57% (4624) / 67,19% (4625) sự kiện có `delta_t = 0` ⇒ `burst_logon_count` ≈ đếm sự kiện trùng giây; ρ = 0,91 với volume, VIF 3977 | Thay bằng burst **theo cửa sổ thời gian**: `max_failures_5m`, `max_distinct_hosts_15m` (theo `plan §6.5`); nếu giữ thì chỉ dùng dạng `burst_ratio = burst/total` |
 | 8 | **Bỏ artefact `fill_null(86400.0)`** | Same file `:145` | `interarrival_dt_mean = 86400` xuất hiện đúng ở **0,841%** số dòng — trùng khớp tuyệt đối tỷ lệ dòng chỉ có 1 sự kiện ⇒ đỉnh giả, không phải "nhịp thưa" | Bỏ fill cứng; thêm `n_distinct_timestamps`, `median_delta_t`, `delta_t_cv = std/mean` |
 | 9 | **Đóng ràng buộc tổng của ratio** | Same file `:98-103` (agg 5 type) và `:137-142` (ratio) | Type 7/8/9/11 (≈ 1% khối lượng) **không được biểu diễn**; **32,39%** số dòng có tổng 5 ratio < 1; `off + work` cũng chỉ phủ 78,19% (mean) | Thêm `other_logon_type_ratio` và `distinct_logon_types` để tổng ratio = 1 |
 | 10 | **Rút gọn 30 → 18 đặc trưng** | Same file `:176-213` (`ordered_cols`) | 13 cặp \|ρ\| ≥ 0,85; VIF lớn nhất 4041,96; 6 đặc trưng VIF > 10 (chi tiết §7) | Áp theo §7; nên tách `configs/feature_schema.yaml` có cột `is_core: true/false` để vẫn giữ được bảng đầy đủ cho báo cáo nhưng model chỉ dùng bộ lõi |
@@ -650,5 +650,3 @@ Khoá/nhãn: `UserName`, `DomainName`, `day`, `entity_type`; cột hiển thị 
 - §11.3 #11–#16: `main.py` thiếu stage `features`/`benchmark`; tên cột trong `system_config.yaml:13-18` sai schema interim; chốt đường dẫn output; README "16 đặc trưng" (danh sách cũ) chưa cập nhật; `tests/` chưa có unit test; script tương quan chưa thêm within-account/VIF/Cramér's V.
 - Ma trận mới vẫn chỉ **3 ngày** → cần chạy lại trên ≥ 14–30 ngày (đã có `--config`, chỉ cần đổi `--end-day`).
 - Đặc trưng bổ sung §7.3 (novelty/sequence/burst theo cửa sổ) chưa thêm.
-
-

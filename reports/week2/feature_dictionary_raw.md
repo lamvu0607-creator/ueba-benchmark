@@ -26,6 +26,7 @@ Khóa danh tính được thiết kế theo khuyến nghị từ báo cáo phân
 ## 2. Danh mục 16 đặc trưng hành vi thô (Raw Features)
 
 ### 🔹 Nhóm 1: Khối lượng (Volume)
+
 | Tên đặc trưng | Kiểu | Miền giá trị | Định nghĩa & Ý nghĩa nghiệp vụ |
 | :--- | :---: | :---: | :--- |
 | **`total_logons`** ⚠️ | Int64 | $[1, +\infty)$ | **Tổng số lần đăng nhập (4624 + 4625) trong ngày.**<br>• *Ý nghĩa:* Quy mô hoạt động tổng thể. Biến động tăng đột biến (Spike) là dấu hiệu tài khoản bị chiếm đoạt hoặc brute-force.<br>• *Ghi chú:* Lệch nặng (skew $\sim 84$), dự kiến áp $\log(1+x)$ ở bước sau. |
@@ -33,6 +34,7 @@ Khóa danh tính được thiết kế theo khuyến nghị từ báo cáo phân
 ---
 
 ### 🔹 Nhóm 2: Thất bại & Cảnh báo khóa (Failure & Lockout)
+
 | Tên đặc trưng | Kiểu | Miền giá trị | Định nghĩa & Ý nghĩa nghiệp vụ |
 | :--- | :---: | :---: | :--- |
 | **`failure_ratio`** | Float64 | $[0, 1]$ | **Tỷ lệ đăng nhập thất bại:** $\frac{\text{Event 4625}}{\text{total\_logons}}$.<br>• *Ý nghĩa:* Đo cường độ sai mật khẩu. Người dùng bình thường hiếm khi $> 0.1$; tỷ lệ cao cảnh báo tấn công dò mật khẩu (Password Guessing). |
@@ -41,6 +43,7 @@ Khóa danh tính được thiết kế theo khuyến nghị từ báo cáo phân
 ---
 
 ### 🔹 Nhóm 3: Thời gian & Nhịp sinh học (Time & Rhythm)
+
 | Tên đặc trưng | Kiểu | Miền giá trị | Định nghĩa & Ý nghĩa nghiệp vụ |
 | :--- | :---: | :---: | :--- |
 | **`off_hours_ratio`** | Float64 | $[0, 1]$ | **Tỷ lệ hoạt động ngoài giờ hành chính** (18h tối hôm trước đến 7h sáng hôm sau).<br>• *Ý nghĩa:* Phát hiện truy cập trái phép ban đêm hoặc hoạt động tự động hóa bất thường ngoài ca làm việc. |
@@ -52,6 +55,7 @@ Khóa danh tính được thiết kế theo khuyến nghị từ báo cáo phân
 ---
 
 ### 🔹 Nhóm 4: Phương thức đăng nhập (Logon Type)
+
 | Tên đặc trưng | Kiểu | Miền giá trị | Định nghĩa & Ý nghĩa nghiệp vụ |
 | :--- | :---: | :---: | :--- |
 | **`interactive_ratio`** | Float64 | $[0, 1]$ | **Tỷ lệ đăng nhập trực tiếp tại máy (LogonType = 2).**<br>• *Ý nghĩa:* Đặc trưng của người dùng ngồi trước bàn phím vật lý; các tài khoản dịch vụ/máy thường có giá trị này bằng 0. |
@@ -60,6 +64,7 @@ Khóa danh tính được thiết kế theo khuyến nghị từ báo cáo phân
 ---
 
 ### 🔹 Nhóm 5: Gói xác thực (Authentication)
+
 | Tên đặc trưng | Kiểu | Miền giá trị | Định nghĩa & Ý nghĩa nghiệp vụ |
 | :--- | :---: | :---: | :--- |
 | **`ntlm_ratio`** | Float64 | $[0, 1]$ | **Tỷ lệ sử dụng gói xác thực NTLM** (thay vì Kerberos).<br>• *Ý nghĩa:* NTLM là giao thức cũ dễ bị tấn công Pass-the-Hash. Tỷ lệ NTLM tăng bất thường là chỉ báo tấn công hoặc hạ cấp xác thực (Authentication Downgrade). |
@@ -67,6 +72,7 @@ Khóa danh tính được thiết kế theo khuyến nghị từ báo cáo phân
 ---
 
 ### 🔹 Nhóm 6: Đa dạng thực thể & Lan tỏa mạng (Fan-out)
+
 | Tên đặc trưng | Kiểu | Miền giá trị | Định nghĩa & Ý nghĩa nghiệp vụ |
 | :--- | :---: | :---: | :--- |
 | **`distinct_hosts`** ⚠️ | UInt32 | $[1, +\infty)$ | **Số lượng máy đích (`LogHost`) phân biệt mà tài khoản này đăng nhập tới.**<br>• *Ý nghĩa:* Phát hiện leo thang đặc quyền hoặc lây nhiễm lan tỏa ngang (Lateral Movement) sang nhiều máy trạm trong mạng.<br>• *Ghi chú:* Lệch nặng (skew $\sim 89$), dự kiến áp $\log(1+x)$ ở bước sau. |
@@ -75,6 +81,7 @@ Khóa danh tính được thiết kế theo khuyến nghị từ báo cáo phân
 ---
 
 ### 🔹 Nhóm 7: Ngữ cảnh nguồn & Tiến trình (Context)
+
 | Tên đặc trưng | Kiểu | Miền giá trị | Định nghĩa & Ý nghĩa nghiệp vụ |
 | :--- | :---: | :---: | :--- |
 | **`missing_source_ratio`** | Float64 | $[0, 1]$ | **Tỷ lệ sự kiện bị thiếu trường máy nguồn (`Source` is null).**<br>• *Ý nghĩa:* Biến kiểm soát chất lượng dữ liệu (Covariate). Log LANL thiếu Source có cấu trúc theo giao thức (Service/Kerberos thiếu nhiều), không tự ý gán đây là hành vi hacker. |

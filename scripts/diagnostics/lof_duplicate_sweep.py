@@ -1,6 +1,6 @@
 """
 So sánh các cách xử lý dòng trùng lặp của ``HNSWLOF`` trên TOÀN BỘ train/test (xem
-``docs/reports/bao_cao_lof_trung_lap.md``).
+``reports/week4/bao_cao_lof_trung_lap.md``).
 
 Chạy: ``python scripts/diagnostics/lof_duplicate_sweep.py [--out lof_duplicate_sweep.csv]``
 

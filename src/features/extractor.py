@@ -73,7 +73,7 @@ INTRADAY_V3_REJECTED: List[str] = [
 #: 8 biến lịch sử không tính được trong ``extract_features_single_day`` (chỉ thấy 1 ngày) nên
 #: được thêm ở ``build_account_day_matrix`` bằng ``src.features.history.add_history_features``.
 #: Schema v4.0 — các biến sinh từ Combinatorial Template ĐÃ QUA PHỄU (vòng 1 lập luận +
-#: 4 cổng số liệu E/B/A/C; xem docs/reports/bao_cao_bo_dac_trung_v4.md). Được tính bằng
+#: 4 cổng số liệu E/B/A/C; xem reports/week4/bao_cao_bo_dac_trung_v4.md). Được tính bằng
 #: ``src.features.template_engine`` — cùng một engine đã dùng để đo trong phễu.
 TEMPLATE_V4_FEATURES: List[str] = [
     # brute-force / password spraying
@@ -158,7 +158,7 @@ def intraday_behavior_features(
     Vì sao tách riêng khỏi ``extract_features_single_day``: hàm này không đọc/ghi file và chỉ
     phụ thuộc các cột sự kiện thô (``Time``, ``EventID``, ``LogHost`` + khoá danh tính) nên
     kiểm thử được bằng dữ liệu tổng hợp — đúng yêu cầu "mỗi biến phải có cổng kiểm định"
-    (xem ``docs/reports/bao_cao_bo_dac_trung_v3.md`` §7 bước 4).
+    (xem ``reports/week3/bao_cao_bo_dac_trung_v3.md`` §7 bước 4).
 
     ===================================  ==================================================
     ``activity_peak_hour_sin``           ``sin(2π·h_peak/24)`` — h_peak = khung giờ nhiều sự

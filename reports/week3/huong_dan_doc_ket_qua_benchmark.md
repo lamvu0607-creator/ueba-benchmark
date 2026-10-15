@@ -50,9 +50,11 @@ Hãy tưởng tượng bạn có một cuốn sổ ghi **mỗi dòng = một tà
 ## 4. Bốn phát hiện, kể theo cách "đọc bảng ra chuyện gì"
 
 ### 4.1. Hạ tầng đo đã đúng (tin được)
+
 `split_info.json` khớp đúng Tuần 3 (721.612 / 333.671) dù đã thêm 8 đặc trưng mới ⇒ chứng tỏ các đặc trưng lịch sử (novelty, 7 ngày, warm-up) **không thêm dòng nào** vào ma trận. Mọi thứ cần để tái lập đều có: ngưỡng, imputer/scaler, seed, phiên bản sklearn, `sha256` dữ liệu.
 
 ### 4.2. Các mô hình đang kêu "tài khoản khác loại", không phải "hành vi bất thường"
+
 Số liệu (tôi tính từ `anomaly_scores.parquet`):
 
 | Loại tài khoản | Số dòng | IF | LOF | OCSVM | Z-score |
@@ -68,16 +70,17 @@ Số liệu (tôi tính từ `anomaly_scores.parquet`):
 **Việc cần làm (đã có trong kế hoạch):** chuẩn hoá theo nhóm đồng đẳng (peer), hoặc tách nhóm tài khoản khi chấm điểm và báo cáo minh bạch.
 
 ### 4.3. Ngân sách bị "chiếm chỗ" bởi nhóm tài khoản kêu hoài
+
 Isolation Forest kêu 19.037 dòng nhưng trải trên **8.386 / 27.011 tài khoản (31%)**; **10 tài khoản đứng đầu bị kêu 18/18 ngày test** (mọi ngày!). Với người trực SOC, đây là "tiếng ồn lặp lại" — họ sẽ học cách bỏ qua nó.
 **Việc cần làm:** thêm chỉ số vận hành "top-N tài khoản chiếm bao nhiêu % ngân sách" và "số ngày bị kêu liên tiếp".
 
 ### 4.4. Chưa thể nói mô hình nào tốt hơn (và đây không phải lỗi của bạn)
+
 * Top-20: chỉ **LOF ↔ OCSVM trùng 0,70**; mọi cặp khác **trùng 0,00** — kể cả IF ↔ Z-score dù Spearman 0,853.
 * Có những dòng **cả 5 mô hình cùng kêu**: 462 dòng; nhưng **67% số dòng không mô hình nào kêu** (223.603 dòng).
 * Hợp của cả 5 mô hình = **110.068 dòng = 33% test**, trong khi mỗi mô hình chỉ nhắm 5% ⇒ chọn mô hình nào làm khối lượng việc của SOC thay đổi ~6,6 lần.
 
 **Kết luận cần nhớ:** khi không có nhãn, các chỉ số này chỉ nói "các mô hình không đồng ý với nhau", **không** nói mô hình nào bắt đúng. Đây chính là lý do Tuần 4 phải gán nhãn `redteam.txt`.
-
 
 ## 5. Ba cái bẫy hay gặp khi đọc kết quả (đừng mắc)
 
@@ -111,7 +114,6 @@ rồi ghi bằng `append_experiment_log(..., dedupe=False)`; `timestamp` của d
 `append_experiment_log(..., dedupe=False)` (hoặc commit mỗi biến thể để `git_commit` khác nhau).
 Ngoài ra `main.py` đã sửa dòng log cứng: nay in **số đặc trưng lấy từ schema** + số dòng × số cột,
 thay vì chuỗi "16 đặc trưng cốt lõi".
-
 
 ## 7. Checklist tự kiểm chứng (làm được ngay, ~10 phút)
 
@@ -163,7 +165,7 @@ python main.py --stage all --start-day 1 --end-day 2 --split-day 1 \
 
 ### 8.2. Bảng kết quả **lần chạy đầu tiên** cho 3 mô hình ✅
 
-Artifact: [`reports/week3/bang_ket_qua_lan_chay_dau_3_mo_hinh.csv`](../../reports/week3/bang_ket_qua_lan_chay_dau_3_mo_hinh.csv) (3 dòng × 20 cột, trích từ `experiment_log.csv` — lần chạy `2026-09-29 23:46:23`, `n_features = 16`):
+Artifact: [`reports/week3/bang_ket_qua_lan_chay_dau_3_mo_hinh.csv`](bang_ket_qua_lan_chay_dau_3_mo_hinh.csv) (3 dòng × 20 cột, trích từ `experiment_log.csv` — lần chạy `2026-09-29 23:46:23`, `n_features = 16`):
 
 | Mô hình | n_fit | n_eval | Alert rate | Lệch ngân sách | Fit (s) | Chấm điểm (s) | Ngưỡng |
 |:---|---:|---:|---:|---:|---:|---:|---:|
@@ -209,4 +211,3 @@ Chi tiết lần chạy 24 biến bị khử trùng nay đã được ghi bù: x
 3. Nhưng cảnh báo đang tập trung vào các tài khoản **User** (86,8% khối lượng của IF) trong khi tài khoản **máy** chỉ nhận 9,3% (lift 0,17× — bị bỏ sót); tài khoản System/Service/Admin bị kêu gần như mọi ngày ⇒ cần chuẩn hoá theo nhóm/chuẩn hoá theo chính tài khoản.
 4. 5 mô hình **không đồng thuận** ở mức quan trọng nhất (Top-20) ⇒ chưa chọn được mô hình.
 5. Việc tiếp theo bắt buộc: **gán nhãn `redteam.txt`** (Tuần 4); 2 lỗi sổ sách **đã sửa** (§6).
-

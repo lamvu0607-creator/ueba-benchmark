@@ -65,7 +65,6 @@ python main.py --stage inject --block dev     # tiêm khối dev (ngày 43–51)
 python main.py --stage inject --block test    # CHẠY MỘT LẦN ở cuối (ngày 52–60)
 ```
 
-
 Đầu vào: hồ sơ (bước 1), danh sách loại (bước 2), `configs/injection.yaml` (khối `dev` hoặc `test`), log
 interim của các ngày trong khối. Một lần chạy = một khối = một `run_id`.
 

@@ -38,6 +38,7 @@
 | | `same_second_share` | 5,17 | −0,56 | −0,98 | −0,51 | – | ✅ Không cần |
 
 ### Vì sao độ lệch CÒN LẠI không sửa được bằng biến đổi hàm
+
 - `rare_logon_type_count` (còn 1,59): skew chỉ tính trên dòng **≠ 0** là **0,88** → độ lệch còn lại đến từ **cụm 71,09% điểm 0**. Đây là thông tin nghiệp vụ (phần lớn tài khoản không dùng logon loại hiếm), luôn tồn tại với biến zero-inflated — mọi biến đổi đơn điệu `f(0)=0` đều giữ nguyên gai này.
 - `distinct_sources_count` (còn 2,47): ngược lại, skew trên dòng ≠ 0 là **3,28** → đuôi cực trị (max 3.744 → `log1p` ≈ 8,2) là **thật**. Nén tiếp sẽ làm mờ chính tín hiệu bất thường → **không nên**.
 - `total_logons` = −1,51: dấu hiệu **nén hơi quá tay** (lệch trái nhẹ) nhưng vẫn trong ngưỡng 3 → chấp nhận, không cần hoàn tác.
@@ -68,23 +69,26 @@
 | `delta_t_cv` | 0,09 | 2,17 | 4,95 | +0,95 | 2,76 | +0,50 | 0,72 |
 
 ### Ba nguyên nhân khiến ảnh vẫn “trông lệch” (không phải do chuẩn hóa chưa đủ)
+
 1. **~1% đuôi cực trị kéo dài trục x, khối 99% bị nén vào một góc.** `distinct_sources_count`: 99% dữ liệu nằm trong `x ≤ 1,79` nhưng max là `8,23` → trục x dài gấp **4,6 lần** vùng có dữ liệu; `distinct_hosts`: P99 = 2,40 vs max = 9,24 (gấp **3,9 lần**). Vì vậy chỉ ~6/35 bin histogram có dữ liệu, phần còn lại là “khoảng trắng” ⇒ mắt đọc thành “lệch nặng”.
 2. **Gai zero-inflation.** `rare_logon_type_count` có **71,09%** điểm bằng 0 → một cột cao 1,94 (mật độ) che hết phần còn lại. Đây là thông tin nghiệp vụ; **mọi biến đổi đơn điệu `f(0)=0` đều giữ nguyên gai này** (không sửa được bằng toán).
 3. **Kurtosis (đuôi dày/đỉnh nhọn) chứ không phải skew.** Sau log1p, kurtosis còn 1,97–26,01 — cảm giác “lệch” của mắt chủ yếu do **đuôi dày** chứ không phải bất đối xứng: `distinct_hosts` sau log có `skew = +1,26` nhưng ở vùng zoom là **+0,02 / kurt −0,60** (gần như **đối xứng chuẩn**).
 
 ### Đối chứng định lượng
+
 - `distinct_hosts`: skew toàn dải +1,26 → **+0,02** khi chỉ bỏ top 1% (đuôi hosts > 10). Nghĩa là bất đối xứng **chỉ đến từ ~1% đuôi**, khối chính đã cân.
 - `distinct_sources_count`: +2,47 → **+1,25** (zoom), kurt 26,01 → 3,17. Phần còn lại là **bậc thang rời rạc** của biến đếm nguyên (0,1,2,3,4,5 → `log1p` = 0; 0,69; 1,10; 1,39; 1,61; 1,79): histogram của biến đếm luôn “gai” và **không có biến đổi đơn điệu nào** biến nó thành chuẩn.
 - `total_logons`: vùng zoom còn lệch trái −1,99 + **hai đỉnh** (một đỉnh phụ ở `log ≈ 0,7` = tài khoản gần như không hoạt động). Đây là **hai nhóm hành vi thật**, không phải lỗi chuẩn hóa → giữ để mô hình bất thường phát hiện.
 - `interarrival_dt_mean`: skew toàn dải −0,30 nhưng zoom −1,17 / kurt 8,06 (không có 0) → **đuôi trái** do các cặp sự kiện cách nhau rất ngắn; nằm trong ngưỡng nên vẫn chấp nhận.
 
 ### Hình đã được cập nhật để chứng minh điều này
+
 `docs/feature_engineering/figures/distribution_*.png` nay gồm **3 panel**:
 1. Thẻ thống kê (Mean/Median/P99/Max/**tỷ lệ = 0**) + bằng chứng giảm lệch + **Kurtosis sau log**;
 2. Toàn bộ dải sau `log1p` + chú thích **gai zero-inflation** và **đuôi ngoài khung**;
 3. **Zoom vùng 99%** (`x ≤ P99`) kèm skew/kurtosis của chính vùng zoom.
 
-> *(Panel Q-Q plot vs Chuẩn đã **bỏ** khỏi hình ngày 2026-09-24 — thay bằng `Kurtosis sau log` trong thẻ thống kê và cột `Log_Kurtosis` của [`tables/distribution_skewness_comparison.csv`](tables/distribution_skewness_comparison.csv).)*
+> *(Panel Q-Q plot vs Chuẩn đã **bỏ** khỏi hình ngày 2026-09-24 — thay bằng `Kurtosis sau log` trong thẻ thống kê và cột `Log_Kurtosis` của [`tables/distribution_skewness_comparison.csv`](../../docs/feature_engineering/tables/distribution_skewness_comparison.csv).)*
 
 > **Trả lời nếu mentor hỏi “sao sau log1p vẫn lệch?”** — Đúng là ảnh toàn dải vẫn lệch, nhưng đó là do **~1% đuôi cực trị** + **gai 0** + **biến đếm rời rạc**, không phải do thiếu chuẩn hóa: |skew| đã giảm **98,3–99,0%**, vùng 99% dữ liệu có skew **0,02–1,36**, và các biến đổi mạnh hơn (Yeo-Johnson) chỉ đổi được hình dạng nhưng **nén mất biên độ điểm bất thường** — xem §5.
 

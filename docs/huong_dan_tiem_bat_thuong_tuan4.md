@@ -259,7 +259,7 @@ python main.py --stage benchmark --config configs/week4_system.yaml --model-para
 
 ### 8.6. Vẽ biểu đồ
 
-Tại mốc kiểm tra, `main` **chưa có** stage `plots`. Sau khi PR #8 được hợp nhất, dùng hướng dẫn `docs/week4_result_plots.md` của PR đó. Lệnh theo giao diện hiện tại của PR:
+Tại mốc kiểm tra, `main` **chưa có** stage `plots`. Sau khi PR #8 được hợp nhất, dùng hướng dẫn `docs/huong_dan_bieu_do_ket_qua.md` của PR đó. Lệnh theo giao diện hiện tại của PR:
 
 ```bash
 python main.py --stage plots --events-dir data/injection_runs/dev_w4_01/events_injected

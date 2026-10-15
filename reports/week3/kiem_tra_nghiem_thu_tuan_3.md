@@ -2,7 +2,7 @@
 
 > **Dự án:** UEBA Anomaly Detection Benchmark (Windows Event Logs 4624 & 4625 — LANL Dataset)  
 > **Nhánh thực hiện:** `feature/model-benchmark-framework`  
-> **Mục đích:** Cung cấp hướng dẫn từng bước kèm câu lệnh chạy thực tế để bạn tự kiểm chứng, đối soát độc lập toàn bộ các kết quả, mã nguồn, bài toán chống rò rỉ dữ liệu và các artifacts của **Tuần 3** theo đúng đề cương đề tài [`docs/Tong quan de tai ueba.md`](../Tong%20quan%20de%20tai%20ueba.md).
+> **Mục đích:** Cung cấp hướng dẫn từng bước kèm câu lệnh chạy thực tế để bạn tự kiểm chứng, đối soát độc lập toàn bộ các kết quả, mã nguồn, bài toán chống rò rỉ dữ liệu và các artifacts của **Tuần 3** theo đúng đề cương đề tài [`docs/tong_quan_de_tai.md`](../../docs/tong_quan_de_tai.md).
 
 ---
 
@@ -39,6 +39,7 @@ conda run -n ueba-benchmark python -m pytest tests/ -q
 ```
 
 ### Kết quả chuẩn cần đối chiếu:
+
 * **Tổng số test:** `31 passed` (100% pass, khoảng 4.4 giây).
 * **Phân bố các file test:**
   * `tests/test_configs.py` (2 tests): Kiểm định cấu hình hệ thống `system_config.yaml` và hợp đồng `feature_schema.yaml`.
@@ -84,6 +85,7 @@ python main.py --stage benchmark
 *(Thời gian chạy: khoảng 2,5 đến 3 phút tùy phần cứng máy)*
 
 ### Kết quả hiển thị và đối soát:
+
 Xem bảng tổng kết in ra màn hình hoặc mở file [`experiments/results/benchmark_summary.csv`](../../experiments/results/benchmark_summary.csv):
 
 | Mô hình | n_fit (Số mẫu train) | n_eval (Số mẫu test) | Tỷ lệ cảnh báo (%) | Thời gian fit (s) | Thời gian chấm điểm (s) |
@@ -101,6 +103,7 @@ Xem bảng tổng kết in ra màn hình hoặc mở file [`experiments/results/
 Mở và kiểm tra các file artifact đã được sinh ra và quản lý trong thư mục `experiments/`:
 
 ### 5.1. File Manifest tái lập (`experiments/results/run_manifest.json`)
+
 Chạy lệnh kiểm tra tính toàn vẹn dữ liệu:
 ```powershell
 Get-Content experiments/results/run_manifest.json | Select-String -Pattern "commit_hash", "data_sha256", "python_version"
@@ -108,6 +111,7 @@ Get-Content experiments/results/run_manifest.json | Select-String -Pattern "comm
 * **Ý nghĩa:** Chứa mã SHA-256 của file `feature_matrix_processed.parquet`, mã commit Git, phiên bản scikit-learn, polars... đảm bảo bất kỳ ai chạy lại trên máy khác cũng ra cùng một kết quả.
 
 ### 5.2. File ma trận độ đồng thuận Top-20 (`experiments/results/model_topk_overlap.csv`)
+
 Chạy lệnh xem ma trận overlap:
 ```powershell
 Get-Content experiments/results/model_topk_overlap.csv
@@ -116,6 +120,7 @@ Get-Content experiments/results/model_topk_overlap.csv
 * **Kết luận khoa học:** Các thuật toán unsupervised không đồng thuận với nhau khi chưa có nhãn. Đây là luận cứ bắt buộc để bước sang Tuần 4 tiêm nhãn `redteam.txt`.
 
 ### 5.3. File độ ổn định đa seed (`experiments/results/model_stability.csv`)
+
 Chạy lệnh xem độ ổn định khi đổi seed (seeds: 42, 7, 2024):
 ```powershell
 Get-Content experiments/results/model_stability.csv
@@ -123,6 +128,7 @@ Get-Content experiments/results/model_stability.csv
 * **Điểm cần lưu ý:** Isolation Forest và OCSVM có tính ổn định cao. LOF khi fit trên mẫu con 20.000 có độ trùng Top-20 giữa các seed chỉ đạt `0.03` (rất nhạy cảm với mẫu train).
 
 ### 5.4. Nhật ký thí nghiệm (`experiments/logs/experiment_log.csv`)
+
 Chạy lệnh xem 5 dòng log gần nhất:
 ```powershell
 Get-Content experiments/logs/experiment_log.csv | Select-Object -Last 6
@@ -134,9 +140,9 @@ Get-Content experiments/logs/experiment_log.csv | Select-Object -Last 6
 ## 6. Bước 5: Đọc các tài liệu báo cáo kỹ thuật chuyên sâu
 
 Toàn bộ phân tích lý thuyết, công thức toán học và bằng chứng thực nghiệm của Tuần 3 đã được biên soạn tại:
-1. **Báo cáo tóm tắt:** [`reports/week3/tom_tat_tuan3.md`](../../reports/week3/tom_tat_tuan3.md) — Tổng kết 5 dòng, bảng kết quả, quyết định thiết kế đã khóa.
-2. **Báo cáo chuyên sâu kèm biểu đồ:** [`reports/week3/label_free_benchmark.md`](../../reports/week3/label_free_benchmark.md) — Bằng chứng về độ lệch ngân sách, hiện tượng rời rạc của Rule-threshold, phân tích độ nhạy seed.
-3. **Báo cáo đề xuất bộ đặc trưng mở rộng v3.0:** [`docs/reports/bao_cao_bo_dac_trung_v3.md`](bao_cao_bo_dac_trung_v3.md) — Phản biện cấu trúc đặc trưng mở rộng cho các giai đoạn tiếp theo.
+1. **Báo cáo tóm tắt:** [`reports/week3/tom_tat_tuan3.md`](tom_tat_tuan3.md) — Tổng kết 5 dòng, bảng kết quả, quyết định thiết kế đã khóa.
+2. **Báo cáo chuyên sâu kèm biểu đồ:** [`reports/week3/label_free_benchmark.md`](label_free_benchmark.md) — Bằng chứng về độ lệch ngân sách, hiện tượng rời rạc của Rule-threshold, phân tích độ nhạy seed.
+3. **Báo cáo đề xuất bộ đặc trưng mở rộng v3.0:** [`reports/week3/bao_cao_bo_dac_trung_v3.md`](bao_cao_bo_dac_trung_v3.md) — Phản biện cấu trúc đặc trưng mở rộng cho các giai đoạn tiếp theo.
 
 ---
 

@@ -3,9 +3,9 @@
 > **Dự án:** UEBA Anomaly Detection Benchmark (Windows Event 4624 & 4625 — LANL Unified Host and Network Dataset)
 > **Ngày thực hiện:** 2026-09-30 · **Cập nhật:** 2026-09-30 (đã triển khai ĐỦ Tier A + đo trên dữ liệu thật)
 > **Trạng thái:** ✅ **Tier A đã cài đặt đủ 14 ứng viên** → 8 biến qua cổng (schema lên **24 core**), ❌ 6 biến **đã cài + đo rồi bác bỏ** (xem bảng ngay dưới)
-> **Căn cứ:** [`configs/feature_schema.yaml`](../../configs/feature_schema.yaml) · [`docs/feature_engineering/feature_correlation_review.md`](../feature_engineering/feature_correlation_review.md) §7.3, §11 · [`reports/archive/bao_cao_sua_bo_dac_trung.md`](../../reports/archive/bao_cao_sua_bo_dac_trung.md) · [`reports/week2/multicollinearity_check.md`](../../reports/week2/multicollinearity_check.md) · [`reports/week2/normalization_assessment.md`](../../reports/week2/normalization_assessment.md) · [`reports/week3/tom_tat_tuan3.md`](../../reports/week3/tom_tat_tuan3.md)
+> **Căn cứ:** [`configs/feature_schema.yaml`](../../configs/feature_schema.yaml) · [`docs/feature_engineering/feature_correlation_review.md`](../../docs/feature_engineering/feature_correlation_review.md) §7.3, §11 · [`reports/archive/bao_cao_sua_bo_dac_trung.md`](../archive/bao_cao_sua_bo_dac_trung.md) · [`reports/week2/multicollinearity_check.md`](../week2/multicollinearity_check.md) · [`reports/week2/normalization_assessment.md`](../week2/normalization_assessment.md) · [`reports/week3/tom_tat_tuan3.md`](tom_tat_tuan3.md)
 > **Phạm vi:** đề xuất, biện luận **và** triển khai toàn bộ Tier A. Tier B/C vẫn chỉ là đề xuất (theo thiết kế không nạp vector).
-> **Vị trí lưu trữ:** `docs/reports/bao_cao_bo_dac_trung_v3.md`
+> **Vị trí lưu trữ:** `reports/week3/bao_cao_bo_dac_trung_v3.md`
 
 ---
 
@@ -37,7 +37,7 @@ Báo cáo đề xuất bộ **v3.0** gồm 3 tầng tách bạch (không trùng 
 
 Bộ cuối cùng (24 core) đạt **0 cặp \|ρ\| ≥ 0,85** và **VIF max 7,31**; 2 lỗi thật được phát hiện nhờ quá trình đo (bug `ProcessName` làm `custom_proc_share` = 0 âm thầm; z khối lượng bùng nổ tới −976 ⇒ phải winsorize ±10) — chi tiết §10.
 
-> **Về con số "18":** nó đến từ khuyến nghị **LỊCH SỬ** của [`feature_correlation_review.md`](../feature_engineering/feature_correlation_review.md) §7.2/§11.4 — "rút **30 → 18**" trên bộ **v1.0 (32 cột)** của Tuần 2; đề xuất đó **chưa bao giờ là schema đang chạy**. Đường đi số lượng thực tế: 32 → 30 (v1.0, lưu trữ) → **16** (v2.0, đã chạy benchmark Tuần 3) → **20** (v3.0 nhóm 9, đã chạy ở commit `1d2209d`) → **24** (v3.0 đủ Tier A, hiện tại).
+> **Về con số "18":** nó đến từ khuyến nghị **LỊCH SỬ** của [`feature_correlation_review.md`](../../docs/feature_engineering/feature_correlation_review.md) §7.2/§11.4 — "rút **30 → 18**" trên bộ **v1.0 (32 cột)** của Tuần 2; đề xuất đó **chưa bao giờ là schema đang chạy**. Đường đi số lượng thực tế: 32 → 30 (v1.0, lưu trữ) → **16** (v2.0, đã chạy benchmark Tuần 3) → **20** (v3.0 nhóm 9, đã chạy ở commit `1d2209d`) → **24** (v3.0 đủ Tier A, hiện tại).
 
 **Không đưa thẳng 43/61 biến vào vector**, vì: (a) 7/16 biến v2.0 đã có **MAD = 0** và nhiều biến zero-inflated 87–99% ⇒ thêm biến tương tự chỉ làm loãng khoảng cách; (b) 5 mô hình đang dùng đều dựa trên khoảng cách (IForest/LOF/OCSVM) nên 61 chiều cần chọn lọc; (c) **Tuần 3 kết luận không thể xếp hạng bằng chỉ số label-free** (Top-20 overlap ≈ 0) ⇒ chỉ có ablation **có nhãn `redteam.txt` ở Tuần 4** mới được quyền chốt.
 
@@ -88,7 +88,6 @@ Script kiểm chứng đối chiếu trực tiếp với `FeatureSchema().core_f
 
 **Hai bộ giao nhau đúng 8 tên** — nghĩa là chúng **không phải hai phiên bản của cùng một bộ**, mà là hai triết kế khác nhau: Bộ 1 nghiêng về *chuỗi thời gian hành vi* (lag/rolling/recency), Bộ 2 nghiêng về *bao phủ chức năng* (logon-type, đồ thị, peer). Vì vậy "chọn bộ nào" thực chất là **chọn tổ hợp theo tầng**, không phải chọn một trong hai.
 
-
 ---
 
 ## 4. Danh sách loại trừ vĩnh viễn (23 tên) kèm bằng chứng đo được
@@ -121,7 +120,6 @@ Không đưa vào bất kỳ tầng nào (kể cả thử nghiệm), vì lý do 
 | 22 | `volume_seasonal_deviation_7d`, `volume_seasonal_zscore_7d` | trùng `volume_residual` / `residual_robust_zscore` (đều là phần dư so với baseline chu kỳ) — chỉ giữ bản có kiểm định | — |
 
 > Lưu ý #22 gộp 2 tên ⇒ tổng biến bị loại là **23 tên**. Hai biến bị loại vì *dữ liệu* (#1, #2) là **điều kiện tiên quyết**: nếu bộ nào vẫn liệt kê chúng thì bộ đó chưa được rà trên dữ liệu thật.
-
 
 ---
 
@@ -175,7 +173,6 @@ Không đưa vào bất kỳ tầng nào (kể cả thử nghiệm), vì lý do 
 | 29 | `dst_host_entropy` | fanout | Shannon entropy phân bố lượt truy cập theo `LogHost` (đúng `host_entropy` trong §7.3) | Bộ 2 | none |
 | 30 | `volume_robust_z_7d` | deviation | z-score bền vững của volume so với **7 ngày trước** (median/MAD) | chung | none |
 
-
 > **Trạng thái Tier A (đã triển khai ĐỦ):** cả 12 biến mới của Tier A đã được **cài đặt và đo trên dữ liệu thật**.
 > **8 biến được nhận** (#26–#29 nhóm 9 và `new_source_count_7d`, `new_host_count_7d`, `days_since_last_activity`, `volume_robust_z_7d` của nhóm 10 — đã vào schema, core = **24**), **6 biến bị bác bỏ** vì vượt ngưỡng \|ρ\| ≥ 0,85 (#24 `max_failure_streak` 0,9973 · #25 `success_after_failure_ratio` 0,9180 · #17 `new_source_count` 0,9999 · #18 `new_host_count` 0,9999 · #21 `source_recency` 0,9238 · #22 `source_host_pair_novelty` 0,9052).
 > **Không cần "thêm dòng" vào ma trận:** cửa sổ nhân quả theo NGÀY LỊCH được tính bằng `shift`/`min`/`max` trên panel thưa + lưới dày NỘI BỘ cho baseline khối lượng, nên số dòng (và do đó ranh giới train/test 721.612/333.671) **giữ nguyên** — xem §10.
@@ -203,7 +200,6 @@ Không đưa vào bất kỳ tầng nào (kể cả thử nghiệm), vì lý do 
 | `logon_type_entropy`, `src_host_entropy`, `src_dst_pair_entropy` | tỷ lệ zero | cả 3 gần zero-inflated (mẫu: `rare_logon_type_count` = 71,09% điểm 0) |
 | `ewma_volume_7d`, `volume_rolling_mean_7d`, `log_total_logons_lag1/lag7` | `volume_robust_z_7d` | cùng trục volume-vs-baseline ⇒ giữ tối đa 2 |
 
-
 ### 5.4. Tier C — 7 biến chẩn đoán / chỉ mục (không vào vector)
 
 | Biến | Vai trò |
@@ -229,7 +225,6 @@ Không đưa vào bất kỳ tầng nào (kể cả thử nghiệm), vì lý do 
 | 6 | Bộ 61 chứa biến chết | **17/61 tên** của Bộ 2 nằm ở danh sách loại trừ §4 (toàn bộ nhóm logon-type ratio + 4 khung giờ + 4 phân vị Δt + 2 biến SubStatus) |
 | 7 | Bộ 43 bỏ mất 1 biến đang là core và chứa 3 tên không tồn tại | thiếu `custom_proc_share`; thêm `is_machine_account`, `new_source_count`, `new_host_count` (2 tên sau chỉ có ở bản lưu trữ) |
 | 8 | Bộ 61 đưa `behavior_shift_score_7d` vào vector | đây là **điểm trôi tổng hợp**, không phải đặc trưng hành vi ⇒ đề xuất chuyển sang Tier C |
-
 
 ---
 
@@ -315,8 +310,6 @@ python main.py --stage benchmark
 ⇒ `tests/test_features.py::test_model_interfaces` sẽ **skip** kèm thông điệp yêu cầu dựng lại (đây là guard có chủ ý,
 không phải test hỏng); sau khi chạy bước 1, guard này tự chuyển thành kiểm tra đầy đủ.
 
-
-
 ### Phụ lục — Lệnh tái lập nhanh
 
 ```bash
@@ -331,4 +324,3 @@ python scripts/feature_engineering/check_multicollinearity.py
 python scripts/diagnostics/feature_variance_check.py
 python -m pytest tests/ -q
 ```
-

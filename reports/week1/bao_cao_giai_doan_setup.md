@@ -4,7 +4,7 @@
 * **Chương trình**: Thực chiến AI – Xây dựng Baseline UEBA có thể tái lập
 * **Môi trường thực thi**: Tùy chọn Conda hoặc Virtualenv tiêu chuẩn (Nếu sử dụng Conda: `ueba-benchmark`, Python >= 3.10)
 * **Thời điểm báo cáo**: 13/09/2026
-* **Tài liệu tham chiếu**: [Tong quan de tai ueba.md](file:///d:/Github%20Repo/ueba-benchmark/docs/Tong%20quan%20de%20tai%20ueba.md)
+* **Tài liệu tham chiếu**: [tong_quan_de_tai.md](../../docs/tong_quan_de_tai.md)
 
 ---
 
@@ -19,16 +19,17 @@ Căn cứ theo đề cương đề tài tại **Mục 3 (Kế hoạch theo tuầ
 ## 2. CÁC HẠNG MỤC HẠ TẦNG ĐÃ HOÀN THÀNH
 
 ### 2.1. Chuẩn hóa Môi trường & Quản lý Phụ thuộc
-1. **Đóng băng phiên bản thư viện ([requirements.txt](file:///d:/Github%20Repo/ueba-benchmark/requirements.txt))**:
+
+1. **Đóng băng phiên bản thư viện ([requirements.txt](../../requirements.txt))**:
    - Cố định phiên bản các gói phần mềm lõi trong môi trường (venv hoặc conda `ueba-benchmark`):
      - Math & Data: `numpy==1.26.4`, `pandas==2.2.2`, `pyarrow==15.0.2`
      - Machine Learning: `scikit-learn==1.4.2`, `joblib==1.4.2`
      - Visualization: `matplotlib==3.8.4`, `seaborn==0.13.2`
      - Testing & Quality: `pytest==8.2.0`, `pyyaml==6.0.1`, `tqdm==4.66.4`
      - Notebook: `ipykernel==6.29.4`, `jupyterlab==4.2.0`
-2. **Cấu hình Package chuẩn ([pyproject.toml](file:///d:/Github%20Repo/ueba-benchmark/pyproject.toml))**:
+2. **Cấu hình Package chuẩn ([pyproject.toml](../../pyproject.toml))**:
    - Cài đặt package `ueba-benchmark` ở chế độ editable (`pip install -e .`), giúp import trực tiếp các module trong `src` từ bất kỳ thư mục nào mà không bị lỗi đường dẫn.
-3. **Chính sách bảo mật Git ([.gitignore](file:///d:/Github%20Repo/ueba-benchmark/.gitignore))**:
+3. **Chính sách bảo mật Git ([.gitignore](../../.gitignore))**:
    - Chặn tuyệt đối việc đẩy log thô (`data/raw/`), dữ liệu trung gian (`data/interim/`, `data/processed/`), cache và model checkpoints lên kho mã nguồn.
 
 ---
@@ -76,27 +77,29 @@ ueba-benchmark/
 ---
 
 ### 2.3. Tách Biệt Tham Số & Cấu Hình Tập Trung
-- [configs/system_config.yaml](file:///d:/Github%20Repo/ueba-benchmark/configs/system_config.yaml):
+
+- [configs/system_config.yaml](../../configs/system_config.yaml):
   - Định nghĩa đường dẫn tương đối cho các tầng data.
   - Cố định `random_seed: 42` để đảm bảo tính tái lập 100%.
   - Cấu hình danh sách tài khoản dịch vụ hệ thống cần lọc (`SYSTEM`, `LOCAL SERVICE`, `NETWORK SERVICE`, `ANONYMOUS LOGON`).
   - Khung giờ ngoài hành chính (`off_hours_start: 18`, `off_hours_end: 7`), ngày cuối tuần.
-- [configs/model_params.yaml](file:///d:/Github%20Repo/ueba-benchmark/configs/model_params.yaml):
+- [configs/model_params.yaml](../../configs/model_params.yaml):
   - Mẫu siêu tham số chuẩn bị sẵn cho Isolation Forest, Local Outlier Factor (`novelty: true`), và One-Class SVM.
 
 ---
 
 ### 2.4. Trạng thái Mã nguồn & Vệ sinh Dữ liệu
+
 1. **Mã nguồn `src/`**:
    - Đã xóa toàn bộ mã nguồn cài đặt trước hạn.
    - Các gói con (`src/data/`, `src/features/`, `src/models/`, `src/evaluation/`) hiện chỉ giữ file `__init__.py` định danh vai trò và ghi chú phân công công việc.
 2. **Dữ liệu**:
    - Không chứa bất kỳ file dữ liệu giả lập (mock data) nào.
-   - Thư mục [data/raw/](file:///d:/Github%20Repo/ueba-benchmark/data/raw/) trống và sẵn sàng tiếp nhận file log 4624/4625 thực tế.
-3. **File điều phối [main.py](file:///d:/Github%20Repo/ueba-benchmark/main.py)**:
+   - Thư mục [data/raw/](../../data/raw) trống và sẵn sàng tiếp nhận file log 4624/4625 thực tế.
+3. **File điều phối [main.py](../../main.py)**:
    - Được thiết kế dưới dạng khung CLI tối giản; khi chạy sẽ kiểm tra sự hiện diện của dữ liệu trong `data/raw/` và nhắc nhở đưa log thật vào thay vì tự động sinh dữ liệu giả.
 4. **Nhật ký thí nghiệm**:
-   - [experiments/logs/experiment_log.csv](file:///d:/Github%20Repo/ueba-benchmark/experiments/logs/experiment_log.csv) ở trạng thái sạch, chỉ giữ lại dòng tiêu đề cột.
+   - [experiments/logs/experiment_log.csv](../../experiments/logs/experiment_log.csv) ở trạng thái sạch, chỉ giữ lại dòng tiêu đề cột.
 
 ---
 
@@ -117,6 +120,6 @@ ueba-benchmark/
 Theo đúng lộ trình phân công tại **Mục 6.4**:
 1. **Tiếp nhận log thật**: Đưa file log Windows Security 4624 và 4625 nội bộ (đã ẩn danh) vào `data/raw/`.
 2. **Phân công nhiệm vụ EDA**:
-   - **TTS A (Chủ trì 4624)**: Mở notebook [notebooks/01_eda_event_logs.ipynb](file:///d:/Github%20Repo/ueba-benchmark/notebooks/01_eda_event_logs.ipynb), phân tích sự kiện đăng nhập thành công theo giờ, theo tài khoản, phân biệt tài khoản máy (`*$`) với tài khoản người dùng, lập từ điển trường dữ liệu.
+   - **TTS A (Chủ trì 4624)**: Mở notebook [notebooks/01_eda_event_logs.ipynb](../../notebooks/01_eda_event_logs.ipynb), phân tích sự kiện đăng nhập thành công theo giờ, theo tài khoản, phân biệt tài khoản máy (`*$`) với tài khoản người dùng, lập từ điển trường dữ liệu.
    - **TTS B (Chủ trì 4625)**: Phân tích sự kiện đăng nhập thất bại theo các mã lỗi `Status` / `SubStatus`, phát hiện dữ liệu bẩn (lệch múi giờ, bản ghi trùng lặp, thiếu trường).
 3. **Đầu ra cuối Tuần 1**: Hoàn thiện notebook EDA và chốt lược đồ (schema) file đặc trưng làm "hợp đồng kỹ thuật" giữa 2 bên trước khi bước sang Tuần 2.

@@ -1,7 +1,9 @@
 # CHƯƠNG TRÌNH THỰC CHIẾN AI
+
 ## TỔNG QUAN ĐỀ TÀI THỰC TẬP
 
 ### Benchmark Isolation Forest / LOF / One-Class SVM trên log xác thực
+
 *Xây dựng baseline UEBA có thể tái lập cho bài toán phát hiện tài khoản hành xử bất thường*
 
 | Hạng mục | Nội dung |
@@ -17,9 +19,11 @@
 ## 1. MỤC TIÊU
 
 ### 1.1. Mục tiêu tổng quát
+
 Xây dựng một baseline UEBA (User and Entity Behavior Analytics) có thể tái lập hoàn toàn cho bài toán phát hiện "tài khoản hành xử bất thường", dựa trên dữ liệu log xác thực Windows. Baseline này đóng vai trò mốc tham chiếu để các nghiên cứu và sản phẩm về sau của đơn vị có cơ sở so sánh khách quan, thay vì mỗi lần lại bắt đầu từ con số không.
 
 ### 1.2. Mục tiêu cụ thể
+
 * **Chuẩn hóa dữ liệu:** Xây dựng quy trình làm sạch và tổng hợp log 4624/4625 thành ma trận đặc trưng theo đơn vị phân tích (tài khoản × ngày), có tài liệu mô tả rõ ràng từng trường.
 * **Thiết kế bộ đặc trưng hành vi:** Trích xuất tối thiểu 15 đặc trưng phản ánh hành vi xác thực của tài khoản (tần suất, khung giờ, số máy trạm, tỷ lệ thất bại, loại logon, v.v.).
 * **Benchmark ba thuật toán:** Cài đặt và so sánh Isolation Forest, Local Outlier Factor (LOF) và One-Class SVM trên cùng một bộ dữ liệu, cùng một bộ đặc trưng và cùng một cách chia tập, đảm bảo so sánh công bằng.
@@ -28,6 +32,7 @@ Xây dựng một baseline UEBA (User and Entity Behavior Analytics) có thể t
 * **Rút ra khuyến nghị triển khai:** Chỉ ra thuật toán nào phù hợp với loại bất thường nào, ngưỡng cảnh báo hợp lý và khối lượng cảnh báo mà đội vận hành có thể xử lý.
 
 ### 1.3. Mục tiêu đào tạo đối với thực tập sinh
+
 Ngoài sản phẩm kỹ thuật, đề tài hướng tới việc thực tập sinh nắm được: tư duy đánh giá mô hình khi không có nhãn thật, kỷ luật thực nghiệm (version dữ liệu, cố định seed, ghi nhật ký thí nghiệm), và khả năng trình bày kết quả cho cả đối tượng kỹ thuật lẫn đối tượng vận hành.
 
 ---
@@ -46,6 +51,7 @@ Ngoài sản phẩm kỹ thuật, đề tài hướng tới việc thực tập 
 | **Sản phẩm đầu ra** | Mã nguồn dạng script/notebook có cấu trúc, file kết quả CSV, biểu đồ và báo cáo. Không xây dựng giao diện người dùng, không tích hợp SIEM, không đóng gói API. |
 
 ### 2.2. Nằm ngoài phạm vi
+
 * Tích hợp trực tiếp với SIEM hoặc hệ thống cảnh báo đang vận hành.
 * Phát hiện bất thường theo thời gian thực hoặc cập nhật mô hình trực tuyến (online learning).
 * Phân tích mối quan hệ giữa các tài khoản, dò tìm đường di chuyển ngang (lateral movement) bằng phương pháp đồ thị.
@@ -53,6 +59,7 @@ Ngoài sản phẩm kỹ thuật, đề tài hướng tới việc thực tập 
 * So sánh với các sản phẩm UEBA thương mại.
 
 ### 2.3. Giả định và ràng buộc
+
 * **Về nhãn:** Dữ liệu nội bộ không có ground truth. Đề tài chấp nhận dùng bất thường tổng hợp được tiêm vào (synthetic injection) làm nhãn đánh giá chính, kết hợp với đánh giá định tính trên cảnh báo có điểm cao nhất.
 * **Về dữ liệu:** Giả định khoảng thời gian dùng để huấn luyện là tương đối "sạch" – tức tỷ lệ hành vi độc hại thực sự trong đó là rất nhỏ. Giả định này phải được nêu rõ trong báo cáo như một hạn chế.
 * **Về quyền riêng tư:** Chỉ làm việc trên dữ liệu đã ẩn danh. Thực tập sinh không được phép giải ẩn danh, đối chiếu với danh bạ nội bộ hay xuất dữ liệu ra khỏi môi trường được cấp.
@@ -96,6 +103,7 @@ Tổng thời lượng 6 tuần. Nửa tuần đầu tiên (khoảng 2,5 ngày l
 | **10** | Nghiệm thu | Thực hiện demo trực tiếp 20–30 phút, trả lời được câu hỏi về lựa chọn thiết kế và giới hạn của kết quả. |
 
 ### 4.2. Tiêu chí mở rộng (không bắt buộc)
+
 * Bổ sung phân tích khả năng giải thích: chỉ ra đặc trưng nào đóng góp nhiều nhất vào điểm bất thường của từng cảnh báo.
 * Thử nghiệm thêm một mô hình thứ tư (ví dụ Elliptic Envelope hoặc HBOS) để mở rộng phổ so sánh.
 * Đánh giá độ ổn định của mô hình theo thời gian: huấn luyện trên tuần N, kiểm thử trên tuần N+1, N+2 để quan sát hiện tượng trôi dữ liệu (data drift).
@@ -110,9 +118,11 @@ Tổng thời lượng 6 tuần. Nửa tuần đầu tiên (khoảng 2,5 ngày l
 Thách thức trung tâm của đề tài là dữ liệu không có nhãn thật. Phương pháp đánh giá vì vậy được thiết kế theo ba lớp bổ trợ nhau: nhãn tổng hợp để định lượng, mốc tham chiếu để đặt kết quả vào bối cảnh, và đánh giá định tính để kiểm tra tính hữu dụng thực tế.
 
 ### 5.1. Chia tập dữ liệu
+
 Chia theo thời gian, tuyệt đối không chia ngẫu nhiên. Giai đoạn đầu (khoảng 70% khoảng thời gian) dùng để huấn luyện với giả định tương đối sạch; giai đoạn sau dùng để kiểm thử. Cách chia này mô phỏng đúng điều kiện triển khai thực tế, nơi mô hình học từ quá khứ và chấm điểm cho tương lai.
 
 ### 5.2. Lớp 1 – Nhãn tổng hợp (định lượng chính)
+
 Tiêm các mẫu hành vi bất thường được sinh nhân tạo vào tập kiểm thử với tỷ lệ khoảng 0,5–1% số bản ghi. Mỗi mẫu tiêm được gắn nhãn loại để phân tích sau. Các loại bất thường mô phỏng:
 
 | Loại bất thường | Cách mô phỏng |
@@ -127,6 +137,7 @@ Tiêm các mẫu hành vi bất thường được sinh nhân tạo vào tập k
 *Cảnh báo phương pháp: bất thường tổng hợp có xu hướng dễ phát hiện hơn tấn công thật. Chỉ số thu được là cận trên lạc quan, không phải ước lượng hiệu năng thực tế. Điều này phải được nêu rõ trong báo cáo.*
 
 ### 5.3. Lớp 2 – Mốc tham chiếu
+
 * **Ngẫu nhiên:** chấm điểm ngẫu nhiên, dùng để xác định sàn hiệu năng. Mô hình không vượt được mốc này là không có giá trị.
 * **Luật ngưỡng đơn giản:** cảnh báo khi số lần đăng nhập thất bại trong ngày vượt một ngưỡng cố định. Đây là thứ đội vận hành có thể làm trong 10 phút mà không cần machine learning — nếu mô hình không vượt được mốc này thì chưa đủ lý do để triển khai.
 * **Z-score đơn biến:** chấm điểm dựa trên độ lệch chuẩn của một đặc trưng duy nhất, dùng để đo giá trị gia tăng của việc mô hình hóa đa biến.
@@ -143,9 +154,11 @@ Tiêm các mẫu hành vi bất thường được sinh nhân tạo vào tập k
 | **Thời gian huấn luyện / suy luận** | Thời gian chạy thực tế trên cùng phần cứng. | One-Class SVM có độ phức tạp bậc cao theo số mẫu; đây là yếu tố quyết định khả năng mở rộng. |
 
 ### 5.5. Lớp 3 – Đánh giá định tính
+
 Hai thực tập sinh cùng review thủ công 50 cảnh báo có điểm cao nhất của mỗi mô hình, phân loại độc lập thành ba nhóm: (a) đáng ngờ, cần điều tra; (b) bất thường nhưng giải thích được bằng nghiệp vụ, ví dụ tài khoản dịch vụ hoặc nhân sự trực ca; (c) nhiễu, không mang thông tin. Sau đó đối chiếu kết quả và ghi nhận mức độ đồng thuận. Lớp đánh giá này bù đắp cho điểm yếu của nhãn tổng hợp và cho biết mô hình có thực sự hữu ích với người dùng cuối hay không.
 
 ### 5.6. Kiểm soát tính vững
+
 * Lặp lại mỗi thí nghiệm với 5 seed khác nhau; báo cáo trung bình kèm độ lệch chuẩn. Một mô hình có phương sai lớn giữa các seed là mô hình không đáng tin để triển khai.
 * Phân tích độ nhạy tham số contamination trên dải giá trị từ 0,1% đến 5%, vẽ biểu đồ biến thiên chỉ số theo tham số.
 * Ablation theo nhóm đặc trưng: loại bỏ lần lượt từng nhóm (tần suất, thời gian, đa dạng thực thể, độ lệch lịch sử) để đo mức đóng góp.
@@ -156,6 +169,7 @@ Hai thực tập sinh cùng review thủ công 50 cảnh báo có điểm cao nh
 ## 6. PHÂN CHIA CÔNG VIỆC CHO 2 NHÂN SỰ (GỢI Ý)
 
 ### 6.1. Nguyên tắc phân chia
+
 Công việc được chia theo hạng mục bàn giao, không chia theo tầng kiến trúc. mỗi thực tập sinh chỉ tiếp xúc với nửa bài toán và kết thúc kỳ thực tập với năng lực lệch hẳn về một phía. Mô hình dưới đây đảm bảo cả hai đều đi qua trọn vẹn chuỗi dữ liệu → đặc trưng → mô hình → đánh giá.
 * **Chủ trì và đối trọng:** mỗi hạng mục bàn giao có đúng một người chủ trì, chịu trách nhiệm cuối cùng, và một người đối trọng, có nhiệm vụ review, chạy lại được sản phẩm trên máy mình và chất vấn các lựa chọn thiết kế.
 * **Luân phiên đều ở mọi tầng:** ở mỗi tầng của pipeline, hai người thay nhau giữ vai chủ trì. Không ai chủ trì trọn một tầng, cũng không ai chỉ đóng vai đối trọng ở một tầng nào đó.
@@ -182,6 +196,7 @@ Công việc được chia theo hạng mục bàn giao, không chia theo tầng 
 | **Chung** | Báo cáo kỹ thuật và buổi demo nghiệm thu | Cả hai | Mentor |
 
 ### 6.3. Vai trò luân phiên hàng tuần
+
 Ngoài các hạng mục kỹ thuật, mỗi tuần một người giữ vai "kỹ sư phát hành", luân phiên theo tuần chẵn – tuần lẻ. Người giữ vai này chịu trách nhiệm: giữ nhánh chính luôn chạy được, thực hiện kiểm tra tái lập vào cuối tuần, cập nhật nhật ký thí nghiệm, và chuẩn bị nội dung cho buổi review với mentor. Cơ chế này đảm bảo cả hai đều hình thành thói quen kỷ luật thực nghiệm thay vì phó thác cho một người.
 
 ### 6.4. Phân công theo tuần
@@ -201,6 +216,7 @@ Ngoài các hạng mục kỹ thuật, mỗi tuần một người giữ vai "k�
 | **6** | Viết chương phương pháp và kết quả; chuẩn bị nửa đầu bộ slide demo. (Kỹ sư phát hành) | Viết chương hạn chế và khuyến nghị triển khai; hoàn thiện README và hướng dẫn vận hành; chuẩn bị nửa sau bộ slide. |
 
 ### 6.5. Quy tắc cộng tác bắt buộc
+
 * Không ai hợp nhất pull request của chính mình; mỗi PR cần ít nhất một phê duyệt từ người còn lại.
 * Người đối trọng phải chạy được sản phẩm của người chủ trì trên máy mình trước khi phê duyệt — không chấp nhận review chỉ đọc mã.
 * Tối thiểu 3 giờ pair programming mỗi tuần, dành cho hạng mục khó nhất của tuần đó.

@@ -1,5 +1,5 @@
 """
-Tiêm bất thường tổng hợp ở MỨC SỰ KIỆN (Lớp 1 — mục 5.2 của docs/Tong quan de tai ueba.md).
+Tiêm bất thường tổng hợp ở MỨC SỰ KIỆN (Lớp 1 — mục 5.2 của docs/tong_quan_de_tai.md).
 
 Vì sao tiêm vào luồng sự kiện chứ không sửa thẳng ma trận đặc trưng: nếu sửa ma trận thì
 "đặc trưng có phân tách được kịch bản không" trở thành câu hỏi về cách ta sửa, không còn là

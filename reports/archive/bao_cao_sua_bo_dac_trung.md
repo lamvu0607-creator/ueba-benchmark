@@ -5,7 +5,7 @@
 > **Người thực hiện:** Data Scientist (review + sửa trực tiếp)  
 > **Căn cứ:** [`docs/feature_engineering/feature_correlation_review.md`](../../docs/feature_engineering/feature_correlation_review.md) §7, §11, §12  
 > **Phạm vi:** **chỉ xử lý các bất thường của tập đặc trưng** (§11.1 #1–#5, §11.2 #6–#10). Các mục hạ tầng/tài liệu (§11.3 #11–#16) **không** thuộc phạm vi báo cáo này.  
-> **Vị trí lưu trữ:** `reports/archive/bao_cao_sua_bo_dac_trung.md` (Lưu trữ — đã kế thừa bởi `docs/reports/bao_cao_bo_dac_trung_v3.md`)
+> **Vị trí lưu trữ:** `reports/archive/bao_cao_sua_bo_dac_trung.md` (Lưu trữ — đã kế thừa bởi `reports/week3/bao_cao_bo_dac_trung_v3.md`)
 
 ---
 
@@ -248,7 +248,7 @@ Trong quá trình test đã phát hiện và sửa **3 lỗi thật**:
   `README.md` vẫn mô tả danh sách "16 đặc trưng" cũ; `tests/` chưa có unit test; script tương quan chưa thêm
   within-account / VIF / Cramér's V.
 - Đặc trưng bổ sung §7.3 (novelty, sequence, burst theo cửa sổ) chưa thêm — **đã có đề xuất phân tầng
-  kèm bằng chứng loại trừ tại [`bao_cao_bo_dac_trung_v3.md`](../../docs/reports/bao_cao_bo_dac_trung_v3.md)** (Tier A 30 biến
+  kèm bằng chứng loại trừ tại [`bao_cao_bo_dac_trung_v3.md`](../week3/bao_cao_bo_dac_trung_v3.md)** (Tier A 30 biến
   model + Tier B 30 biến thử nghiệm + Tier C 7 biến chẩn đoán).
 - Rà soát `src/evaluation/injector.py`: kịch bản "Off-hours Compromise" dựa vào RDP nhưng RDP chỉ chiếm 0,013% sự kiện thật
   (nay tín hiệu sẽ hiện ở `rare_logon_type_count_log`, cần xác nhận khi chạy benchmark).

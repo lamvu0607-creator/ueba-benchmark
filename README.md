@@ -265,7 +265,7 @@ python main.py --stage plots --events-dir $RUN/events_injected
 PNG/PDF được ghi vào `experiments/injection_runs/<run_id>/results/figures/week4/`, tách theo phân khúc: PR, AP,
 Precision@k, Recall theo ngân sách ngày, thời gian chạy và heatmap kịch bản nếu có nhãn kịch bản.
 Có CSV số liệu và manifest truy vết; hỗ trợ tổng hợp nhiều lần benchmark đầy đủ qua CLI riêng.
-Xem [hướng dẫn vẽ biểu đồ tuần 4](docs/week4_result_plots.md).
+Xem [hướng dẫn vẽ biểu đồ tuần 4](docs/huong_dan_bieu_do_ket_qua.md).
 
 ---
 
@@ -281,7 +281,7 @@ Bộ đặc trưng được chuẩn hóa theo hợp đồng [`configs/feature_sc
   * **Cổng B (Thông tin):** Loại bỏ biến có tỷ lệ NULL $> 50\%$ hoặc hằng số $> 99\%$.
   * **Cổng A (Đa cộng tuyến):** Yêu cầu $\max(|\text{Pearson}|, |\text{Spearman}|) < 0,85$ với 24 core và các biến đã chọn.
   * **Cổng C (Phân tách kịch bản):** Kiểm tra khả năng phát hiện trên 7 kịch bản tiêm bất thường ($\text{AUC} \ge 0,70$).
-* **Chốt quy mô (VIF $\le 10$):** Chốt **15 đặc trưng mới** vào core (nâng từ 24 lên 39, schema v4.0) và 11 biến vào danh sách dự bị (`reserve:`). **v4.1** đưa thêm 2 biến dự bị vào core (`delta_mean_share_night_7d`, `novelty_logontype_7d`), thành **41 core**. Chi tiết phương pháp luận: [`docs/reports/bao_cao_bo_dac_trung_v4.md`](docs/reports/bao_cao_bo_dac_trung_v4.md).
+* **Chốt quy mô (VIF $\le 10$):** Chốt **15 đặc trưng mới** vào core (nâng từ 24 lên 39, schema v4.0) và 11 biến vào danh sách dự bị (`reserve:`). **v4.1** đưa thêm 2 biến dự bị vào core (`delta_mean_share_night_7d`, `novelty_logontype_7d`), thành **41 core**. Chi tiết phương pháp luận: [`reports/week4/bao_cao_bo_dac_trung_v4.md`](reports/week4/bao_cao_bo_dac_trung_v4.md).
 
 Cột **Nhóm** là 8 nhóm theo nghĩa dùng trong phân tích SHAP tuần 5 (`src/evaluation/feature_groups.py`). Cột **Kiểu** là kiểu dữ liệu khai báo trong schema (trường `dtype`), được `FeatureSchema.validate_features` kiểm tra. Cột **Bộ 22** đánh dấu 22 đặc trưng mô hình ML dùng trong benchmark cuối tuần 5 (K = 18): 19 đặc trưng còn lại bị bỏ qua `drop_features` trong [`configs/benchmark_grid_test_22f.yaml`](configs/benchmark_grid_test_22f.yaml), schema vẫn giữ đủ 41 core. Căn cứ: [`reports/week5/bao_cao_tuan5.md`](reports/week5/bao_cao_tuan5.md) mục 3–5.
 
@@ -329,7 +329,7 @@ Cột **Nhóm** là 8 nhóm theo nghĩa dùng trong phân tích SHAP tuần 5 (`
 | 40 | `delta_mean_share_night_7d` | time | float64 | ✓ | Tỷ lệ sự kiện ban đêm hôm nay trừ trung bình 7 ngày trước (Off-hours, v4.1) |
 | 41 | `novelty_logontype_7d` | logon_type | float64 | ✓ | Số loại logon mới xuất hiện so với 7 ngày trước (Logon switch, v4.1) |
 
-> **Ghi chú về thiết kế:** Các đặc trưng lịch sử chỉ dùng dữ liệu $\le t-1$ (riêng `peer_z` tính lát cắt ngang trong ngày $t$ theo `entity_type`). Bộ 39 đặc trưng v4.0 đạt VIF $\le 8,52$ và max $|\rho| < 0,85$; chi tiết phễu chọn ở [`docs/reports/bao_cao_bo_dac_trung_v4.md`](docs/reports/bao_cao_bo_dac_trung_v4.md).
+> **Ghi chú về thiết kế:** Các đặc trưng lịch sử chỉ dùng dữ liệu $\le t-1$ (riêng `peer_z` tính lát cắt ngang trong ngày $t$ theo `entity_type`). Bộ 39 đặc trưng v4.0 đạt VIF $\le 8,52$ và max $|\rho| < 0,85$; chi tiết phễu chọn ở [`reports/week4/bao_cao_bo_dac_trung_v4.md`](reports/week4/bao_cao_bo_dac_trung_v4.md).
 
 ---
 
@@ -356,10 +356,12 @@ hoặc chạy qua môi trường ảo:
 Do tập dữ liệu 60 ngày (Windows Event 4624/4625) có dung lượng rất lớn (>22 GB) nên được lưu trữ ngoài Git trên Google Drive:
 
 ### Liên kết tải dữ liệu:
+
 * **Gói dữ liệu 1 (Google Drive Part 1):** [Tải xuống tại đây](https://drive.google.com/file/d/1aMz0oPItXDYn7u326Pl_jTnmdqFvsCmE/view?usp=sharing)
 * **Gói dữ liệu 2 (Google Drive Part 2):** [Tải xuống tại đây](https://drive.google.com/file/d/1FjXHtZAjKQxYtN2sv7OO6YMkNbqs00ek/view?usp=sharing)
 
 ### Hướng dẫn sử dụng:
+
 1. Tải 2 gói dữ liệu từ link trên.
 2. Giải nén vào thư mục `data/` trong dự án (`data/cleaned/` hoặc `data/interim/`).
 3. Chạy trực tiếp benchmark:
@@ -396,9 +398,9 @@ Bảng kết quả chính thức được chạy trên ma trận **39 đặc tr�
 * **Manifest tái lập** (commit, sha256 dữ liệu, phiên bản thư viện): `experiments/results/run_manifest.json`
 * **Nhật ký thí nghiệm** (tương thích 18 cột cũ + cột truy vết mới): `experiments/logs/experiment_log.csv`
 
-Tài liệu tham khảo:
-* **Báo cáo bộ đặc trưng v4.0 (39 core)**: [`docs/reports/bao_cao_bo_dac_trung_v4.md`](docs/reports/bao_cao_bo_dac_trung_v4.md)
-* **Báo cáo bộ đặc trưng v3.0 (24 core)**: [`docs/reports/bao_cao_bo_dac_trung_v3.md`](docs/reports/bao_cao_bo_dac_trung_v3.md)
+Tài liệu tham khảo (mục lục đầy đủ: [`docs/README.md`](docs/README.md), [`reports/README.md`](reports/README.md)):
+* **Báo cáo bộ đặc trưng v4.0 (39 core)**: [`reports/week4/bao_cao_bo_dac_trung_v4.md`](reports/week4/bao_cao_bo_dac_trung_v4.md)
+* **Báo cáo bộ đặc trưng v3.0 (24 core)**: [`reports/week3/bao_cao_bo_dac_trung_v3.md`](reports/week3/bao_cao_bo_dac_trung_v3.md)
 * **Báo cáo tóm tắt Tuần 3**: [`reports/week3/tom_tat_tuan3.md`](reports/week3/tom_tat_tuan3.md)
 * **Phân tích chi tiết & bằng chứng label-free**: [`reports/week3/label_free_benchmark.md`](reports/week3/label_free_benchmark.md)
 * **Từ điển dữ liệu 21 trường log LANL**: [`docs/data_dictionary.md`](docs/data_dictionary.md)

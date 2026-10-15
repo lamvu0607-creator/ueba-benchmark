@@ -85,7 +85,7 @@ Khoá của một tài khoản là cặp (`DomainName`, `UserName`). Tài khoả
 **Quyết định:** đánh giá chỉ trên **User** vì (1) đây là đối tượng tấn công chiếm đoạt tài khoản nhắm tới; (2) Admin,
 Service, System quá ít thực thể để học máy có nghĩa (ví dụ System có 6 tài khoản, ít hơn số láng giềng k = 20 của
 LOF) và hành vi của chúng gần như tất định, phù hợp với luật hơn; (3) tài khoản Machine không được tiêm. Chi tiết:
-[`docs/reports/thong_ke_loai_tai_khoan.md`](../../docs/reports/thong_ke_loai_tai_khoan.md).
+[`reports/week4/thong_ke_loai_tai_khoan.md`](../week4/thong_ke_loai_tai_khoan.md).
 
 ### 2.3. Chất lượng dữ liệu và các quyết định làm sạch
 
@@ -100,7 +100,7 @@ cài đặt trong `src/data/cleaner.py` và có unit test (`tests/test_cleaner.p
 | 4 | Bản ghi trùng hoàn toàn (ngày 1: 2,1%) | Xoá trùng tuyệt đối | Tránh thổi phồng số sự kiện |
 | 5 | Lệch giờ mùa hè từ ngày 42 | Trừ 3.600 giây cho ngày ≥ 42 | Đưa 60 ngày về cùng trục 24 giờ, quan trọng cho đặc trưng ngoài giờ |
 
-Nhật ký và số liệu kiểm chứng: [`docs/nhat_ky_trien_khai_pipeline.md`](../../docs/nhat_ky_trien_khai_pipeline.md).
+Nhật ký và số liệu kiểm chứng: [`reports/week3/nhat_ky_trien_khai_pipeline.md`](../week3/nhat_ky_trien_khai_pipeline.md).
 
 ### 2.4. Từ log tới ma trận đặc trưng
 
@@ -171,7 +171,7 @@ giải, biến thể dư) còn 78 → **vòng 2** lọc bằng số đo trên d�
 Chốt 15 biến mới (VIF ≤ 10) → 39 core; v4.1 thêm 2 biến dự bị → **41 core**, chia 8 nhóm theo nghĩa:
 volume (3), failure (6), time (8), rhythm (4), logon_type (6), fanout (6), novelty (5), context (3).
 Mỗi đặc trưng có tên, công thức, kiểu dữ liệu và diễn giải trong [`configs/feature_schema.yaml`](../../configs/feature_schema.yaml)
-và bảng ở README mục 4. Chi tiết phễu: [`docs/reports/bao_cao_bo_dac_trung_v4.md`](../../docs/reports/bao_cao_bo_dac_trung_v4.md).
+và bảng ở README mục 4. Chi tiết phễu: [`reports/week4/bao_cao_bo_dac_trung_v4.md`](../week4/bao_cao_bo_dac_trung_v4.md).
 
 **Lưu ý phương pháp:** cổng C dùng nhãn tiêm, nên nó chỉ chứng minh đặc trưng phản ứng đúng chiều với kịch bản,
 không chứng minh đặc trưng làm mô hình tốt hơn. Câu hỏi sau được trả lời bằng thí nghiệm loại bỏ ở mục 5.3.
@@ -873,10 +873,10 @@ Công thức đầy đủ của cả 41 đặc trưng: [`configs/feature_schema.
 
 | Nội dung | Đường dẫn |
 |---|---|
-| Đề cương | `docs/Tong quan de tai ueba.md` |
-| Từ điển dữ liệu, quyết định làm sạch | `docs/data_dictionary.md`, `docs/nhat_ky_trien_khai_pipeline.md` |
-| Phân loại tài khoản | `docs/reports/thong_ke_loai_tai_khoan.md` |
-| Bộ đặc trưng v4 | `docs/reports/bao_cao_bo_dac_trung_v4.md`, `configs/feature_schema.yaml` |
+| Đề cương | `docs/tong_quan_de_tai.md` |
+| Từ điển dữ liệu, quyết định làm sạch | `docs/data_dictionary.md`, `reports/week3/nhat_ky_trien_khai_pipeline.md` |
+| Phân loại tài khoản | `reports/week4/thong_ke_loai_tai_khoan.md` |
+| Bộ đặc trưng v4 | `reports/week4/bao_cao_bo_dac_trung_v4.md`, `configs/feature_schema.yaml` |
 | Bộ tiêm | `docs/huong_dan_tiem_bat_thuong_tuan4.md`, `configs/injection.yaml`, `src/injection/` |
 | Baseline | `reports/week4/baselines_report.md`, `configs/baselines.yaml` |
 | Lưới dev / test (22 đặc trưng) | `experiments/grid/dev_22f/`, `experiments/grid/test_22f/`, `experiments/grid/test_22f_nc1000/` |

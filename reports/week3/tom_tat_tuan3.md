@@ -109,6 +109,5 @@ python scripts/diagnostics/feature_variance_check.py # bằng chứng MAD = 0
   `run_manifest.json` ghi commit, `sha256` của parquet và phiên bản thư viện (sklearn 1.9.1, scipy 1.18.1, polars 1.44.2, numpy 2.5.3).
 * **Chống mất mát:** `.gitignore` đã sửa để `experiments/results/*` và `experiments/logs/experiment_log.csv` **được commit**
   (bài học Tuần 2: log bị ignore nên 8 dòng kết quả + `model_factory` + ~10 test suýt mất hoàn toàn).
-* **Tài liệu:** README, `docs/project_structure.md`, `docs/nhat_ky_trien_khai_pipeline.md` đã đính chính — bảng
+* **Tài liệu:** README, `docs/project_structure.md`, `reports/week3/nhat_ky_trien_khai_pipeline.md` đã đính chính — bảng
   "1.055.283 mẫu đánh giá" cũ là **artifact của rò rỉ dữ liệu** (vẫn giữ trong `<details>` để đối chiếu lịch sử).
-

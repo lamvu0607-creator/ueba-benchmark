@@ -242,6 +242,3 @@ python -m pytest tests/ -q          # 31 passed
 
 Tất cả artifact nằm trong `experiments/results/` và `experiments/logs/experiment_log.csv` — **đã commit vào git**
 (`run_manifest.json` chứa commit hash, `sha256` của parquet và phiên bản thư viện để chứng minh tái lập).
-
-
-

@@ -69,6 +69,7 @@ Tổng số dòng: **1.055.283 dòng** | Tổng số sự kiện log: **942.926.
 Ba nhóm `Admin`, `Service`, `System` chỉ chiếm **0,25% số dòng ma trận** (839 / 333.671 dòng), nhưng lại tạo ra tới **18,6% tổng số sự kiện log toàn hệ thống** (hơn 56,8 triệu sự kiện). Khi đi sâu vào dữ liệu:
 
 ### 3.1. Nhóm `System` (72 dòng ở Test) $\to$ Thực chất chỉ có đúng **4 tài khoản**
+
 Cả 4 tài khoản đều hoạt động đủ 18/18 ngày ($4 \times 18 = 72$ dòng):
 1. `nt authority\Anonymous`: 18 ngày, tổng **5.866.027 sự kiện** (TB 325.890 log/ngày).
 2. `nt authority\system`: 18 ngày, tổng **2.956.503 sự kiện** (TB 164.250 log/ngày).
@@ -76,6 +77,7 @@ Cả 4 tài khoản đều hoạt động đủ 18/18 ngày ($4 \times 18 = 72$ 
 4. `nt authority\local service`: 18 ngày, tổng **29.253 sự kiện** (TB 1.625 log/ngày).
 
 ### 3.2. Nhóm `Service` (137 dòng ở Test) $\to$ Thực chất chỉ có đúng **3 tên dịch vụ**
+
 Chỉ có 10 tài khoản trên toàn mạng, xoay quanh 3 tên: `AppService`, `Scanner`, `winservice`:
 1. `domain001\AppService`: 18 ngày $\to$ **18.594.639 sự kiện** (hơn 1 triệu log/ngày!).
 2. `domain001\Scanner`: 18 ngày $\to$ **15.747.298 sự kiện** (TB 874.850 log/ngày).
@@ -85,6 +87,7 @@ Chỉ có 10 tài khoản trên toàn mạng, xoay quanh 3 tên: `AppService`, `
 6. 5 tài khoản còn lại (`domain005\AppService`, `domain003\AppService`...) có volume nhỏ (< 1.000 log).
 
 ### 3.3. Nhóm `Admin` (630 dòng ở Test) $\to$ Thực chất chỉ có đúng **1 tên UserName (`Administrator`)**
+
 Toàn bộ nhóm Admin đều mang tên `Administrator`, phân bổ thành 2 cực hoàn toàn trái ngược:
 * **2 Domain Admins trung tâm** gánh 99,9% khối lượng:
   1. `domain001\Administrator`: Hoạt động 18/18 ngày $\to$ **9.192.151 sự kiện** (TB 510.675 log/ngày).
@@ -98,12 +101,14 @@ Toàn bộ nhóm Admin đều mang tên `Administrator`, phân bổ thành 2 c�
 Nếu cố tình huấn luyện các mô hình Machine Learning riêng biệt cho `System`, `Service` hoặc `Admin`, các thuật toán sẽ sụp đổ vì 3 nguyên nhân kỹ thuật cốt lõi:
 
 ### 4.1. Sụp đổ tham số láng giềng của Local Outlier Factor (LOF)
+
 * Thuật toán LOF ước lượng mật độ cục bộ dựa trên $k$ láng giềng gần nhất (cấu hình chuẩn: `n_neighbors = 20`).
 * Với nhóm `System`, toàn bộ tập train chỉ có **170 dòng**, sinh ra từ **4–6 tài khoản thực thể**.
 * Với nhóm `Service`, tập train chỉ có **317 dòng**, sinh ra từ **9–10 tài khoản thực thể**.
 * **Hậu quả toán học:** Số lượng thực thể độc lập nhỏ hơn cả số láng giềng $k=20$. Mô hình buộc phải lấy các ngày khác nhau của **chính cùng một tài khoản** làm láng giềng của nó. Khoảng cách láng giềng bị suy biến (degenerate), tỷ số mật độ cục bộ (LOF score) mất hoàn toàn ý nghĩa và không thể phát hiện bất thường.
 
 ### 4.2. Phân cực nhị nguyên cực đoan (Extreme Bimodality) phá vỡ One-Class SVM và Isolation Forest
+
 * Giả định nền tảng của One-Class SVM và Isolation Forest là: *Dữ liệu bình thường tập trung thành một khối mật độ cao liên tục (hoặc vài cụm mượt mà), còn outlier nằm thưa thớt ở vùng biên*.
 * Nhìn vào nhóm `Admin`: Có 2 tài khoản chiếm 9,7 triệu sự kiện, và 334 tài khoản chỉ có 1–2 sự kiện. Khoảng cách Euclid đa chiều giữa hai nhóm này tạo thành một "vực thẳm" nhân tạo.
 * Thuật toán SVM kernel RBF khi fit trên phân phối này sẽ không thể hội tụ về một siêu phẳng bao quanh mượt mà:
@@ -111,6 +116,7 @@ Nếu cố tình huấn luyện các mô hình Machine Learning riêng biệt ch
   * Hoặc nó coi 334 Local Admin là dị biệt (False Positive toàn bộ).
 
 ### 4.3. Bản chất xác định (Deterministic) của Dịch vụ & Hệ thống
+
 * Người dùng (`User`) có tâm lý, cảm xúc và hành vi thay đổi linh hoạt $\to$ bắt buộc dùng Học máy để nắm bắt phân phối mờ.
 * Ngược lại, `Service` và `System` là các chương trình máy tính chạy tự động theo kịch bản:
   * Giao thức xác thực (Kerberos/NTLM), loại logon (Type 3 Network), IP nguồn/đích của chúng gần như cố định 100%.
