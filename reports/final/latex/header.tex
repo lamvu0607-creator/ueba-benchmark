@@ -1,0 +1,28 @@
+\usepackage{fontspec}
+\setmainfont{Liberation Serif}
+\setsansfont{Liberation Sans}
+\setmonofont{Liberation Mono}[Scale=0.9]
+\usepackage[a4paper,margin=2.2cm]{geometry}
+\usepackage{etoolbox}
+\AtBeginEnvironment{longtable}{\small\setlength{\tabcolsep}{4pt}\renewcommand{\arraystretch}{1.15}}
+\usepackage{fvextra}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{breaklines,breakanywhere,commandchars=\\\{\},fontsize=\footnotesize}
+\usepackage{float}
+\let\origfigure\figure
+\let\endorigfigure\endfigure
+\renewenvironment{figure}[1][2]{\origfigure[H]}{\endorigfigure}
+\usepackage{titlesec}
+\titleformat{\section}{\Large\bfseries\sffamily}{}{0pt}{}
+\titleformat{\subsection}{\large\bfseries\sffamily}{}{0pt}{}
+\titleformat{\subsubsection}{\normalsize\bfseries\sffamily}{}{0pt}{}
+\newcommand{\sectionbreak}{\clearpage}
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small Báo cáo kỹ thuật – UEBA Benchmark}
+\fancyhead[R]{\small Lâm Vũ, Đinh Xuân Hiệp}
+\fancyfoot[C]{\small Trang \thepage}
+\renewcommand{\contentsname}{Mục lục}
+\renewcommand{\figurename}{Hình}
+\renewcommand{\tablename}{Bảng}
+\sloppy
