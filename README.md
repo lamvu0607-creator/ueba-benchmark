@@ -70,7 +70,7 @@ python -m pytest tests -q
 
 ## 3. Chạy pipeline
 
-Log gốc trong `data/raw/` quá nặng, nên hiện tại pipeline chạy từ `data/interim/` và bỏ qua bước chuyển raw → interim (`scripts/convert_raw_to_interim.py`). Cần có 120 file Parquet: `data/interim/event_4624/event_4624_day-01.parquet` đến `day-60`, và bộ `event_4625` tương ứng. Kiểm tra đủ file:
+Log gốc (raw) quá lớn nên không đưa lên được. Vì vậy pipeline chạy từ `data/interim/` và bỏ qua bước chuyển raw → interim (`scripts/convert_raw_to_interim.py`). Cần có 120 file Parquet: `data/interim/event_4624/event_4624_day-01.parquet` đến `day-60`, và bộ `event_4625` tương ứng. Kiểm tra đủ file:
 
 ```bash
 python scripts/validate_interim.py --mode fast
@@ -96,7 +96,15 @@ Bộ tiêm chỉ dùng hồ sơ của ngày train và bỏ qua các tài khoản
 
 ### 3.2 Toàn bộ quy trình
 
-Chạy lần lượt từ thư mục gốc của repo:
+Một lệnh chạy hết pipeline từ interim, từ thư mục gốc của repo:
+
+```bash
+python scripts/reproduce.py
+```
+
+Lệnh này kiểm tra SHA-256 của 120 file interim và chạy kiểm thử. Sau đó nó tính đặc trưng, hồ sơ train và baselines, tiêm 5 run test (seed 20261061–20261065), chạy lưới 22 đặc trưng, rồi so kết quả với `experiments/grid/test_22f/grid_summary.csv`. Kết quả ghi vào `experiments/reproduce/test_22f/`. Lệnh mất nhiều giờ. Thêm `--skip-existing` để bỏ qua các bước đã có đầu ra.
+
+Muốn chạy tay từng bước cho một run, gõ lần lượt:
 
 ```bash
 # 1. Đặc trưng của log gốc: interim -> data/features/raw/, data/processed/
