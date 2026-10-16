@@ -133,16 +133,73 @@ Khối `dev` dùng để chọn tham số trước khi chạy test: train ngày 
 
 ### 3.3 Từng giai đoạn
 
-| Stage | Lệnh | Đầu vào → đầu ra |
-|---|---|---|
-| `features` | `python main.py --stage features --interim-only` | interim → `data/features/raw/`, `data/processed/` |
-| | thêm `--start-day 1 --end-day 10` | chỉ tính một dải ngày |
-| `baselines` | `python main.py --stage baselines` | ma trận processed → `experiments/results/baselines/` |
-| `benchmark` | `python main.py --stage benchmark` | ma trận processed → `experiments/results/` (không nhãn) |
-| | thêm `--models isolation_forest local_outlier_factor one_class_svm` | chỉ chạy một số mô hình |
-| `inject` | `python main.py --stage inject --block test` | interim + hồ sơ train → `data/injection_runs/<run_id>/` |
-| `difficulty` | `python main.py --stage difficulty --events-dir <run>/events_injected` | run tiêm → `difficulty.parquet` |
+Mọi stage chạy bằng `python main.py --stage <tên>`. Đường dẫn dữ liệu lấy từ `configs/system_config.yaml`, tham số mô hình từ `configs/model_params.yaml`.
 
-Mọi stage trừ `inject` nhận thêm `--events-dir <run>/events_injected` để chạy trên một run tiêm thay vì log gốc.
+#### `features`: trích đặc trưng
 
-`--stage all` là luồng cũ: chạy `clean` (interim → `data/cleaned/`), `features` và `benchmark` không nhãn. Luồng hiện tại là các lệnh ở mục 3.2.
+```bash
+python main.py --stage features --interim-only
+```
+
+- Việc làm: đọc log 4624/4625 từng ngày, gom thành ma trận mỗi dòng là một tài khoản trong một ngày. Ma trận có 41 đặc trưng, gồm cả đặc trưng lịch sử so với 7 ngày trước. Sau đó chuẩn hoá (log1p, xử lý giá trị thiếu) và kiểm tra theo schema `configs/feature_schema.yaml`.
+- Đầu vào: `data/interim/`.
+- Đầu ra: `data/features/raw/feature_matrix_raw.parquet` (ma trận thô) và `data/processed/feature_matrix_processed.parquet` (ma trận đã chuẩn hoá, các stage sau đọc file này).
+- `--interim-only`: luôn đọc `data/interim/`, kể cả khi máy còn thư mục `data/cleaned/` của giai đoạn cũ.
+- `--start-day 1 --end-day 10`: chỉ tính một dải ngày, dùng để chạy thử cho nhanh.
+
+#### `baselines`: các phương pháp so sánh
+
+```bash
+python main.py --stage baselines
+```
+
+- Việc làm: chấm điểm bằng các phương pháp đơn giản không học máy: ngẫu nhiên, z-score và luật ngưỡng. Ngưỡng tính từ dữ liệu train (ngày 1–42), ngân sách cảnh báo 1% số dòng mỗi ngày (`configs/baselines.yaml`). Không phương pháp nào đọc nhãn.
+- Đầu vào: `data/processed/feature_matrix_processed.parquet`.
+- Đầu ra: `experiments/results/baselines/`, gồm `baseline_scores.parquet` (điểm từng dòng) và `thresholds.json` (ngưỡng). Nếu có nhãn thì thêm `baseline_metrics.csv`.
+- Trên log gốc, kết quả này còn có một công dụng nữa: bộ tiêm bỏ qua các tài khoản-ngày mà luật đã cảnh báo, để nhãn tiêm không trùng với bất thường có sẵn. Vì vậy phải chạy stage này trước `inject`.
+- `--split-day 35`: đổi mốc train (dùng cho khối dev). Kết quả ghi riêng vào `experiments/results/baselines_d35/`.
+
+#### `benchmark`: chạy mô hình
+
+```bash
+python main.py --stage benchmark
+```
+
+- Việc làm: fit mô hình trên train (ngày ≤ 42), chấm điểm ngày test, rồi tính bảng xếp hạng. Mặc định chạy 6 mô hình: Isolation Forest, LOF, One-Class SVM, z-score, luật ngưỡng, ngẫu nhiên. Mỗi loại tài khoản (User, Machine) được fit một mô hình riêng.
+- Đầu vào: `data/processed/feature_matrix_processed.parquet`.
+- Đầu ra: `experiments/results/`, gồm `benchmark_summary.csv` (bảng xếp hạng), `anomaly_scores.parquet` (điểm từng dòng), `model_topk_overlap.csv` (mức trùng top-K giữa các mô hình), `split_info.json` và `run_manifest.json` (seed, commit, phiên bản thư viện). Mô hình đã fit lưu ở `experiments/models/`.
+- Trên log gốc không có nhãn, nên chỉ đo được tỷ lệ cảnh báo, độ ổn định và mức trùng giữa mô hình. Chỉ số cần nhãn (PR-AUC, recall) chỉ có khi chạy trên run tiêm.
+- `--models isolation_forest local_outlier_factor one_class_svm`: chỉ chạy một số mô hình.
+- Tuỳ chọn khác: `--seed`, `--split-day`, `--budget-ratio` (mặc định lấy trong `configs/system_config.yaml`), `--no-segments` (một mô hình chung cho mọi loại tài khoản).
+
+#### `inject`: tiêm bất thường để có nhãn
+
+```bash
+python main.py --stage inject --block test --injection-seed 20261061 --run-id test_seed20261061
+```
+
+- Việc làm: chọn tài khoản nạn nhân dựa trên hồ sơ train, rồi nhân bản sự kiện thật của chính họ để tạo 6 kịch bản: brute-force, password spraying, đăng nhập ngoài giờ, máy lạ, tài khoản ngủ đông thức dậy, đổi kiểu đăng nhập. Log gốc không bị sửa.
+- Đầu vào: `data/interim/`, hồ sơ train `data/features/train_profiles/` (tạo bằng `python scripts/injection_profiles_summary.py`), kết quả `baselines` trên log gốc, và `configs/injection.yaml`.
+- Đầu ra: `data/injection_runs/<run_id>/`, gồm `events_injected/` (log của các ngày đánh giá đã tiêm, cùng định dạng interim), `injection_manifest.csv` (mỗi lần tiêm một dòng), `labels.parquet` (nhãn) và `run_config.json` (khối, seed, ngày đánh giá).
+- `--block test`: train ngày 1–42, tiêm và đánh giá ngày 43–60. `--block dev`: train ngày 1–35, đánh giá ngày 36–42, dùng để chọn tham số trước khi chạy test.
+- `--injection-seed`, `--run-id`: đổi seed và tên run. Mặc định tên run là `<khối>_seed<seed>`.
+
+#### `difficulty`: chấm độ khó mẫu tiêm (tuỳ chọn)
+
+```bash
+python main.py --stage difficulty --events-dir data/injection_runs/test_seed20261061/events_injected
+```
+
+- Việc làm: gắn độ khó cho từng mẫu tiêm. Hiện mới có khung, chưa cài cách chấm nào (oracle `none`), nên cột độ khó để trống.
+- Đầu ra: `difficulty.parquet` trong thư mục run.
+
+#### Chạy trên một run tiêm: `--events-dir`
+
+Thêm `--events-dir <run>/events_injected` vào `features`, `baselines`, `benchmark` hoặc `difficulty` để chạy trên log đã tiêm thay vì log gốc:
+
+- `features` lấy log đã tiêm cho các ngày đánh giá, ngày train vẫn đọc từ interim gốc. Ma trận ghi vào thư mục run, không đè `data/processed/`.
+- `baselines` và `benchmark` đọc ma trận và `labels.parquet` của run, chỉ đánh giá các ngày của run, và tính thêm chỉ số có nhãn (PR-AUC, ROC-AUC, precision và recall theo ngân sách). Kết quả ghi vào `experiments/injection_runs/<run_id>/results/`.
+
+#### Stage không dùng
+
+`clean` (interim → `data/cleaned/`) và `all` (`clean` → `features` → `benchmark` không nhãn) là luồng cũ. `plots` vẽ hình từ điểm đã lưu. Luồng hiện tại không cần ba stage này.
