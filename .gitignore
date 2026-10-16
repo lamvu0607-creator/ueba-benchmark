@@ -99,3 +99,6 @@ experiments/injection_runs/*/models/
 # Tuần 5: điểm từng dòng (~43 MB, sinh lại bằng scenario_analysis.py) và ma trận thí nghiệm cửa sổ
 experiments/analysis/scenario/scores.parquet
 data/window_ablation/
+
+# Môi trường Python đính kèm (giải nén trong repo)
+ueba-env/
