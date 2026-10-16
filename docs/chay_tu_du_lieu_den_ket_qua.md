@@ -15,7 +15,7 @@ Chọn **một** đường lấy `data/interim/`:
    ln -s ../../../ueba-demo/data/interim/event_4625 data/interim/event_4625
    ```
 
-2. **Từ bản Parquet nhóm đã chuẩn bị:** tải hai gói Google Drive ở [README mục 6](../README.md#6-dữ-liệu-đã-xử-lý--tải-về-từ-google-drive), giải nén để có `data/interim/event_4624/event_4624_day-01.parquet` đến `day-60.parquet` và bộ `event_4625` tương ứng. Đây là bản sao do dự án cung cấp; dùng hash bên dưới để xác nhận đúng phiên bản.
+2. **Từ bản Parquet nhóm đã chuẩn bị:** tải hai gói Google Drive ở [README mục 3](../README.md#3-dữ-liệu), giải nén để có `data/interim/event_4624/event_4624_day-01.parquet` đến `day-60.parquet` và bộ `event_4625` tương ứng. Đây là bản sao do dự án cung cấp; dùng hash bên dưới để xác nhận đúng phiên bản.
 3. **Từ log gốc LANL:** tải riêng host log `wls_day-01.bz2` đến `wls_day-60.bz2` từ trang LANL vào `data/raw/`, rồi chạy:
 
    ```bash
