@@ -41,14 +41,14 @@ LOF cần thư viện `hnswlib`. Bản trên PyPI phải biên dịch C++, nên 
 
 ### 2.1 Dùng môi trường đính kèm (Windows)
 
-Môi trường Python đính kèm đã có sẵn mọi thư viện, không cần cài thêm. Giải nén vào `C:\ueba-env`, mở PowerShell ở thư mục repo rồi gõ:
+Môi trường Python đính kèm đã có sẵn mọi thư viện, không cần cài thêm. Giải nén thành thư mục `ueba-env` nằm ngay trong thư mục repo, mở PowerShell ở thư mục repo rồi gõ:
 
 ```powershell
-$env:Path = "C:\ueba-env;C:\ueba-env\Scripts;" + $env:Path
+$env:Path = "$PWD\ueba-env;$PWD\ueba-env\Scripts;" + $env:Path
 python -c "import sys; print(sys.executable)"
 ```
 
-Lệnh thứ hai phải in ra `C:\ueba-env\python.exe`. Sau đó gõ `python ...` như các lệnh bên dưới. Lệnh đổi `Path` chỉ có tác dụng trong cửa sổ PowerShell đang mở, nên mỗi lần mở cửa sổ mới phải gõ lại.
+Lệnh thứ hai phải in ra đường dẫn tới `ueba-env\python.exe` trong thư mục repo. Sau đó gõ `python ...` như các lệnh bên dưới. Lệnh đổi `Path` chỉ có tác dụng trong cửa sổ PowerShell đang mở, nên mỗi lần mở cửa sổ mới phải gõ lại.
 
 ### 2.2 Tự cài bằng venv
 
