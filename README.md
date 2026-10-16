@@ -24,7 +24,6 @@ ueba-benchmark/
 │   ├── baselines/          # z-score, luật ngưỡng, đếm thất bại, ngẫu nhiên
 │   └── evaluation/         # Chia train/test theo thời gian, chỉ số đánh giá
 ├── scripts/                # Script bổ trợ (hồ sơ train, chuyển đổi raw, kiểm tra interim...)
-├── demo/                   # Demo web
 ├── experiments/            # Kết quả và mô hình đã lưu
 ├── docs/                   # Tài liệu kỹ thuật
 ├── reports/                # Báo cáo theo tuần
