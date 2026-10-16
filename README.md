@@ -55,7 +55,7 @@ Lệnh thứ hai phải in ra đường dẫn tới `ueba-env\python.exe` trong 
 Windows (PowerShell), nên dùng Python 3.11 hoặc 3.12:
 
 ```powershell
-py -3.12 -m venv .venv
+py -3.14 -m venv .venv
 .venv\Scripts\activate
 python -m pip install --upgrade pip
 pip install chroma-hnswlib        # hnswlib dựng sẵn, không cần trình biên dịch
