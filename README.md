@@ -7,7 +7,6 @@ Benchmark các mô hình phát hiện bất thường cho bài toán phân tích
 ```text
 ueba-benchmark/
 ├── main.py                 # Điều phối pipeline theo stage
-├── environment.yml         # Môi trường conda (conda-forge, Python 3.11)
 ├── requirements.txt        # Thư viện cho pip
 ├── pyproject.toml          # Khai báo package src (pip install -e .)
 ├── configs/                # Đường dẫn dữ liệu, schema đặc trưng, tham số mô hình, cấu hình tiêm
@@ -39,23 +38,7 @@ git clone https://github.com/lamvu0607-creator/ueba-benchmark.git
 cd ueba-benchmark
 ```
 
-LOF cần thư viện `hnswlib`. Bản trên PyPI phải biên dịch C++, nên trên Windows nên cài qua conda-forge.
-
-### 2.1 Conda (khuyên dùng)
-
-Trên Windows, mở Anaconda Prompt và gõ:
-
-```bat
-cd /d D:\duong\dan\ueba-benchmark
-conda env create -f environment.yml
-conda activate ueba
-pip install -e . --no-deps
-python -c "import hnswlib, pyod, polars; print('ok')"
-```
-
-Trên Linux/macOS các lệnh giống hệt, chỉ khác dòng `cd`.
-
-### 2.2 venv
+LOF cần thư viện `hnswlib`. Bản trên PyPI phải biên dịch C++, nên trên Windows cài `chroma-hnswlib` (bản dựng sẵn, vẫn `import hnswlib`).
 
 Windows (PowerShell), nên dùng Python 3.11 hoặc 3.12:
 
