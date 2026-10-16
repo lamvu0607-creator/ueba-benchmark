@@ -133,16 +133,12 @@ Khối `dev` dùng để chọn tham số trước khi chạy test: train ngày 
 
 ### 3.3 Từng giai đoạn
 
-| Stage | Lệnh | Đầu vào → đầu ra |
-|---|---|---|
-| `features` | `python main.py --stage features --interim-only` | interim → `data/features/raw/`, `data/processed/` |
-| | thêm `--start-day 1 --end-day 10` | chỉ tính một dải ngày |
-| `baselines` | `python main.py --stage baselines` | ma trận processed → `experiments/results/baselines/` |
-| `benchmark` | `python main.py --stage benchmark` | ma trận processed → `experiments/results/` (không nhãn) |
-| | thêm `--models isolation_forest local_outlier_factor one_class_svm` | chỉ chạy một số mô hình |
-| `inject` | `python main.py --stage inject --block test` | interim + hồ sơ train → `data/injection_runs/<run_id>/` |
-| `difficulty` | `python main.py --stage difficulty --events-dir <run>/events_injected` | run tiêm → `difficulty.parquet` |
+Mỗi stage chạy bằng `python main.py --stage <tên>`.
 
-Mọi stage trừ `inject` nhận thêm `--events-dir <run>/events_injected` để chạy trên một run tiêm thay vì log gốc.
+- `features`: đọc log interim, tạo ma trận tài khoản × ngày với 41 đặc trưng. Ghi ma trận thô vào `data/features/raw/` và ma trận đã chuẩn hoá vào `data/processed/`.
+- `baselines`: chấm điểm bằng các phương pháp đơn giản (ngẫu nhiên, z-score, luật ngưỡng), ngưỡng tính từ train. Trên log gốc, kết quả này giúp bộ tiêm bỏ qua các tài khoản-ngày mà luật đã cảnh báo, nên phải chạy trước `inject`.
+- `benchmark`: fit 6 mô hình trên ngày 1–42, chấm ngày test và ghi bảng xếp hạng. Trên log gốc chưa có nhãn, nên chỉ đo được tỷ lệ cảnh báo và mức trùng giữa các mô hình.
+- `inject`: nhân bản sự kiện thật của tài khoản nạn nhân để tạo 6 kịch bản bất thường. Ghi log đã tiêm, manifest và nhãn vào `data/injection_runs/<run_id>/`.
+- `difficulty`: chấm độ khó cho từng mẫu tiêm. Hiện mới có khung, chưa có cách chấm nào; phần này dự kiến mở rộng về sau.
 
-`--stage all` là luồng cũ: chạy `clean` (interim → `data/cleaned/`), `features` và `benchmark` không nhãn. Luồng hiện tại là các lệnh ở mục 3.2.
+Thêm `--events-dir <run>/events_injected` vào một stage thì stage đó chạy trên run tiêm thay vì log gốc, và có thêm các chỉ số cần nhãn như PR-AUC và recall.
